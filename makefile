@@ -1,7 +1,7 @@
-SRCS = main.c
+SRCS = main.cpp
 BIN  = baz
 
-CC   = gcc
+CC   = g++
 CFLAGS = -Wall -g
 
 build: $(SRCS)

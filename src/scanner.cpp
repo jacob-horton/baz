@@ -98,7 +98,7 @@ Token Scanner::symbol(char start) {
   if (token_type == SYMBOLS.end()) {
     // TODO: handle error properly
     std::cerr << "Unrecognised symbol: '" << start << "'" << std::endl;
-    exit(0);
+    exit(1);
   }
 
   return this->make_token(token_type->second);
@@ -156,8 +156,18 @@ std::optional<Token> Scanner::scan_token() {
   this->token_start = this->current;
 
   char c = this->advance();
-  if (is_digit(c))
-    return this->number();
+  if (is_digit(c)) {
+    Token number = this->number();
+
+    // Check that next token isn't alpha (i.e. we don't want "1234a")
+    if (is_alpha(this->peek())) {
+      std::cerr << "Unexpected character in number: '" << number.get_raw_token()
+                << this->peek() << "'" << std::endl;
+      exit(1);
+    }
+
+    return number;
+  }
 
   if (is_alpha(c))
     return this->identifier_or_keyword();

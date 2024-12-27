@@ -14,11 +14,12 @@ TEST(ScannerTest, Keyword) {
 }
 
 TEST(ScannerTest, Identifier) {
-  std::string source = "some_identifier";
+  std::string source = "some_identifier1";
   Scanner scan = Scanner(source.c_str());
 
   std::optional<Token> next = scan.scan_token();
   EXPECT_EQ(next->t, TokenType::IDENTIFIER);
+  EXPECT_EQ(next->length, strlen("some_identifier1"));
 }
 
 TEST(ScannerTest, MultipleLines) {
@@ -85,7 +86,6 @@ TEST(ScannerTest, Numbers) {
   std::string source = "1 2.345 0.6 789";
   Scanner scan = Scanner(source.c_str());
 
-  int token_count = 0;
   std::optional<Token> next = scan.scan_token();
   EXPECT_EQ(next->t, TokenType::INT_VAL);
   EXPECT_EQ(next->get_raw_token(), "1");
@@ -108,7 +108,6 @@ TEST(ScannerTest, RawTokenContents) {
   std::string source = "if\t identifier  1234 >   <=";
   Scanner scan = Scanner(source.c_str());
 
-  int token_count = 0;
   std::optional<Token> next = scan.scan_token();
   EXPECT_EQ(next->get_raw_token(), "if");
   EXPECT_EQ(next->start, source.c_str());
@@ -133,4 +132,38 @@ TEST(ScannerTest, RawTokenContents) {
   EXPECT_EQ(next->get_raw_token(), "<=");
   EXPECT_EQ(next->start, source.c_str() + source.find("<="));
   EXPECT_EQ(next->length, strlen("<="));
+}
+
+TEST(ScannerTest, NoWhitespace) {
+  std::string source = "token.other_token<5.1>3";
+  Scanner scan = Scanner(source.c_str());
+
+  std::optional<Token> next = scan.scan_token();
+  EXPECT_EQ(next->t, TokenType::IDENTIFIER);
+
+  next = scan.scan_token();
+  EXPECT_EQ(next->t, TokenType::DOT);
+
+  next = scan.scan_token();
+  EXPECT_EQ(next->t, TokenType::IDENTIFIER);
+
+  next = scan.scan_token();
+  EXPECT_EQ(next->t, TokenType::LESS);
+
+  next = scan.scan_token();
+  EXPECT_EQ(next->t, TokenType::FLOAT_VAL);
+}
+
+TEST(ScannerTest, InvalidNumber) {
+  std::string source = "1token";
+  Scanner scan = Scanner(source.c_str());
+
+  EXPECT_DEATH({ scan.scan_token(); }, "Unexpected character in number: '1t'");
+}
+
+TEST(ScannerTest, InvalidSymbol) {
+  std::string source = "£";
+  Scanner scan = Scanner(source.c_str());
+
+  EXPECT_DEATH({ scan.scan_token(); }, "Unrecognised symbol: '.*'");
 }

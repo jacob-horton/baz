@@ -42,10 +42,15 @@ const std::map<char, EqualSymbol> EQUAL_SYMBOLS = {
 };
 
 const std::map<char, TokenType> SYMBOLS = {
-    {'{', TokenType::L_CURLY_BRACKET}, {'}', TokenType::R_CURLY_BRACKET},
-    {'(', TokenType::L_BRACKET},       {')', TokenType::R_BRACKET},
-    {';', TokenType::SEMI_COLON},      {':', TokenType::COLON},
-    {',', TokenType::COMMA},           {'?', TokenType::QUESTION},
+    {'{', TokenType::L_CURLY_BRACKET},
+    {'}', TokenType::R_CURLY_BRACKET},
+    {'(', TokenType::L_BRACKET},
+    {')', TokenType::R_BRACKET},
+    {';', TokenType::SEMI_COLON},
+    {':', TokenType::COLON},
+    {',', TokenType::COMMA},
+    {'?', TokenType::QUESTION},
+    {'.', TokenType::DOT},
 };
 
 class Scanner {

@@ -14,6 +14,7 @@ enum TokenType {
   SEMI_COLON,
   COLON,
   COMMA,
+  DOT,
   QUESTION,
   LET,
   MATCH,
@@ -73,6 +74,8 @@ public:
       return "COLON";
     case COMMA:
       return "COMMA";
+    case DOT:
+      return "DOT";
     case QUESTION:
       return "QUESTION";
     case LET:

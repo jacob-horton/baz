@@ -53,7 +53,11 @@ struct Token {
   long line;
 
 public:
-  const std::string get_token_str() const {
+  const std::string get_raw_token() {
+    return std::string(this->start, this->length);
+  }
+
+  const std::string get_token_type_str() const {
     switch (this->t) {
     case L_CURLY_BRACKET:
       return "L_CURLY_BRACKET";
@@ -146,11 +150,9 @@ public:
 
     os << std::setw(22);
     os << std::left;
-    os << t.get_token_str();
+    os << t.get_token_type_str();
 
-    char word[t.length + 1];
-    strncpy(word, t.start, t.length);
-    word[t.length] = 0;
+    std::string word(t.start, t.length);
     os << word;
 
     return os;

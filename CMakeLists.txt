@@ -11,6 +11,7 @@ file(GLOB SOURCES "src/*.cpp")
 add_executable(baz ${SOURCES})
 
 add_custom_target(run
+    COMMAND make baz
     COMMAND ./baz
     DEPENDS baz
     COMMENT "Build program and run it"
@@ -20,7 +21,14 @@ add_custom_target(run
 # TESTS
 enable_testing()
 
+# Get all cpp files in "src/" except main.cpp
+file(GLOB ALL_SRC_CPP "src/*.cpp")
+list(FILTER ALL_SRC_CPP EXCLUDE REGEX "src/main.cpp")
+
+# Get all cpp files in "test/" and add src files from above here
 file(GLOB TEST_SOURCES "test/*.cpp")
+list(APPEND TEST_SOURCES ${ALL_SRC_CPP})
+
 add_executable(tests ${TEST_SOURCES})
 
 target_include_directories(tests PRIVATE /usr/include/gtest)
@@ -29,7 +37,8 @@ target_link_libraries(tests PRIVATE /usr/lib64/libgtest.so /usr/lib64/libgtest_m
 add_test(NAME gtest COMMAND tests)
 
 add_custom_target(run_tests
-    COMMAND ctest
+    COMMAND make tests
+    COMMAND ./tests
     DEPENDS tests
     COMMENT "Building tests and running them"
 )

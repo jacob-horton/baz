@@ -15,6 +15,10 @@ const std::map<std::string, TokenType> KEYWORDS = {
     {"struct", TokenType::STRUCT},
     {"enum", TokenType::ENUM},
     {"fn", TokenType::FN},
+    {"return", TokenType::RETURN},
+
+    {"print", TokenType::PRINT},
+    {"println", TokenType::PRINT},
 
     {"let", TokenType::LET},
     {"match", TokenType::MATCH},
@@ -31,6 +35,7 @@ const std::map<std::string, TokenType> KEYWORDS = {
 
     {"true", TokenType::TRUE},
     {"false", TokenType::FALSE},
+    {"null", TokenType::NULL_VAL},
 };
 
 // All symbols that can be singular or have an equal after them e.g. `!=`

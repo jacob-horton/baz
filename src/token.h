@@ -34,6 +34,7 @@ enum TokenType {
   FLOAT_VAL,
   STR_VAL,
   BOOL_VAL,
+  NULL_VAL,
   TRUE,
   FALSE,
   EQUAL,
@@ -44,6 +45,10 @@ enum TokenType {
   LESS_EQUAL,
   GREATER,
   GREATER_EQUAL,
+
+  RETURN,
+  PRINT,
+
   IDENTIFIER,
 };
 
@@ -114,6 +119,8 @@ public:
       return "STR_VAL";
     case BOOL_VAL:
       return "BOOL_VAL";
+    case NULL_VAL:
+      return "NULL";
     case TRUE:
       return "TRUE";
     case FALSE:
@@ -136,6 +143,10 @@ public:
       return "GREATER_EQUAL";
     case IDENTIFIER:
       return "IDENTIFIER";
+    case RETURN:
+      return "RETURN";
+    case PRINT:
+      return "PRINT";
     default:
       return "unknown";
     }

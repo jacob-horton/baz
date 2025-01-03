@@ -12,29 +12,29 @@ struct Stmt {
 struct FunDeclStmt : public Stmt {
     Token name;
     std::vector<Token> params;
-    std::vector<Stmt *> body;
+    std::vector<std::unique_ptr<Stmt>> body;
 
-    FunDeclStmt(Token name, std::vector<Token> params, std::vector<Stmt *> body)
-        : name(name), params(params), body(body) {}
+    FunDeclStmt(Token name, std::vector<Token> params, std::vector<std::unique_ptr<Stmt>> body)
+        : name(name), params(params), body(std::move(body)) {}
 };
 
 struct StructDeclStmt : public Stmt {
     Token name;
     std::vector<Token> properties;
-    std::vector<FunDeclStmt *> methods;
+    std::vector<std::unique_ptr<FunDeclStmt>> methods;
 
-    StructDeclStmt(Token name, std::vector<Token> properties, std::vector<FunDeclStmt *> methods)
-        : name(name), methods(methods) {}
+    StructDeclStmt(Token name, std::vector<Token> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods)
+        : name(name), properties(properties), methods(std::move(methods)) {}
 };
 
 struct ExprStmt : public Stmt {
-    Expr *expr;
+    std::unique_ptr<Expr> expr;
 
-    ExprStmt(Expr *expr) : expr(expr) {}
+    ExprStmt(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
 };
 
 struct BlockStmt : public Stmt {
-    std::vector<Stmt *> stmts;
+    std::vector<std::unique_ptr<Stmt>> stmts;
 
-    BlockStmt(std::vector<Stmt *> stmts) : stmts(stmts) {}
+    BlockStmt(std::vector<std::unique_ptr<Stmt>> stmts) : stmts(std::move(stmts)) {}
 };

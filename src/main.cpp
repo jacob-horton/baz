@@ -10,7 +10,7 @@ int main() {
     Scanner scan = Scanner(source);
     Parser parser = Parser(scan);
 
-    Stmt *stmt = parser.parse_stmt();
-    std::cout << stmt << std::endl;
+    std::unique_ptr<Stmt> stmt = parser.parse_stmt();
+    std::cout << &stmt << std::endl;
     return 0;
 }

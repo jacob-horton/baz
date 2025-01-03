@@ -1,6 +1,7 @@
 #pragma once
 
 #include "token.h"
+#include <memory>
 #include <vector>
 
 struct Expr {
@@ -9,9 +10,9 @@ struct Expr {
 
 struct AssignExpr : Expr {
     Token name;
-    Expr *value;
+    std::unique_ptr<Expr> value;
 
-    AssignExpr(Token name, Expr *value) : name(name), value(value) {}
+    AssignExpr(Token name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)) {}
 };
 
 struct VarExpr : Expr {
@@ -21,50 +22,50 @@ struct VarExpr : Expr {
 };
 
 struct BinaryExpr : Expr {
-    Expr *left;
+    std::unique_ptr<Expr> left;
     Token op;
-    Expr *right;
+    std::unique_ptr<Expr> right;
 
-    BinaryExpr(Expr *left, Token op, Expr *right)
-        : left(left), op(op), right(right) {}
+    BinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
+        : left(std::move(left)), op(op), right(std::move(right)) {}
 };
 
 // BinaryExpr, but short-circuits
 struct LogicalBinaryExpr : Expr {
-    Expr *left;
+    std::unique_ptr<Expr> left;
     Token op;
-    Expr *right;
+    std::unique_ptr<Expr> right;
 
-    LogicalBinaryExpr(Expr *left, Token op, Expr *right)
-        : left(left), op(op), right(right) {}
+    LogicalBinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
+        : left(std::move(left)), op(op), right(std::move(right)) {}
 };
 
 struct UnaryExpr : Expr {
     Token op;
-    Expr *right;
+    std::unique_ptr<Expr> right;
 
-    UnaryExpr(Token op, Expr *right) : op(op), right(right) {}
+    UnaryExpr(Token op, std::unique_ptr<Expr> right) : op(op), right(std::move(right)) {}
 };
 
 struct GetExpr : Expr {
-    Expr *value;
+    std::unique_ptr<Expr> value;
     Token name;
 
-    GetExpr(Expr *value, Token name) : value(value), name(name) {}
+    GetExpr(std::unique_ptr<Expr> value, Token name) : value(std::move(value)), name(name) {}
 };
 
 struct CallExpr : Expr {
-    Expr *callee;
-    std::vector<Expr *> args;
+    std::unique_ptr<Expr> callee;
+    std::vector<std::unique_ptr<Expr>> args;
 
-    CallExpr(Expr *callee, std::vector<Expr *> args)
-        : callee(callee), args(args) {}
+    CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args)
+        : callee(std::move(callee)), args(std::move(args)) {}
 };
 
 struct GroupingExpr : Expr {
-    Expr *expr;
+    std::unique_ptr<Expr> expr;
 
-    GroupingExpr(Expr *expr) : expr(expr) {}
+    GroupingExpr(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
 };
 
 struct PrimaryExpr : Expr {

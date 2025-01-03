@@ -11,8 +11,8 @@ Parser::Parser(Scanner scanner) : scanner(scanner) { this->advance(); }
 Stmt *Parser::parse_stmt() { return this->declaration(); }
 
 Stmt *Parser::declaration() {
-    // if (this->match(TokenType::STRUCT))
-    //   return this->struct_decl();
+    if (this->match(TokenType::STRUCT))
+        return this->struct_decl();
 
     if (this->match(TokenType::FN))
         return this->function_decl();
@@ -64,6 +64,28 @@ Token Parser::typed_identifier() {
     return id;
 }
 
+StructDeclStmt *Parser::struct_decl() {
+    Token name = this->consume(TokenType::IDENTIFIER, "Expected struct name.");
+    this->consume(TokenType::L_CURLY_BRACKET,
+                  "Expected '{' before function body.");
+
+    std::vector<Token> properties;
+    std::vector<FunDeclStmt *> methods;
+
+    while (!this->check(TokenType::R_CURLY_BRACKET)) {
+        if (this->match(TokenType::FN)) {
+            methods.push_back(this->function_decl());
+        } else {
+            properties.push_back(this->typed_identifier());
+            this->consume(TokenType::SEMI_COLON, "Expected ';' after property.");
+        }
+    };
+
+    this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after struct body.");
+
+    return new StructDeclStmt(name, properties, methods);
+}
+
 FunDeclStmt *Parser::function_decl() {
     // TODO: method or function
     Token name = this->consume(TokenType::IDENTIFIER, "Expected function name.");
@@ -71,10 +93,11 @@ FunDeclStmt *Parser::function_decl() {
 
     this->consume(TokenType::L_BRACKET, "Expected '(' after function name.");
     if (!this->check(TokenType::R_BRACKET)) {
-        // TODO: allow trailing comma
+        // Loop while there are commas
+        // If there is a comma followed by a right bracket, it is a trailing comma
         do {
             params.push_back(this->typed_identifier());
-        } while (this->match(TokenType::COMMA));
+        } while (this->match(TokenType::COMMA) && !this->check(TokenType::R_BRACKET));
     }
 
     this->consume(TokenType::R_BRACKET, "Expected ')' after parameter list.");
@@ -210,11 +233,14 @@ Expr *Parser::finish_call(Expr *callee) {
     std::vector<Expr *> args;
 
     if (!this->check(TokenType::R_BRACKET)) {
+        // Loop while there are commas
+        // If there is a comma followed by a right bracket, it is a trailing comma
         do {
-            // TODO: allow trailing comma
             args.push_back(this->expression());
-        } while (this->match(TokenType::COMMA));
+        } while (this->match(TokenType::COMMA) && !this->check(TokenType::R_BRACKET));
     }
+
+    this->consume(TokenType::R_BRACKET, "Expected ')' after arguments.");
 
     return new CallExpr(callee, args);
 }

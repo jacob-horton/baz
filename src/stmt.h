@@ -20,10 +20,10 @@ struct FunDeclStmt : public Stmt {
 
 struct StructDeclStmt : public Stmt {
     Token name;
-    std::vector<FunDeclStmt> methods;
-    // TODO: properties
+    std::vector<Token> properties;
+    std::vector<FunDeclStmt *> methods;
 
-    StructDeclStmt(Token name, std::vector<FunDeclStmt> methods)
+    StructDeclStmt(Token name, std::vector<Token> properties, std::vector<FunDeclStmt *> methods)
         : name(name), methods(methods) {}
 };
 

@@ -46,6 +46,13 @@ const std::map<char, EqualSymbol> EQUAL_SYMBOLS = {
     {'>', EqualSymbol{TokenType::GREATER, TokenType::GREATER_EQUAL}},
 };
 
+// All symbols that are repeated twice e.g. "&&", "||"
+const std::map<char, TokenType> DOUBLE_SYMBOLS = {
+    {'&', TokenType::AND},
+    {'|', TokenType::OR},
+    {'?', TokenType::QUESTION_QUESTION},
+};
+
 const std::map<char, TokenType> SYMBOLS = {
     {'{', TokenType::L_CURLY_BRACKET},
     {'}', TokenType::R_CURLY_BRACKET},

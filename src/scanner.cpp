@@ -94,19 +94,13 @@ Token Scanner::symbol(char start) {
             return this->make_token(equal_token_type->second.single);
     }
 
-    // TODO: handle double symbols better
-    if (start == '|' && this->match('|'))
-        return this->make_token(TokenType::OR);
-
-    if (start == '&' && this->match('&'))
-        return this->make_token(TokenType::AND);
-
-    if (start == '?' && this->match('?'))
-        return this->make_token(TokenType::QUESTION_QUESTION);
+    auto double_token_type = DOUBLE_SYMBOLS.find(start);
+    if (double_token_type != DOUBLE_SYMBOLS.end() && this->match(start)) {
+        return this->make_token(double_token_type->second);
+    }
 
     auto token_type = SYMBOLS.find(start);
     if (token_type == SYMBOLS.end()) {
-        // TODO: handle error properly
         std::cerr << "Unrecognised symbol: '" << start << "'" << std::endl;
         exit(1);
     }

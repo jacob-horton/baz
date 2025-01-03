@@ -15,6 +15,7 @@ class Parser {
     Stmt *declaration();
 
     FunDeclStmt *function_decl();
+    StructDeclStmt *struct_decl();
     Stmt *statement();
 
     Expr *expression();

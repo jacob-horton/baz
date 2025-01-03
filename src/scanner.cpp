@@ -30,8 +30,7 @@ bool is_alphanum(char c) {
 Token Scanner::make_token(TokenType t) {
     return Token{
         t,
-        this->token_start,
-        this->current - this->token_start,
+        std::string(this->token_start, this->current - this->token_start),
         line,
     };
 }
@@ -56,9 +55,7 @@ Token Scanner::number() {
 
 // Returns TokenType of keyword if the current token is one
 std::optional<TokenType> Scanner::get_keyword_type() {
-    char word[this->current - this->token_start + 1];
-    strncpy(word, this->token_start, this->current - this->token_start);
-    word[this->current - this->token_start] = 0;
+    std::string word(this->token_start, this->current - this->token_start);
 
     auto token_type = KEYWORDS.find(word);
     if (token_type == KEYWORDS.end()) {
@@ -147,9 +144,10 @@ char Scanner::peek() {
     return *this->current;
 }
 
-Scanner::Scanner(const char *source) {
-    this->current = source;
-    this->end = source + strlen(source);
+Scanner::Scanner(std::string &source) {
+    // TODO: don't use pointers?
+    this->current = source.c_str();
+    this->end = source.c_str() + source.length();
     this->line = 1;
 }
 
@@ -167,8 +165,7 @@ std::optional<Token> Scanner::scan_token() {
 
         // Check that next token isn't alpha (i.e. we don't want "1234a")
         if (is_alpha(this->peek())) {
-            std::cerr << "Unexpected character in number: '"
-                      << number.get_raw_token() << this->peek() << "'" << std::endl;
+            std::cerr << "Unexpected character in number: '" << number.literal << this->peek() << "'" << std::endl;
             exit(1);
         }
 

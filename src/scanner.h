@@ -95,7 +95,7 @@ class Scanner {
     char peek();
 
   public:
-    Scanner(const char *source);
+    Scanner(std::string &source);
 
     std::optional<Token> scan_token();
 };

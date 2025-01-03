@@ -68,11 +68,9 @@ const std::string get_token_type_str(TokenType t);
 
 struct Token {
     TokenType t;
-    const char *start;
-    long length;
+    std::string literal;
     long line;
 
   public:
-    const std::string get_raw_token();
     friend std::ostream &operator<<(std::ostream &os, const Token &t);
 };

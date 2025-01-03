@@ -50,10 +50,6 @@ const std::string get_token_type_str(TokenType t) {
     }
 }
 
-const std::string Token::get_raw_token() {
-    return std::string(this->start, this->length);
-}
-
 std::ostream &operator<<(std::ostream &os, const Token &t) {
     os << " ";
 
@@ -68,8 +64,7 @@ std::ostream &operator<<(std::ostream &os, const Token &t) {
     os << std::left;
     os << get_token_type_str(t.t);
 
-    std::string word(t.start, t.length);
-    os << word;
+    os << t.literal;
 
     return os;
 }

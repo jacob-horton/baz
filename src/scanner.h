@@ -6,8 +6,8 @@
 #include <optional>
 
 struct EqualSymbol {
-  TokenType single;
-  TokenType with_equal;
+    TokenType single;
+    TokenType with_equal;
 };
 
 const std::map<std::string, TokenType> KEYWORDS = {
@@ -63,32 +63,32 @@ const std::map<char, TokenType> SYMBOLS = {
 };
 
 class Scanner {
-private:
-  const char *token_start;
-  const char *current;
-  const char *end;
-  long line;
+  private:
+    const char *token_start;
+    const char *current;
+    const char *end;
+    long line;
 
-  Token make_token(TokenType t);
+    Token make_token(TokenType t);
 
-  Token number();
+    Token number();
 
-  // Returns TokenType of keyword if the current token is one
-  std::optional<TokenType> get_keyword_type();
+    // Returns TokenType of keyword if the current token is one
+    std::optional<TokenType> get_keyword_type();
 
-  // If token is a keyword, return the keyword type,
-  // otherwise it is an identifier
-  Token identifier_or_keyword();
+    // If token is a keyword, return the keyword type,
+    // otherwise it is an identifier
+    Token identifier_or_keyword();
 
-  Token symbol(char start);
-  void skip_whitespace();
+    Token symbol(char start);
+    void skip_whitespace();
 
-  bool match(char c);
-  char advance();
-  char peek();
+    bool match(char c);
+    char advance();
+    char peek();
 
-public:
-  Scanner(const char *source);
+  public:
+    Scanner(const char *source);
 
-  std::optional<Token> scan_token();
+    std::optional<Token> scan_token();
 };

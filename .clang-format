@@ -1,0 +1,38 @@
+# clang-format
+TabWidth: 4
+IndentWidth: 4
+UseTab: Never
+
+Language: Cpp
+Standard: Auto
+
+AlignAfterOpenBracket: true
+AlignOperands: true
+
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+
+BreakStringLiterals: false
+
+ColumnLimit: 0
+IndentCaseLabels: true
+
+SpaceInEmptyParentheses: false
+
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+SpacesBeforeTrailingComments: 1
+

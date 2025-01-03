@@ -6,35 +6,35 @@
 #include <vector>
 
 struct Stmt {
-  virtual ~Stmt() = default;
+    virtual ~Stmt() = default;
 };
 
 struct FunDeclStmt : public Stmt {
-  Token name;
-  std::vector<Token> params;
-  std::vector<Stmt *> body;
+    Token name;
+    std::vector<Token> params;
+    std::vector<Stmt *> body;
 
-  FunDeclStmt(Token name, std::vector<Token> params, std::vector<Stmt *> body)
-      : name(name), params(params), body(body) {}
+    FunDeclStmt(Token name, std::vector<Token> params, std::vector<Stmt *> body)
+        : name(name), params(params), body(body) {}
 };
 
 struct StructDeclStmt : public Stmt {
-  Token name;
-  std::vector<FunDeclStmt> methods;
-  // TODO: properties
+    Token name;
+    std::vector<FunDeclStmt> methods;
+    // TODO: properties
 
-  StructDeclStmt(Token name, std::vector<FunDeclStmt> methods)
-      : name(name), methods(methods) {}
+    StructDeclStmt(Token name, std::vector<FunDeclStmt> methods)
+        : name(name), methods(methods) {}
 };
 
 struct ExprStmt : public Stmt {
-  Expr *expr;
+    Expr *expr;
 
-  ExprStmt(Expr *expr) : expr(expr) {}
+    ExprStmt(Expr *expr) : expr(expr) {}
 };
 
 struct BlockStmt : public Stmt {
-  std::vector<Stmt *> stmts;
+    std::vector<Stmt *> stmts;
 
-  BlockStmt(std::vector<Stmt *> stmts) : stmts(stmts) {}
+    BlockStmt(std::vector<Stmt *> stmts) : stmts(stmts) {}
 };

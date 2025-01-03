@@ -4,71 +4,71 @@
 #include <vector>
 
 struct Expr {
-  virtual ~Expr() = default;
+    virtual ~Expr() = default;
 };
 
 struct AssignExpr : Expr {
-  Token name;
-  Expr *value;
+    Token name;
+    Expr *value;
 
-  AssignExpr(Token name, Expr *value) : name(name), value(value) {}
+    AssignExpr(Token name, Expr *value) : name(name), value(value) {}
 };
 
 struct VarExpr : Expr {
-  Token name;
+    Token name;
 
-  VarExpr(Token name) : name(name) {}
+    VarExpr(Token name) : name(name) {}
 };
 
 struct BinaryExpr : Expr {
-  Expr *left;
-  Token op;
-  Expr *right;
+    Expr *left;
+    Token op;
+    Expr *right;
 
-  BinaryExpr(Expr *left, Token op, Expr *right)
-      : left(left), op(op), right(right) {}
+    BinaryExpr(Expr *left, Token op, Expr *right)
+        : left(left), op(op), right(right) {}
 };
 
 // BinaryExpr, but short-circuits
 struct LogicalBinaryExpr : Expr {
-  Expr *left;
-  Token op;
-  Expr *right;
+    Expr *left;
+    Token op;
+    Expr *right;
 
-  LogicalBinaryExpr(Expr *left, Token op, Expr *right)
-      : left(left), op(op), right(right) {}
+    LogicalBinaryExpr(Expr *left, Token op, Expr *right)
+        : left(left), op(op), right(right) {}
 };
 
 struct UnaryExpr : Expr {
-  Token op;
-  Expr *right;
+    Token op;
+    Expr *right;
 
-  UnaryExpr(Token op, Expr *right) : op(op), right(right) {}
+    UnaryExpr(Token op, Expr *right) : op(op), right(right) {}
 };
 
 struct GetExpr : Expr {
-  Expr *value;
-  Token name;
+    Expr *value;
+    Token name;
 
-  GetExpr(Expr *value, Token name) : value(value), name(name) {}
+    GetExpr(Expr *value, Token name) : value(value), name(name) {}
 };
 
 struct CallExpr : Expr {
-  Expr *callee;
-  std::vector<Expr *> args;
+    Expr *callee;
+    std::vector<Expr *> args;
 
-  CallExpr(Expr *callee, std::vector<Expr *> args)
-      : callee(callee), args(args) {}
+    CallExpr(Expr *callee, std::vector<Expr *> args)
+        : callee(callee), args(args) {}
 };
 
 struct GroupingExpr : Expr {
-  Expr *expr;
+    Expr *expr;
 
-  GroupingExpr(Expr *expr) : expr(expr) {}
+    GroupingExpr(Expr *expr) : expr(expr) {}
 };
 
 struct PrimaryExpr : Expr {
-  Token primary;
+    Token primary;
 
-  PrimaryExpr(Token primary) : primary(primary) {}
+    PrimaryExpr(Token primary) : primary(primary) {}
 };

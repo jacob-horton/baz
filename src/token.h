@@ -8,71 +8,71 @@
 #include <string>
 
 enum TokenType {
-  L_CURLY_BRACKET,
-  R_CURLY_BRACKET,
-  L_BRACKET,
-  R_BRACKET,
-  SEMI_COLON,
-  COLON,
-  COMMA,
-  DOT,
-  QUESTION,
-  LET,
-  MATCH,
-  FN,
-  IF,
-  FOR,
-  WHILE,
-  STRUCT,
-  ENUM,
-  INTERFACE,
+    L_CURLY_BRACKET,
+    R_CURLY_BRACKET,
+    L_BRACKET,
+    R_BRACKET,
+    SEMI_COLON,
+    COLON,
+    COMMA,
+    DOT,
+    QUESTION,
+    LET,
+    MATCH,
+    FN,
+    IF,
+    FOR,
+    WHILE,
+    STRUCT,
+    ENUM,
+    INTERFACE,
 
-  // TODO: should this be combined with IDENTIFIER? Since a type can be built in
-  // or user-defined Or do we check for TYPE or IDENTIFIER in the parser
-  TYPE,
+    // TODO: should this be combined with IDENTIFIER? Since a type can be built
+    // in or user-defined Or do we check for TYPE or IDENTIFIER in the parser
+    TYPE,
 
-  INT_VAL,
-  FLOAT_VAL,
-  STR_VAL,
-  BOOL_VAL,
-  NULL_VAL,
-  TRUE,
-  FALSE,
+    INT_VAL,
+    FLOAT_VAL,
+    STR_VAL,
+    BOOL_VAL,
+    NULL_VAL,
+    TRUE,
+    FALSE,
 
-  EQUAL,
-  EQUAL_EQUAL,
-  BANG,
-  BANG_EQUAL,
-  LESS,
-  LESS_EQUAL,
-  GREATER,
-  GREATER_EQUAL,
+    EQUAL,
+    EQUAL_EQUAL,
+    BANG,
+    BANG_EQUAL,
+    LESS,
+    LESS_EQUAL,
+    GREATER,
+    GREATER_EQUAL,
 
-  OR,
-  AND,
+    OR,
+    AND,
 
-  PLUS,
-  MINUS,
-  STAR,
-  SLASH,
+    PLUS,
+    MINUS,
+    STAR,
+    SLASH,
 
-  QUESTION_QUESTION,
+    QUESTION_QUESTION,
 
-  RETURN,
-  PRINT,
+    RETURN,
+    PRINT,
 
-  IDENTIFIER,
+    IDENTIFIER,
 };
 
 const std::string get_token_type_str(TokenType t);
 
 struct Token {
-  TokenType t;
-  const char *start;
-  long length;
-  long line;
+    TokenType t;
+    const char *start;
+    long length;
+    long line;
 
-public:
-  const std::string get_raw_token();
-  friend std::ostream &operator<<(std::ostream &os, const Token &t);
+  public:
+    const std::string get_raw_token();
+    friend std::ostream &operator<<(std::ostream &os, const Token &t);
 };

@@ -167,3 +167,5 @@ TEST(ScannerTest, InvalidSymbol) {
 
   EXPECT_DEATH({ scan.scan_token(); }, "Unrecognised symbol: '.*'");
 }
+
+// TODO: double symbols

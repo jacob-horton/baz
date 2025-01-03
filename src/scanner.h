@@ -27,11 +27,11 @@ const std::map<std::string, TokenType> KEYWORDS = {
     {"while", TokenType::WHILE},
     {"for", TokenType::FOR},
 
-    {"void", TokenType::VOID_TYPE},
-    {"int", TokenType::INT_TYPE},
-    {"float", TokenType::FLOAT_TYPE},
-    {"str", TokenType::STR_TYPE},
-    {"bool", TokenType::BOOL_TYPE},
+    {"void", TokenType::TYPE},
+    {"int", TokenType::TYPE},
+    {"float", TokenType::TYPE},
+    {"str", TokenType::TYPE},
+    {"bool", TokenType::TYPE},
 
     {"true", TokenType::TRUE},
     {"false", TokenType::FALSE},
@@ -56,6 +56,10 @@ const std::map<char, TokenType> SYMBOLS = {
     {',', TokenType::COMMA},
     {'?', TokenType::QUESTION},
     {'.', TokenType::DOT},
+    {'+', TokenType::PLUS},
+    {'-', TokenType::MINUS},
+    {'*', TokenType::STAR},
+    {'/', TokenType::SLASH},
 };
 
 class Scanner {

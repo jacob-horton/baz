@@ -1,19 +1,17 @@
 #include <iostream>
-#include <optional>
 #include <ostream>
 #include <string>
 
+#include "parser.h"
 #include "scanner.h"
-#include "token.h"
 
 int main() {
-  std::string source = "if (1234 == 0.9) {\nlet some_identifier1 = 1234\n}";
+  std::string source = "fn func_name(jeff: int): str { 1 + 2 * false - (1.5 / "
+                       "6 * id) ?? 5; 10; }";
   Scanner scan = Scanner(source.c_str());
+  Parser parser = Parser(scan);
 
-  std::optional<Token> next = scan.scan_token();
-  while (next.has_value()) {
-    std::cout << next.value() << std::endl << std::flush;
-    next = scan.scan_token();
-  }
+  Stmt *stmt = parser.parse_stmt();
+  std::cout << stmt << std::endl << std::flush;
   return 0;
 }

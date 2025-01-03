@@ -26,46 +26,33 @@ TEST(ScannerTest, MultipleLines) {
     std::string source = "a\nb c\nd";
     Scanner scan = Scanner(source);
 
-    std::optional<Token> next = scan.scan_token();
-    EXPECT_EQ(next->line, 1);
+    auto expected = {1, 2, 2, 3};
 
-    next = scan.scan_token();
-    EXPECT_EQ(next->line, 2);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->line, 2);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->line, 3);
+    for (auto ex : expected) {
+        std::optional<Token> next = scan.scan_token();
+        EXPECT_EQ(next->line, ex);
+    }
 }
 
 TEST(ScannerTest, EqualTokens) {
     std::string source = "<= >= == != < > = !";
     Scanner scan = Scanner(source);
 
-    std::optional<Token> next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::LESS_EQUAL);
+    auto expected = {
+        TokenType::LESS_EQUAL,
+        TokenType::GREATER_EQUAL,
+        TokenType::EQUAL_EQUAL,
+        TokenType::BANG_EQUAL,
+        TokenType::LESS,
+        TokenType::GREATER,
+        TokenType::EQUAL,
+        TokenType::BANG,
+    };
 
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::GREATER_EQUAL);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::EQUAL_EQUAL);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::BANG_EQUAL);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::LESS);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::GREATER);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::EQUAL);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::BANG);
+    for (auto ex : expected) {
+        std::optional<Token> next = scan.scan_token();
+        EXPECT_EQ(next->t, ex);
+    }
 }
 
 TEST(ScannerTest, SkipWhitespace) {
@@ -86,61 +73,48 @@ TEST(ScannerTest, Numbers) {
     std::string source = "1 2.345 0.6 789";
     Scanner scan = Scanner(source);
 
-    std::optional<Token> next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::INT_VAL);
-    EXPECT_EQ(next->literal, "1");
+    auto expected = {
+        std::make_tuple(TokenType::INT_VAL, "1"),
+        std::make_tuple(TokenType::FLOAT_VAL, "2.345"),
+        std::make_tuple(TokenType::FLOAT_VAL, "0.6"),
+        std::make_tuple(TokenType::INT_VAL, "789"),
+    };
 
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::FLOAT_VAL);
-    EXPECT_EQ(next->literal, "2.345");
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::FLOAT_VAL);
-    EXPECT_EQ(next->literal, "0.6");
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::INT_VAL);
-    EXPECT_EQ(next->literal, "789");
+    for (auto ex : expected) {
+        std::optional<Token> next = scan.scan_token();
+        EXPECT_EQ(next->t, std::get<0>(ex));
+        EXPECT_EQ(next->literal, std::get<1>(ex));
+    }
 }
 
 TEST(ScannerTest, RawTokenContents) {
     std::string source = "if\t identifier  1234 >   <=";
     Scanner scan = Scanner(source);
 
-    std::optional<Token> next = scan.scan_token();
-    EXPECT_EQ(next->literal, "if");
+    auto expected = {"if", "identifier", "1234", ">", "<="};
 
-    next = scan.scan_token();
-    EXPECT_EQ(next->literal, "identifier");
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->literal, "1234");
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->literal, ">");
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->literal, "<=");
+    for (auto ex : expected) {
+        std::optional<Token> next = scan.scan_token();
+        EXPECT_EQ(next->literal, ex);
+    }
 }
 
 TEST(ScannerTest, NoWhitespace) {
     std::string source = "token.other_token<5.1>3";
     Scanner scan = Scanner(source);
 
-    std::optional<Token> next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::IDENTIFIER);
+    auto expected = {
+        TokenType::IDENTIFIER,
+        TokenType::DOT,
+        TokenType::IDENTIFIER,
+        TokenType::LESS,
+        TokenType::FLOAT_VAL,
+    };
 
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::DOT);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::IDENTIFIER);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::LESS);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::FLOAT_VAL);
+    for (auto ex : expected) {
+        std::optional<Token> next = scan.scan_token();
+        EXPECT_EQ(next->t, ex);
+    }
 }
 
 TEST(ScannerTest, InvalidNumber) {
@@ -161,18 +135,39 @@ TEST(ScannerTest, DoubleTokens) {
     std::string source = "&& || ?? ? & |";
     Scanner scan = Scanner(source);
 
-    std::optional<Token> next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::AND);
+    auto expected = {
+        TokenType::AND,
+        TokenType::OR,
+        TokenType::QUESTION_QUESTION,
+        TokenType::QUESTION,
+    };
 
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::OR);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::QUESTION_QUESTION);
-
-    next = scan.scan_token();
-    EXPECT_EQ(next->t, TokenType::QUESTION);
+    for (auto ex : expected) {
+        std::optional<Token> next = scan.scan_token();
+        EXPECT_EQ(next->t, ex);
+    }
 
     EXPECT_DEATH({ scan.scan_token(); }, "Unrecognised symbol: '&'");
     EXPECT_DEATH({ scan.scan_token(); }, "Unrecognised symbol: '|'");
+}
+
+TEST(ScannerTest, Types) {
+    std::string source = "int str float void bool string boolean";
+    Scanner scan = Scanner(source);
+
+    auto expected = {
+        std::make_tuple(TokenType::TYPE, "int"),
+        std::make_tuple(TokenType::TYPE, "str"),
+        std::make_tuple(TokenType::TYPE, "float"),
+        std::make_tuple(TokenType::TYPE, "void"),
+        std::make_tuple(TokenType::TYPE, "bool"),
+        std::make_tuple(TokenType::IDENTIFIER, "string"),
+        std::make_tuple(TokenType::IDENTIFIER, "boolean"),
+    };
+
+    for (auto ex : expected) {
+        std::optional<Token> next = scan.scan_token();
+        EXPECT_EQ(next->t, std::get<0>(ex));
+        EXPECT_EQ(next->literal, std::get<1>(ex));
+    }
 }

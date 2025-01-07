@@ -27,7 +27,7 @@ bool is_alphanum(char c) {
     return false;
 }
 
-Token Scanner::make_token(TokenType t) {
+Token TextScanner::make_token(TokenType t) {
     return Token{
         t,
         std::string(this->token_start, this->current - this->token_start),
@@ -35,7 +35,7 @@ Token Scanner::make_token(TokenType t) {
     };
 }
 
-Token Scanner::number() {
+Token TextScanner::number() {
     TokenType type = TokenType::INT_VAL;
 
     // Consume digits - we already know we've got an initial one
@@ -54,7 +54,7 @@ Token Scanner::number() {
 }
 
 // Returns TokenType of keyword if the current token is one
-std::optional<TokenType> Scanner::get_keyword_type() {
+std::optional<TokenType> TextScanner::get_keyword_type() {
     std::string word(this->token_start, this->current - this->token_start);
 
     auto token_type = KEYWORDS.find(word);
@@ -67,7 +67,7 @@ std::optional<TokenType> Scanner::get_keyword_type() {
 
 // If token is a keyword, return the keyword type,
 // otherwise it is an identifier
-Token Scanner::identifier_or_keyword() {
+Token TextScanner::identifier_or_keyword() {
     // Consume alphanumeric - we've already consumed alpha
     while (is_alphanum(this->peek()))
         this->advance();
@@ -79,7 +79,7 @@ Token Scanner::identifier_or_keyword() {
     return this->make_token(TokenType::IDENTIFIER);
 }
 
-Token Scanner::symbol(char start) {
+Token TextScanner::symbol(char start) {
     // TODO: strings in quotes
     TokenType type;
 
@@ -105,7 +105,7 @@ Token Scanner::symbol(char start) {
     return this->make_token(token_type->second);
 }
 
-void Scanner::skip_whitespace() {
+void TextScanner::skip_whitespace() {
     // TODO: comments
     while (true) {
         switch (this->peek()) {
@@ -124,7 +124,7 @@ void Scanner::skip_whitespace() {
     }
 }
 
-bool Scanner::match(char c) {
+bool TextScanner::match(char c) {
     if (*this->current == c) {
         this->current++;
         return true;
@@ -133,25 +133,25 @@ bool Scanner::match(char c) {
     return false;
 }
 
-char Scanner::advance() {
+char TextScanner::advance() {
     char current = *this->current;
     this->current++;
 
     return current;
 }
 
-char Scanner::peek() {
+char TextScanner::peek() {
     return *this->current;
 }
 
-Scanner::Scanner(std::string &source) {
+TextScanner::TextScanner(std::string &source) {
     // TODO: don't use pointers?
     this->current = source.c_str();
     this->end = source.c_str() + source.length();
     this->line = 1;
 }
 
-std::optional<Token> Scanner::scan_token() {
+std::optional<Token> TextScanner::scan_token() {
     if (this->current >= this->end) {
         return {};
     }

@@ -8,20 +8,20 @@ struct Expr {
     virtual ~Expr() = default;
 };
 
-struct AssignExpr : Expr {
+struct AssignExpr : public Expr {
     Token name;
     std::unique_ptr<Expr> value;
 
     AssignExpr(Token name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)) {}
 };
 
-struct VarExpr : Expr {
+struct VarExpr : public Expr {
     Token name;
 
     VarExpr(Token name) : name(name) {}
 };
 
-struct BinaryExpr : Expr {
+struct BinaryExpr : public Expr {
     std::unique_ptr<Expr> left;
     Token op;
     std::unique_ptr<Expr> right;
@@ -30,8 +30,8 @@ struct BinaryExpr : Expr {
         : left(std::move(left)), op(op), right(std::move(right)) {}
 };
 
-// BinaryExpr, but short-circuits
-struct LogicalBinaryExpr : Expr {
+// Smae as BinaryExpr, but short-circuits
+struct LogicalBinaryExpr : public Expr {
     std::unique_ptr<Expr> left;
     Token op;
     std::unique_ptr<Expr> right;
@@ -40,21 +40,21 @@ struct LogicalBinaryExpr : Expr {
         : left(std::move(left)), op(op), right(std::move(right)) {}
 };
 
-struct UnaryExpr : Expr {
+struct UnaryExpr : public Expr {
     Token op;
     std::unique_ptr<Expr> right;
 
     UnaryExpr(Token op, std::unique_ptr<Expr> right) : op(op), right(std::move(right)) {}
 };
 
-struct GetExpr : Expr {
+struct GetExpr : public Expr {
     std::unique_ptr<Expr> value;
     Token name;
 
     GetExpr(std::unique_ptr<Expr> value, Token name) : value(std::move(value)), name(name) {}
 };
 
-struct CallExpr : Expr {
+struct CallExpr : public Expr {
     std::unique_ptr<Expr> callee;
     std::vector<std::unique_ptr<Expr>> args;
 
@@ -62,13 +62,13 @@ struct CallExpr : Expr {
         : callee(std::move(callee)), args(std::move(args)) {}
 };
 
-struct GroupingExpr : Expr {
+struct GroupingExpr : public Expr {
     std::unique_ptr<Expr> expr;
 
     GroupingExpr(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
 };
 
-struct PrimaryExpr : Expr {
+struct PrimaryExpr : public Expr {
     Token primary;
 
     PrimaryExpr(Token primary) : primary(primary) {}

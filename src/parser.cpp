@@ -7,9 +7,13 @@
 #include <ostream>
 #include <vector>
 
-Parser::Parser(Scanner scanner) : scanner(scanner) { this->advance(); }
+Parser::Parser(std::unique_ptr<Scanner> scanner) : scanner(std::move(scanner)) {
+    this->advance();
+}
 
-std::unique_ptr<Stmt> Parser::parse_stmt() { return this->declaration(); }
+std::unique_ptr<Stmt> Parser::parse_stmt() {
+    return this->declaration();
+}
 
 std::unique_ptr<Stmt> Parser::declaration() {
     if (this->match(TokenType::STRUCT))
@@ -62,8 +66,9 @@ Token Parser::typed_identifier() {
 
     consume(TokenType::COLON, "Expected type for identifier.");
     Token type = this->consume(TokenType::TYPE, "Expected type after ':'.");
+    bool optional = this->match(TokenType::QUESTION);
 
-    // TODO: do something with type
+    // TODO: do something with type and optional
     return id;
 }
 
@@ -114,7 +119,9 @@ std::unique_ptr<FunDeclStmt> Parser::function_decl() {
     return std::make_unique<FunDeclStmt>(name, params, std::move(body));
 }
 
-std::unique_ptr<Expr> Parser::expression() { return this->logical_or(); }
+std::unique_ptr<Expr> Parser::expression() {
+    return this->logical_or();
+}
 
 std::unique_ptr<Expr> Parser::logical_or() {
     std::unique_ptr<Expr> expr = this->logical_and();
@@ -265,7 +272,7 @@ std::unique_ptr<Expr> Parser::primary() {
 
 std::optional<Token> Parser::advance() {
     this->prev = this->current;
-    this->current = scanner.scan_token();
+    this->current = scanner->scan_token();
 
     return this->prev;
 }

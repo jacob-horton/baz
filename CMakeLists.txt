@@ -32,8 +32,8 @@ list(APPEND TEST_SOURCES ${ALL_SRC_CPP})
 
 add_executable(tests ${TEST_SOURCES})
 
-target_include_directories(tests PRIVATE /usr/include/gtest)
-target_link_libraries(tests PRIVATE /usr/lib64/libgtest.so /usr/lib64/libgtest_main.so)
+target_include_directories(tests PRIVATE /usr/include/gtest /usr/include/gmock)
+target_link_libraries(tests PRIVATE /usr/lib64/libgtest.so /usr/lib64/libgtest_main.so /usr/lib64/libgmock.so /usr/lib64/libgmock_main.so)
 
 add_test(NAME gtest COMMAND tests)
 

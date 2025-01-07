@@ -70,6 +70,12 @@ const std::map<char, TokenType> SYMBOLS = {
 };
 
 class Scanner {
+  public:
+    virtual std::optional<Token> scan_token() = 0;
+    virtual ~Scanner() = default;
+};
+
+class TextScanner : public Scanner {
   private:
     const char *token_start;
     const char *current;
@@ -95,7 +101,7 @@ class Scanner {
     char peek();
 
   public:
-    Scanner(std::string &source);
+    TextScanner(std::string &source);
 
-    std::optional<Token> scan_token();
+    std::optional<Token> scan_token() override;
 };

@@ -8,7 +8,7 @@
 
 class Parser {
   private:
-    Scanner scanner;
+    std::unique_ptr<Scanner> scanner;
 
     std::optional<Token> prev;
     std::optional<Token> current;
@@ -44,7 +44,7 @@ class Parser {
     Token consume(TokenType t, std::string error_message);
 
   public:
-    Parser(Scanner scanner);
+    Parser(std::unique_ptr<Scanner> scanner);
 
     std::unique_ptr<Stmt> parse_stmt();
 };

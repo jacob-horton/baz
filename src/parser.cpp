@@ -12,11 +12,15 @@ Parser::Parser(std::unique_ptr<Scanner> scanner) : scanner(std::move(scanner)) {
     this->advance();
 }
 
-std::unique_ptr<Stmt> Parser::parse_stmt() {
+std::optional<std::unique_ptr<Stmt>> Parser::parse_stmt() {
     return this->declaration();
 }
 
-std::unique_ptr<Stmt> Parser::declaration() {
+std::optional<std::unique_ptr<Stmt>> Parser::declaration() {
+    if (!this->peek().has_value()) {
+        return {};
+    }
+
     if (this->match(TokenType::STRUCT))
         return this->struct_decl();
 
@@ -60,21 +64,33 @@ std::unique_ptr<Stmt> Parser::if_statement() {
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'if'.");
     std::unique_ptr<Expr> condition = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after if condition.");
+    this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before if branch.");
 
-    auto body = this->block();
-    return std::make_unique<IfStmt>(std::move(condition), std::move(body));
+    auto true_block = this->block();
+
+    // TODO: else if
+    std::optional<std::vector<std::unique_ptr<Stmt>>> false_block = {};
+    if (this->match(TokenType::ELSE)) {
+        this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before else branch.");
+        false_block = this->block();
+    }
+
+    return std::make_unique<IfStmt>(std::move(condition), std::move(true_block), std::move(false_block));
 }
 
 std::unique_ptr<Stmt> Parser::for_statement() {
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'for'.");
+    this->consume(TokenType::LET, "Expected variable declaration.");
     std::unique_ptr<Stmt> var = this->variable_decl();
     std::unique_ptr<Expr> condition = this->expression();
-    this->consume(TokenType::L_BRACKET, "Expected ';' after expression.");
+    this->consume(TokenType::SEMI_COLON, "Expected ';' after expression.");
 
     std::unique_ptr<Expr> expr = this->expression();
     this->consume(TokenType::EQUAL, "Expected '=' after assignment target.");
     std::unique_ptr<Stmt> increment = this->assignment(*expr);
 
+    this->consume(TokenType::R_BRACKET, "Expected closing ')' after for condition.");
+    this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before loop body.");
     auto body = this->block();
     return std::make_unique<ForStmt>(std::move(var), std::move(condition), std::move(increment), std::move(body));
 }
@@ -83,6 +99,7 @@ std::unique_ptr<Stmt> Parser::while_statement() {
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'while'.");
     std::unique_ptr<Expr> condition = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after while condition.");
+    this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before loop body.");
 
     auto body = this->block();
     return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
@@ -130,7 +147,8 @@ std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
 std::vector<std::unique_ptr<Stmt>> Parser::block() {
     std::vector<std::unique_ptr<Stmt>> stmts;
     while (!this->check(TokenType::R_CURLY_BRACKET)) {
-        stmts.push_back(this->statement());
+        // TODO: check value exists
+        stmts.push_back(this->declaration().value());
     }
 
     this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after block.");
@@ -311,8 +329,7 @@ std::unique_ptr<Expr> Parser::call() {
         if (this->match(TokenType::L_BRACKET)) {
             expr = this->finish_call(std::move(expr));
         } else if (this->match(TokenType::DOT)) {
-            Token name = this->consume(TokenType::IDENTIFIER,
-                                       "Expect property name after '.'.");
+            Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
             expr = std::make_unique<GetExpr>(std::move(expr), name);
         } else {
             break;
@@ -346,7 +363,7 @@ std::unique_ptr<Expr> Parser::primary() {
 
     if (this->match(TokenType::TRUE) || this->match(TokenType::FALSE) ||
         this->match(TokenType::NULL_VAL) || this->match(TokenType::INT_VAL) ||
-        this->match(TokenType::FLOAT_VAL)) {
+        this->match(TokenType::FLOAT_VAL) || this->match(TokenType::STR_VAL)) {
         return std::make_unique<LiteralExpr>(this->previous());
     }
 
@@ -367,7 +384,10 @@ std::optional<Token> Parser::advance() {
     return this->prev;
 }
 
-std::optional<Token> Parser::peek() { return this->current; }
+std::optional<Token> Parser::peek() {
+    return this->current;
+}
+
 Token Parser::previous() {
     if (!this->prev.has_value()) {
         std::cerr << "[BUG] Expected previous token to exist." << std::endl;

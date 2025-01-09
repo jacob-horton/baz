@@ -21,6 +21,7 @@ enum TokenType {
     MATCH,
     FN,
     IF,
+    ELSE,
     FOR,
     WHILE,
     STRUCT,

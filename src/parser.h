@@ -14,7 +14,7 @@ class Parser {
     std::optional<Token> prev;
     std::optional<Token> current;
 
-    std::unique_ptr<Stmt> declaration();
+    std::optional<std::unique_ptr<Stmt>> declaration();
 
     std::unique_ptr<FunDeclStmt> function_decl();
     std::unique_ptr<StructDeclStmt> struct_decl();
@@ -41,7 +41,7 @@ class Parser {
     std::unique_ptr<Expr> primary();
     std::unique_ptr<Expr> finish_call(std::unique_ptr<Expr> expr);
 
-    std::vector<std::unique_ptr<Stmt> > block();
+    std::vector<std::unique_ptr<Stmt>> block();
     TypedVar typed_identifier();
 
     std::optional<Token> advance();
@@ -55,5 +55,5 @@ class Parser {
   public:
     Parser(std::unique_ptr<Scanner> scanner);
 
-    std::unique_ptr<Stmt> parse_stmt();
+    std::optional<std::unique_ptr<Stmt>> parse_stmt();
 };

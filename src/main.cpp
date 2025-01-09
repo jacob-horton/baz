@@ -7,11 +7,39 @@
 #include "scanner.h"
 
 int main() {
-    std::string source = "struct Outer { fn func_name(jeff: int, bill: float,): str { 1 + 2 * false - (1.5 / 6 * id) ?? 5; 10; } prop: int; }";
+    std::string source = R"END(
+struct TreeNode {
+	left: int?;
+	right: int?;
+}
+
+fn main(): void {
+	let num: int = 1234;
+	println(num);
+
+	num.increment_leaves();
+	
+    while (true) {
+        if (num > 0) {
+            print("yay I got here\n");
+        } else {
+            print("nu uh\n");
+        }
+
+        for (let i: int = 0; i < 500; i = i + 1) {
+            println(i);
+        }
+    }
+}
+)END";
+
     std::unique_ptr<Scanner> scan = std::make_unique<TextScanner>(source);
     Parser parser = Parser(std::move(scan));
 
-    std::unique_ptr<Stmt> stmt = parser.parse_stmt();
-    std::cout << &stmt << std::endl;
+    auto stmt = parser.parse_stmt();
+    while (stmt) {
+        std::cout << &stmt << std::endl;
+        stmt = parser.parse_stmt();
+    }
     return 0;
 }

@@ -23,6 +23,7 @@ const std::map<std::string, TokenType> KEYWORDS = {
     {"let", TokenType::LET},
     {"match", TokenType::MATCH},
     {"if", TokenType::IF},
+    {"else", TokenType::ELSE},
 
     {"while", TokenType::WHILE},
     {"for", TokenType::FOR},
@@ -83,15 +84,16 @@ class TextScanner : public Scanner {
     long line;
 
     Token make_token(TokenType t);
-
-    Token number();
-
-    // Returns TokenType of keyword if the current token is one
-    std::optional<TokenType> get_keyword_type();
+    Token make_token(TokenType t, std::string literal);
 
     // If token is a keyword, return the keyword type,
     // otherwise it is an identifier
     Token identifier_or_keyword();
+    Token number();
+    Token string();
+
+    // Returns TokenType of keyword if the current token is one
+    std::optional<TokenType> get_keyword_type();
 
     Token symbol(char start);
     void skip_whitespace();

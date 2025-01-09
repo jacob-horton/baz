@@ -28,11 +28,11 @@ bool is_alphanum(char c) {
 }
 
 Token TextScanner::make_token(TokenType t) {
-    return Token{
-        t,
-        std::string(this->token_start, this->current - this->token_start),
-        line,
-    };
+    return this->make_token(t, std::string(this->token_start, this->current - this->token_start));
+}
+
+Token TextScanner::make_token(TokenType t, std::string literal) {
+    return Token{t, literal, line};
 }
 
 Token TextScanner::number() {
@@ -50,7 +50,14 @@ Token TextScanner::number() {
             this->advance();
     }
 
-    return this->make_token(type);
+    Token token = this->make_token(type);
+    // Check that next token isn't alpha (i.e. we don't want "1234a")
+    if (is_alpha(this->peek())) {
+        std::cerr << "Unexpected character in number: '" << token.literal << this->peek() << "'" << std::endl;
+        exit(1);
+    }
+
+    return token;
 }
 
 // Returns TokenType of keyword if the current token is one
@@ -144,6 +151,24 @@ char TextScanner::peek() {
     return *this->current;
 }
 
+Token TextScanner::string() {
+    while (this->peek() != '"' && this->current < this->end) {
+        if (this->peek() == '\n')
+            this->line++;
+
+        this->advance();
+    }
+
+    if (this->current >= this->end) {
+        std::cerr << "Unterminated string" << std::endl;
+        exit(1);
+    }
+
+    this->advance();
+
+    return this->make_token(TokenType::STR_VAL, std::string(this->token_start + 1, this->current - this->token_start - 2));
+}
+
 TextScanner::TextScanner(std::string &source) {
     // TODO: don't use pointers?
     this->current = source.c_str();
@@ -152,28 +177,21 @@ TextScanner::TextScanner(std::string &source) {
 }
 
 std::optional<Token> TextScanner::scan_token() {
-    if (this->current >= this->end) {
-        return {};
-    }
-
     this->skip_whitespace();
+
+    // TOOD: function for is_at_end
+    if (this->current >= this->end)
+        return {};
+
     this->token_start = this->current;
 
     char c = this->advance();
-    if (is_digit(c)) {
-        Token number = this->number();
-
-        // Check that next token isn't alpha (i.e. we don't want "1234a")
-        if (is_alpha(this->peek())) {
-            std::cerr << "Unexpected character in number: '" << number.literal << this->peek() << "'" << std::endl;
-            exit(1);
-        }
-
-        return number;
-    }
-
+    if (is_digit(c))
+        return this->number();
     if (is_alpha(c))
         return this->identifier_or_keyword();
+    if (c == '"')
+        return this->string();
 
     return this->symbol(c);
 }

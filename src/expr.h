@@ -68,8 +68,8 @@ struct GroupingExpr : public Expr {
     GroupingExpr(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
 };
 
-struct PrimaryExpr : public Expr {
-    Token primary;
+struct LiteralExpr : public Expr {
+    Token literal;
 
-    PrimaryExpr(Token primary) : primary(primary) {}
+    LiteralExpr(Token literal) : literal(literal) {}
 };

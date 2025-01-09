@@ -2,6 +2,7 @@
 #include "expr.h"
 #include "stmt.h"
 #include "token.h"
+#include "typed_var.h"
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -30,27 +31,100 @@ std::unique_ptr<Stmt> Parser::declaration() {
 }
 
 std::unique_ptr<Stmt> Parser::statement() {
+    if (this->match(TokenType::IF))
+        return this->if_statement();
+    if (this->match(TokenType::FOR))
+        return this->for_statement();
+    if (this->match(TokenType::WHILE))
+        return this->while_statement();
+    if (this->match(TokenType::PRINT))
+        return this->print_statement();
+    if (this->match(TokenType::RETURN))
+        return this->return_statement();
+    if (this->match(TokenType::L_CURLY_BRACKET))
+        return std::make_unique<BlockStmt>(std::move(this->block()));
+
     std::unique_ptr<Expr> expr = this->expression();
-
-    // Assignment
     if (this->match(TokenType::EQUAL)) {
-        std::unique_ptr<Expr> value = this->expression();
+        std::unique_ptr<Stmt> assign_stmt = this->assignment(*expr);
         this->consume(TokenType::SEMI_COLON, "Expected ';' after assignment.");
-
-        // TODO: is there a better way to do this
-        if (VarExpr *var = dynamic_cast<VarExpr *>((Expr *)&expr)) {
-            Token name = var->name;
-            return std::make_unique<ExprStmt>(
-                std::make_unique<AssignExpr>(name, std::move(value)));
-        }
-
-        std::cerr << "Invalid assignment target." << std::endl;
-        exit(2);
+        return assign_stmt;
     }
 
     // Expression statement
     this->consume(TokenType::SEMI_COLON, "Expected ';' after expression.");
     return std::make_unique<ExprStmt>(std::move(expr));
+}
+
+std::unique_ptr<Stmt> Parser::if_statement() {
+    this->consume(TokenType::L_BRACKET, "Expected '(' after 'if'.");
+    std::unique_ptr<Expr> condition = this->expression();
+    this->consume(TokenType::R_BRACKET, "Expected closing ')' after if condition.");
+
+    auto body = this->block();
+    return std::make_unique<IfStmt>(std::move(condition), std::move(body));
+}
+
+std::unique_ptr<Stmt> Parser::for_statement() {
+    this->consume(TokenType::L_BRACKET, "Expected '(' after 'for'.");
+    std::unique_ptr<Stmt> var = this->variable_decl();
+    std::unique_ptr<Expr> condition = this->expression();
+    this->consume(TokenType::L_BRACKET, "Expected ';' after expression.");
+
+    std::unique_ptr<Expr> expr = this->expression();
+    this->consume(TokenType::EQUAL, "Expected '=' after assignment target.");
+    std::unique_ptr<Stmt> increment = this->assignment(*expr);
+
+    auto body = this->block();
+    return std::make_unique<ForStmt>(std::move(var), std::move(condition), std::move(increment), std::move(body));
+}
+
+std::unique_ptr<Stmt> Parser::while_statement() {
+    this->consume(TokenType::L_BRACKET, "Expected '(' after 'while'.");
+    std::unique_ptr<Expr> condition = this->expression();
+    this->consume(TokenType::R_BRACKET, "Expected closing ')' after while condition.");
+
+    auto body = this->block();
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+}
+
+std::unique_ptr<Stmt> Parser::print_statement() {
+    this->consume(TokenType::L_BRACKET, "Expected '(' after 'print'.");
+    if (this->match(TokenType::R_BRACKET)) {
+        this->consume(TokenType::SEMI_COLON, "Expected ';' after print statement.");
+        return std::make_unique<PrintStmt>(std::optional<std::unique_ptr<Expr>>{});
+    }
+
+    std::unique_ptr<Expr> value = this->expression();
+    this->consume(TokenType::R_BRACKET, "Expected closing ')' after print value.");
+    this->consume(TokenType::SEMI_COLON, "Expected ';' after print statement.");
+
+    return std::make_unique<PrintStmt>(std::move(value));
+}
+
+std::unique_ptr<Stmt> Parser::return_statement() {
+    if (this->match(TokenType::SEMI_COLON)) {
+        return std::make_unique<ReturnStmt>(std::optional<std::unique_ptr<Expr>>{});
+    }
+
+    std::unique_ptr<Expr> value = this->expression();
+    this->consume(TokenType::SEMI_COLON, "Expected ';' after return statement.");
+
+    return std::make_unique<ReturnStmt>(std::move(value));
+}
+
+std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
+    std::unique_ptr<Expr> value = this->expression();
+
+    // TODO: is there a better way to do this
+    if (VarExpr *var = dynamic_cast<VarExpr *>(&lhs)) {
+        Token name = var->name;
+        return std::make_unique<ExprStmt>(
+            std::make_unique<AssignExpr>(name, std::move(value)));
+    }
+
+    std::cerr << "Invalid assignment target." << std::endl;
+    exit(2);
 }
 
 std::vector<std::unique_ptr<Stmt>> Parser::block() {
@@ -64,22 +138,22 @@ std::vector<std::unique_ptr<Stmt>> Parser::block() {
     return stmts;
 }
 
-Token Parser::typed_identifier() {
-    Token id = this->consume(TokenType::IDENTIFIER, "Expected identifier.");
+TypedVar Parser::typed_identifier() {
+    Token name = this->consume(TokenType::IDENTIFIER, "Expected identifier.");
 
+    // TODO: also match identifiers as a user defined type
     consume(TokenType::COLON, "Expected type for identifier.");
     Token type = this->consume(TokenType::TYPE, "Expected type after ':'.");
-    bool optional = this->match(TokenType::QUESTION);
+    bool is_optional = this->match(TokenType::QUESTION);
 
-    // TODO: do something with type and optional
-    return id;
+    return TypedVar(name, type, is_optional);
 }
 
 std::unique_ptr<StructDeclStmt> Parser::struct_decl() {
     Token name = this->consume(TokenType::IDENTIFIER, "Expected struct name.");
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
 
-    std::vector<Token> properties;
+    std::vector<TypedVar> properties;
     std::vector<std::unique_ptr<FunDeclStmt>> methods;
 
     while (!this->check(TokenType::R_CURLY_BRACKET)) {
@@ -99,7 +173,7 @@ std::unique_ptr<StructDeclStmt> Parser::struct_decl() {
 std::unique_ptr<FunDeclStmt> Parser::function_decl() {
     // TODO: method or function
     Token name = this->consume(TokenType::IDENTIFIER, "Expected function name.");
-    std::vector<Token> params;
+    std::vector<TypedVar> params;
 
     this->consume(TokenType::L_BRACKET, "Expected '(' after function name.");
     if (!this->check(TokenType::R_BRACKET)) {
@@ -122,7 +196,7 @@ std::unique_ptr<FunDeclStmt> Parser::function_decl() {
 }
 
 std::unique_ptr<VariableDeclStmt> Parser::variable_decl() {
-    Token name = this->typed_identifier();
+    TypedVar name = this->typed_identifier();
     this->consume(TokenType::EQUAL, "Expected '=' after variable declaration.");
     std::unique_ptr<Expr> expr = this->expression();
 
@@ -266,10 +340,14 @@ std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
 
 std::unique_ptr<Expr> Parser::primary() {
     // TODO: strings
+    if (this->match(TokenType::IDENTIFIER)) {
+        return std::make_unique<VarExpr>(this->previous());
+    }
+
     if (this->match(TokenType::TRUE) || this->match(TokenType::FALSE) ||
         this->match(TokenType::NULL_VAL) || this->match(TokenType::INT_VAL) ||
-        this->match(TokenType::FLOAT_VAL) || this->match(TokenType::IDENTIFIER)) {
-        return std::make_unique<PrimaryExpr>(this->previous());
+        this->match(TokenType::FLOAT_VAL)) {
+        return std::make_unique<LiteralExpr>(this->previous());
     }
 
     if (this->match(TokenType::L_BRACKET)) {

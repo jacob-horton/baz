@@ -1,5 +1,6 @@
 #pragma once
 
+#include "expr.h"
 #include "scanner.h"
 #include "stmt.h"
 #include <memory>
@@ -18,7 +19,14 @@ class Parser {
     std::unique_ptr<FunDeclStmt> function_decl();
     std::unique_ptr<StructDeclStmt> struct_decl();
     std::unique_ptr<VariableDeclStmt> variable_decl();
+
     std::unique_ptr<Stmt> statement();
+    std::unique_ptr<Stmt> assignment(Expr &lhs);
+    std::unique_ptr<Stmt> if_statement();
+    std::unique_ptr<Stmt> for_statement();
+    std::unique_ptr<Stmt> while_statement();
+    std::unique_ptr<Stmt> print_statement();
+    std::unique_ptr<Stmt> return_statement();
 
     std::unique_ptr<Expr> expression();
     std::unique_ptr<Expr> logical_or();
@@ -34,7 +42,7 @@ class Parser {
     std::unique_ptr<Expr> finish_call(std::unique_ptr<Expr> expr);
 
     std::vector<std::unique_ptr<Stmt> > block();
-    Token typed_identifier();
+    TypedVar typed_identifier();
 
     std::optional<Token> advance();
     std::optional<Token> peek();

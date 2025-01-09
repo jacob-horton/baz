@@ -22,6 +22,9 @@ std::unique_ptr<Stmt> Parser::declaration() {
     if (this->match(TokenType::FN))
         return this->function_decl();
 
+    if (this->match(TokenType::LET))
+        return this->variable_decl();
+
     // TODO: only allow statements inside functions or structs or enums
     return this->statement();
 }
@@ -50,8 +53,8 @@ std::unique_ptr<Stmt> Parser::statement() {
     return std::make_unique<ExprStmt>(std::move(expr));
 }
 
-std::vector<std::unique_ptr<Stmt> > Parser::block() {
-    std::vector<std::unique_ptr<Stmt> > stmts;
+std::vector<std::unique_ptr<Stmt>> Parser::block() {
+    std::vector<std::unique_ptr<Stmt>> stmts;
     while (!this->check(TokenType::R_CURLY_BRACKET)) {
         stmts.push_back(this->statement());
     }
@@ -77,7 +80,7 @@ std::unique_ptr<StructDeclStmt> Parser::struct_decl() {
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
 
     std::vector<Token> properties;
-    std::vector<std::unique_ptr<FunDeclStmt> > methods;
+    std::vector<std::unique_ptr<FunDeclStmt>> methods;
 
     while (!this->check(TokenType::R_CURLY_BRACKET)) {
         if (this->match(TokenType::FN)) {
@@ -113,10 +116,19 @@ std::unique_ptr<FunDeclStmt> Parser::function_decl() {
     Token type = this->consume(TokenType::TYPE, "Expected return type after ':'.");
 
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
-
-    std::vector<std::unique_ptr<Stmt> > body = this->block();
+    std::vector<std::unique_ptr<Stmt>> body = this->block();
 
     return std::make_unique<FunDeclStmt>(name, params, std::move(body));
+}
+
+std::unique_ptr<VariableDeclStmt> Parser::variable_decl() {
+    Token name = this->typed_identifier();
+    this->consume(TokenType::EQUAL, "Expected '=' after variable declaration.");
+    std::unique_ptr<Expr> expr = this->expression();
+
+    this->consume(TokenType::SEMI_COLON, "Expected ';' after variable declaration.");
+
+    return std::make_unique<VariableDeclStmt>(name, std::move(expr));
 }
 
 std::unique_ptr<Expr> Parser::expression() {
@@ -237,7 +249,7 @@ std::unique_ptr<Expr> Parser::call() {
 }
 
 std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
-    std::vector<std::unique_ptr<Expr> > args;
+    std::vector<std::unique_ptr<Expr>> args;
 
     if (!this->check(TokenType::R_BRACKET)) {
         // Loop while there are commas

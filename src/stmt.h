@@ -27,6 +27,13 @@ struct StructDeclStmt : public Stmt {
         : name(name), properties(properties), methods(std::move(methods)) {}
 };
 
+struct VariableDeclStmt : public Stmt {
+    Token name;
+    std::unique_ptr<Expr> value;
+
+    VariableDeclStmt(Token name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)) {}
+};
+
 struct ExprStmt : public Stmt {
     std::unique_ptr<Expr> expr;
 

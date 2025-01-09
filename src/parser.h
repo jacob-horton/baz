@@ -17,6 +17,7 @@ class Parser {
 
     std::unique_ptr<FunDeclStmt> function_decl();
     std::unique_ptr<StructDeclStmt> struct_decl();
+    std::unique_ptr<VariableDeclStmt> variable_decl();
     std::unique_ptr<Stmt> statement();
 
     std::unique_ptr<Expr> expression();

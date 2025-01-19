@@ -21,6 +21,13 @@ struct VarExpr : public Expr {
     VarExpr(Token name) : name(name) {}
 };
 
+struct StructInitExpr : public Expr {
+    Token name;
+    std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties;
+
+    StructInitExpr(Token name, std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties) : name(name), properties(std::move(properties)) {}
+};
+
 struct BinaryExpr : public Expr {
     std::unique_ptr<Expr> left;
     Token op;

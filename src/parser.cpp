@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "enum_variant.h"
 #include "expr.h"
 #include "stmt.h"
 #include "token.h"
@@ -17,17 +18,19 @@ std::optional<std::unique_ptr<Stmt>> Parser::parse_stmt() {
 }
 
 std::optional<std::unique_ptr<Stmt>> Parser::top_level_decl() {
-    if (!this->peek().has_value()) {
+    if (!this->peek().has_value())
         return {};
-    }
 
     if (this->match(TokenType::STRUCT))
         return this->struct_decl();
 
+    if (this->match(TokenType::ENUM))
+        return this->enum_decl();
+
     if (this->match(TokenType::FN))
         return this->function_decl();
 
-    std::cerr << "Unexpected statement at top level." << std::endl;
+    this->error("Unexpected statement at top level.");
     exit(2);
 }
 
@@ -148,7 +151,7 @@ std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
             std::make_unique<AssignExpr>(name, std::move(value)));
     }
 
-    std::cerr << "Invalid assignment target." << std::endl;
+    this->error("Invalid assignment target.");
     exit(2);
 }
 
@@ -166,12 +169,19 @@ std::vector<std::unique_ptr<Stmt>> Parser::block() {
 TypedVar Parser::typed_identifier() {
     Token name = this->consume(TokenType::IDENTIFIER, "Expected identifier.");
 
-    // TODO: also match identifiers as a user defined type
-    consume(TokenType::COLON, "Expected type for identifier.");
-    Token type = this->consume(TokenType::TYPE, "Expected type after ':'.");
+    this->consume(TokenType::COLON, "Expected type for identifier.");
+
+    Token type = this->type();
     bool is_optional = this->match(TokenType::QUESTION);
 
     return TypedVar(name, type, is_optional);
+}
+
+Token Parser::type() {
+    if (this->match(TokenType::TYPE))
+        return this->previous();
+
+    return this->consume(TokenType::IDENTIFIER, "Expected type.");
 }
 
 std::unique_ptr<StructDeclStmt> Parser::struct_decl() {
@@ -195,6 +205,42 @@ std::unique_ptr<StructDeclStmt> Parser::struct_decl() {
     return std::make_unique<StructDeclStmt>(name, properties, std::move(methods));
 }
 
+std::unique_ptr<EnumDeclStmt> Parser::enum_decl() {
+    Token name = this->consume(TokenType::IDENTIFIER, "Expected enum name.");
+    this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
+
+    std::vector<EnumVariant> variants;
+    std::vector<std::unique_ptr<FunDeclStmt>> methods;
+
+    while (!this->check(TokenType::R_CURLY_BRACKET)) {
+        if (this->match(TokenType::FN)) {
+            methods.push_back(this->function_decl());
+        } else {
+            variants.push_back(this->enum_variant());
+            this->consume(TokenType::SEMI_COLON, "Expected ';' after property.");
+        }
+    };
+
+    this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after struct body.");
+
+    return std::make_unique<EnumDeclStmt>(name, variants, std::move(methods));
+}
+
+EnumVariant Parser::enum_variant() {
+    Token name = this->consume(TokenType::IDENTIFIER, "Expected name for enum variant.");
+
+    std::optional<Token> type = {};
+    bool is_optional = false;
+    if (this->match(TokenType::L_BRACKET)) {
+        type = this->type();
+        is_optional = this->match(TokenType::QUESTION);
+
+        this->consume(TokenType::R_BRACKET, "Expected ')' after variant payload.");
+    }
+
+    return EnumVariant(name, type, is_optional);
+}
+
 std::unique_ptr<FunDeclStmt> Parser::function_decl() {
     // TODO: method or function
     Token name = this->consume(TokenType::IDENTIFIER, "Expected function name.");
@@ -212,7 +258,7 @@ std::unique_ptr<FunDeclStmt> Parser::function_decl() {
     this->consume(TokenType::R_BRACKET, "Expected ')' after parameter list.");
 
     this->consume(TokenType::COLON, "Expected return type.");
-    Token type = this->consume(TokenType::TYPE, "Expected return type after ':'.");
+    Token type = this->type();
 
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
     std::vector<std::unique_ptr<Stmt>> body = this->block();
@@ -364,6 +410,9 @@ std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
 
 std::unique_ptr<Expr> Parser::primary() {
     if (this->match(TokenType::IDENTIFIER) || this->match(TokenType::THIS)) {
+        if (this->match(TokenType::L_CURLY_BRACKET))
+            return this->finish_struct_init(this->previous());
+
         return std::make_unique<VarExpr>(this->previous());
     }
 
@@ -379,8 +428,26 @@ std::unique_ptr<Expr> Parser::primary() {
         return std::make_unique<GroupingExpr>(std::move(expr));
     }
 
-    std::cerr << "Expected expression." << std::endl;
+    this->error("Expected expression.");
     exit(2);
+}
+
+std::unique_ptr<Expr> Parser::finish_struct_init(Token name) {
+    std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties;
+
+    // Loop while there are commas
+    // If there is a comma followed by a right bracket, it is a trailing comma
+    do {
+        Token prop_name = this->consume(TokenType::IDENTIFIER, "Expected property name.");
+        this->consume(TokenType::COLON, "Expected property value.");
+
+        std::unique_ptr<Expr> value = this->expression();
+        properties.push_back(std::make_tuple(prop_name, std::move(value)));
+    } while (this->match(TokenType::COMMA) && !this->check(TokenType::R_CURLY_BRACKET));
+
+    this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after struct initialisation.");
+
+    return std::make_unique<StructInitExpr>(name, std::move(properties));
 }
 
 std::optional<Token> Parser::advance() {
@@ -396,7 +463,7 @@ std::optional<Token> Parser::peek() {
 
 Token Parser::previous() {
     if (!this->prev.has_value()) {
-        std::cerr << "[BUG] Expected previous token to exist." << std::endl;
+        this->error("[BUG] Expected previous token to exist.");
         exit(3);
     }
 
@@ -427,6 +494,10 @@ Token Parser::consume(TokenType t, std::string error_message) {
             return curr.value();
     }
 
-    std::cerr << error_message << std::endl;
+    this->error(error_message);
     exit(2);
+}
+
+void Parser::error(std::string message) {
+    std::cerr << "Error on line " << this->current->line << ": " << message << std::endl;
 }

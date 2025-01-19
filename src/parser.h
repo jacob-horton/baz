@@ -1,5 +1,6 @@
 #pragma once
 
+#include "enum_variant.h"
 #include "expr.h"
 #include "scanner.h"
 #include "stmt.h"
@@ -19,6 +20,7 @@ class Parser {
 
     std::unique_ptr<FunDeclStmt> function_decl();
     std::unique_ptr<StructDeclStmt> struct_decl();
+    std::unique_ptr<EnumDeclStmt> enum_decl();
     std::unique_ptr<VariableDeclStmt> variable_decl();
 
     std::unique_ptr<Stmt> statement();
@@ -41,9 +43,12 @@ class Parser {
     std::unique_ptr<Expr> call();
     std::unique_ptr<Expr> primary();
     std::unique_ptr<Expr> finish_call(std::unique_ptr<Expr> expr);
+    std::unique_ptr<Expr> finish_struct_init(Token name);
 
     std::vector<std::unique_ptr<Stmt>> block();
     TypedVar typed_identifier();
+    EnumVariant enum_variant();
+    Token type();
 
     std::optional<Token> advance();
     std::optional<Token> peek();
@@ -52,6 +57,8 @@ class Parser {
     bool match(TokenType t);
     bool check(TokenType t);
     Token consume(TokenType t, std::string error_message);
+
+    void error(std::string message);
 
   public:
     Parser(std::unique_ptr<Scanner> scanner);

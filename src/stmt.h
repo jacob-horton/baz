@@ -1,5 +1,6 @@
 #pragma once
 
+#include "enum_variant.h"
 #include "expr.h"
 #include "token.h"
 #include "typed_var.h"
@@ -27,6 +28,15 @@ struct StructDeclStmt : public Stmt {
 
     StructDeclStmt(Token name, std::vector<TypedVar> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods)
         : name(name), properties(properties), methods(std::move(methods)) {}
+};
+
+struct EnumDeclStmt : public Stmt {
+    Token name;
+    std::vector<EnumVariant> variants;
+    std::vector<std::unique_ptr<FunDeclStmt>> methods;
+
+    EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<FunDeclStmt>> methods)
+        : name(name), variants(variants), methods(std::move(methods)) {}
 };
 
 struct VariableDeclStmt : public Stmt {

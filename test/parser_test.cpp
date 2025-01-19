@@ -12,29 +12,42 @@
         __cast_result;                                  \
     })
 
-struct TokenGenerator {
+struct FunctionWrappedTokenGenerator {
     std::vector<TokenType> token_types;
     int i;
 
-    TokenGenerator(std::vector<TokenType> token_types)
+    const std::vector<TokenType> function_tokens = {FN, IDENTIFIER, L_BRACKET, R_BRACKET, COLON, TYPE, L_CURLY_BRACKET};
+
+    FunctionWrappedTokenGenerator(std::vector<TokenType> token_types)
         : token_types(token_types), i(0) {}
 
+    Token type_to_token(TokenType t) {
+        return Token{t, "", -1};
+    }
+
     Token generate_token() {
-        return Token{this->token_types[i++], "", -1};
+        if (i < this->function_tokens.size())
+            return this->type_to_token(this->function_tokens[i++]);
+
+        if (i < this->function_tokens.size() + this->token_types.size())
+            return this->type_to_token(this->token_types[i++ - this->function_tokens.size()]);
+
+        return this->type_to_token(R_CURLY_BRACKET);
     }
 };
 
 TEST(ParserTest, BinaryOperator) {
     std::unique_ptr<MockScanner> scan = std::make_unique<MockScanner>();
 
-    TokenGenerator gen({INT_VAL, PLUS, FLOAT_VAL, SEMI_COLON});
-    EXPECT_CALL(*scan, scan_token).WillRepeatedly(testing::Invoke(&gen, &TokenGenerator::generate_token));
+    FunctionWrappedTokenGenerator gen({INT_VAL, PLUS, FLOAT_VAL, SEMI_COLON});
+    EXPECT_CALL(*scan, scan_token).WillRepeatedly(testing::Invoke(&gen, &FunctionWrappedTokenGenerator::generate_token));
 
     Parser p = Parser(std::move(scan));
     auto s = p.parse_stmt();
 
-    auto top_level = CHECK_AND_CAST(s->get(), ExprStmt *);
-    auto expr = CHECK_AND_CAST(top_level->expr.get(), BinaryExpr *);
+    auto fn = CHECK_AND_CAST(s->get(), FunDeclStmt *);
+    auto expr_stmt = CHECK_AND_CAST(fn->body[0].get(), ExprStmt *);
+    auto expr = CHECK_AND_CAST(expr_stmt->expr.get(), BinaryExpr *);
     EXPECT_EQ(expr->op.t, TokenType::PLUS);
 
     auto left = CHECK_AND_CAST(expr->left.get(), LiteralExpr *);

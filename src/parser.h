@@ -14,7 +14,8 @@ class Parser {
     std::optional<Token> prev;
     std::optional<Token> current;
 
-    std::optional<std::unique_ptr<Stmt>> declaration();
+    std::optional<std::unique_ptr<Stmt>> top_level_decl();
+    std::unique_ptr<Stmt> nested_decl();
 
     std::unique_ptr<FunDeclStmt> function_decl();
     std::unique_ptr<StructDeclStmt> struct_decl();

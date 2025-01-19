@@ -13,10 +13,10 @@ Parser::Parser(std::unique_ptr<Scanner> scanner) : scanner(std::move(scanner)) {
 }
 
 std::optional<std::unique_ptr<Stmt>> Parser::parse_stmt() {
-    return this->declaration();
+    return this->top_level_decl();
 }
 
-std::optional<std::unique_ptr<Stmt>> Parser::declaration() {
+std::optional<std::unique_ptr<Stmt>> Parser::top_level_decl() {
     if (!this->peek().has_value()) {
         return {};
     }
@@ -27,10 +27,14 @@ std::optional<std::unique_ptr<Stmt>> Parser::declaration() {
     if (this->match(TokenType::FN))
         return this->function_decl();
 
+    std::cerr << "Unexpected statement at top level." << std::endl;
+    exit(2);
+}
+
+std::unique_ptr<Stmt> Parser::nested_decl() {
     if (this->match(TokenType::LET))
         return this->variable_decl();
 
-    // TODO: only allow statements inside functions or structs or enums
     return this->statement();
 }
 
@@ -151,8 +155,7 @@ std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
 std::vector<std::unique_ptr<Stmt>> Parser::block() {
     std::vector<std::unique_ptr<Stmt>> stmts;
     while (!this->check(TokenType::R_CURLY_BRACKET)) {
-        // TODO: check value exists
-        stmts.push_back(this->declaration().value());
+        stmts.push_back(this->nested_decl());
     }
 
     this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after block.");

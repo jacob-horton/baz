@@ -87,7 +87,6 @@ Token TextScanner::identifier_or_keyword() {
 }
 
 Token TextScanner::symbol(char start) {
-    // TODO: strings in quotes
     TokenType type;
 
     auto equal_token_type = EQUAL_SYMBOLS.find(start);
@@ -170,7 +169,6 @@ Token TextScanner::string() {
 }
 
 TextScanner::TextScanner(std::string &source) {
-    // TODO: don't use pointers?
     this->current = source.c_str();
     this->end = source.c_str() + source.length();
     this->line = 1;

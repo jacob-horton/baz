@@ -28,8 +28,7 @@ enum TokenType {
     ENUM,
     INTERFACE,
 
-    // TODO: should this be combined with IDENTIFIER? Since a type can be built
-    // in or user-defined Or do we check for TYPE or IDENTIFIER in the parser
+    THIS,
     TYPE,
 
     INT_VAL,

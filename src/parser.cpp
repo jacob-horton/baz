@@ -363,8 +363,7 @@ std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
 }
 
 std::unique_ptr<Expr> Parser::primary() {
-    // TODO: strings
-    if (this->match(TokenType::IDENTIFIER)) {
+    if (this->match(TokenType::IDENTIFIER) || this->match(TokenType::THIS)) {
         return std::make_unique<VarExpr>(this->previous());
     }
 

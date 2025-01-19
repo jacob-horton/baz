@@ -16,6 +16,7 @@ const std::map<std::string, TokenType> KEYWORDS = {
     {"enum", TokenType::ENUM},
     {"fn", TokenType::FN},
     {"return", TokenType::RETURN},
+    {"this", TokenType::THIS},
 
     {"print", TokenType::PRINT},
     {"println", TokenType::PRINT},

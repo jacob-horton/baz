@@ -14,11 +14,11 @@ struct TreeNode {
 }
 
 fn main(): void {
-	let num: int = 1234;
-	println(num);
+    let num: int = 1234;
+    println(num);
 
-	num.increment_leaves();
-	
+    num.increment_leaves();
+
     while (true) {
         if (num > 0) {
             print("yay I got here\n");

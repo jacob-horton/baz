@@ -76,8 +76,9 @@ struct ForStmt : public Stmt {
 
 struct PrintStmt : public Stmt {
     std::optional<std::unique_ptr<Expr>> expr;
+    bool newline;
 
-    PrintStmt(std::optional<std::unique_ptr<Expr>> expr) : expr(std::move(expr)) {}
+    PrintStmt(std::optional<std::unique_ptr<Expr>> expr, bool newline) : expr(std::move(expr)), newline(newline) {}
 };
 
 struct ReturnStmt : public Stmt {

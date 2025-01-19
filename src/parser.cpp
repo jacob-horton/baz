@@ -106,17 +106,21 @@ std::unique_ptr<Stmt> Parser::while_statement() {
 }
 
 std::unique_ptr<Stmt> Parser::print_statement() {
+    Token print = this->previous();
+
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'print'.");
     if (this->match(TokenType::R_BRACKET)) {
         this->consume(TokenType::SEMI_COLON, "Expected ';' after print statement.");
-        return std::make_unique<PrintStmt>(std::optional<std::unique_ptr<Expr>>{});
+        return std::make_unique<PrintStmt>(
+            std::optional<std::unique_ptr<Expr>>{},
+            print.literal == "println");
     }
 
     std::unique_ptr<Expr> value = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after print value.");
     this->consume(TokenType::SEMI_COLON, "Expected ';' after print statement.");
 
-    return std::make_unique<PrintStmt>(std::move(value));
+    return std::make_unique<PrintStmt>(std::move(value), print.literal == "println");
 }
 
 std::unique_ptr<Stmt> Parser::return_statement() {

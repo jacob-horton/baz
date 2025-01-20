@@ -4,6 +4,7 @@
 #include "expr.h"
 #include "token.h"
 #include "typed_var.h"
+
 #include <optional>
 #include <ostream>
 #include <vector>
@@ -65,6 +66,21 @@ struct IfStmt : public Stmt {
 
     IfStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> true_block, std::optional<std::vector<std::unique_ptr<Stmt>>> false_block)
         : condition(std::move(condition)), true_block(std::move(true_block)), false_block(std::move(false_block)) {}
+};
+
+struct MatchBranch {
+    std::unique_ptr<Expr> pattern;
+    std::vector<std::unique_ptr<Stmt>> body;
+
+    MatchBranch(std::unique_ptr<Expr> pattern, std::vector<std::unique_ptr<Stmt>> body) : pattern(std::move(pattern)), body(std::move(body)) {}
+};
+
+struct MatchStmt : public Stmt {
+    std::unique_ptr<Expr> target;
+    std::vector<MatchBranch> branches;
+
+    MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches)
+        : target(std::move(target)), branches(std::move(branches)) {}
 };
 
 struct WhileStmt : public Stmt {

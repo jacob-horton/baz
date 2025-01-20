@@ -44,15 +44,30 @@ enum Tree {
 	Node(TreeNode);
 
 	fn sum(): int {
+		match (this) {
+			Tree.Leaf(value): { return value; },
+			Tree.Node(tree_node): {
+				return tree_node.left?.sum() ?? 0 + tree_node.right?.sum() ?? 0;
+			}
+		}
 	}
 
 	fn increment_leaves(): void {
+		match (this) {
+			Tree.Leaf(value): {
+				value = value + 1;
+			},
+			Tree.Node(tree_node): {
+				tree_node.left?.increment_leaves();
+				tree_node.right?.increment_leaves();
+			}
+		}
 	}
 }
 
 fn main(): void {
 	let tree: Tree = Tree.Node(
-		TreeNode{
+		TreeNode {
 			left: Tree.Leaf(1),
 			right: Tree.Node(
 				TreeNode {

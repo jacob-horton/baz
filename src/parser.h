@@ -4,6 +4,7 @@
 #include "expr.h"
 #include "scanner.h"
 #include "stmt.h"
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -26,6 +27,7 @@ class Parser {
     std::unique_ptr<Stmt> statement();
     std::unique_ptr<Stmt> assignment(Expr &lhs);
     std::unique_ptr<Stmt> if_statement();
+    std::unique_ptr<Stmt> match_statement();
     std::unique_ptr<Stmt> for_statement();
     std::unique_ptr<Stmt> while_statement();
     std::unique_ptr<Stmt> print_statement();

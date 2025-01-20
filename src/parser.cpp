@@ -44,6 +44,8 @@ std::unique_ptr<Stmt> Parser::nested_decl() {
 std::unique_ptr<Stmt> Parser::statement() {
     if (this->match(TokenType::IF))
         return this->if_statement();
+    if (this->match(TokenType::MATCH))
+        return this->match_statement();
     if (this->match(TokenType::FOR))
         return this->for_statement();
     if (this->match(TokenType::WHILE))
@@ -83,6 +85,27 @@ std::unique_ptr<Stmt> Parser::if_statement() {
     }
 
     return std::make_unique<IfStmt>(std::move(condition), std::move(true_block), std::move(false_block));
+}
+
+std::unique_ptr<Stmt> Parser::match_statement() {
+    this->consume(TokenType::L_BRACKET, "Expected '(' after 'match'.");
+    std::unique_ptr<Expr> target = this->expression();
+    this->consume(TokenType::R_BRACKET, "Expected closing ')' after match target.");
+    this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before match body.");
+
+    std::vector<MatchBranch> branches;
+    do {
+        auto pattern = this->call();
+        this->consume(TokenType::COLON, "Expected ':' after match pattern.");
+
+        this->consume(TokenType::L_CURLY_BRACKET, "Expected block after match pattern.");
+        auto body = this->block();
+
+        branches.push_back(MatchBranch(std::move(pattern), std::move(body)));
+    } while (this->match(TokenType::COMMA) && !this->check(TokenType::R_CURLY_BRACKET));
+
+    this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after match branches");
+    return std::make_unique<MatchStmt>(std::move(target), std::move(branches));
 }
 
 std::unique_ptr<Stmt> Parser::for_statement() {
@@ -382,6 +405,11 @@ std::unique_ptr<Expr> Parser::call() {
         if (this->match(TokenType::L_BRACKET)) {
             expr = this->finish_call(std::move(expr));
         } else if (this->match(TokenType::DOT)) {
+            Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
+            expr = std::make_unique<GetExpr>(std::move(expr), name);
+            // TODO: do we need to handle this better - if we have `call()?;` what will happen
+            // TODO: remove duplication
+        } else if (this->match(TokenType::QUESTION) && this->match(TokenType::DOT)) {
             Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
             expr = std::make_unique<GetExpr>(std::move(expr), name);
         } else {

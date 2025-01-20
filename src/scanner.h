@@ -86,6 +86,7 @@ class TextScanner : public Scanner {
 
     Token make_token(TokenType t);
     Token make_token(TokenType t, std::string literal);
+    Token make_token(TokenType t, std::string literal, long line);
 
     // If token is a keyword, return the keyword type,
     // otherwise it is an identifier

@@ -23,10 +23,10 @@ TEST(ScannerTest, Identifier) {
 }
 
 TEST(ScannerTest, MultipleLines) {
-    std::string source = "a\nb c\nd";
+    std::string source = "a\nb c\n d\n \"multi\nline\nstring\" e";
     TextScanner scan = TextScanner(source);
 
-    auto expected = {1, 2, 2, 3};
+    auto expected = {1, 2, 2, 3, 4, 6};
 
     for (auto ex : expected) {
         std::optional<Token> next = scan.scan_token();

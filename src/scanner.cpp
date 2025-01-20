@@ -32,6 +32,10 @@ Token TextScanner::make_token(TokenType t) {
 }
 
 Token TextScanner::make_token(TokenType t, std::string literal) {
+    return this->make_token(t, literal, this->line);
+}
+
+Token TextScanner::make_token(TokenType t, std::string literal, long line) {
     return Token{t, literal, line};
 }
 
@@ -151,6 +155,8 @@ char TextScanner::peek() {
 }
 
 Token TextScanner::string() {
+    long start_line = this->line;
+
     while (this->peek() != '"' && this->current < this->end) {
         if (this->peek() == '\n')
             this->line++;
@@ -165,7 +171,7 @@ Token TextScanner::string() {
 
     this->advance();
 
-    return this->make_token(TokenType::STR_VAL, std::string(this->token_start + 1, this->current - this->token_start - 2));
+    return this->make_token(TokenType::STR_VAL, std::string(this->token_start + 1, this->current - this->token_start - 2), start_line);
 }
 
 TextScanner::TextScanner(std::string &source) {

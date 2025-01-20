@@ -18,7 +18,7 @@ std::optional<std::unique_ptr<Stmt>> Parser::parse_stmt() {
 }
 
 std::optional<std::unique_ptr<Stmt>> Parser::top_level_decl() {
-    if (!this->peek().has_value())
+    if (this->peek().t == TokenType::EOF_)
         return {};
 
     if (this->match(TokenType::STRUCT))
@@ -30,7 +30,7 @@ std::optional<std::unique_ptr<Stmt>> Parser::top_level_decl() {
     if (this->match(TokenType::FN))
         return this->function_decl();
 
-    this->error("Unexpected statement at top level.");
+    this->error(this->peek(), "Unexpected statement at top level.");
     exit(2);
 }
 
@@ -143,14 +143,14 @@ std::unique_ptr<Stmt> Parser::print_statement() {
         this->consume(TokenType::SEMI_COLON, "Expected ';' after print statement.");
         return std::make_unique<PrintStmt>(
             std::optional<std::unique_ptr<Expr>>{},
-            print.literal == "println");
+            print.lexeme == "println");
     }
 
     std::unique_ptr<Expr> value = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after print value.");
     this->consume(TokenType::SEMI_COLON, "Expected ';' after print statement.");
 
-    return std::make_unique<PrintStmt>(std::move(value), print.literal == "println");
+    return std::make_unique<PrintStmt>(std::move(value), print.lexeme == "println");
 }
 
 std::unique_ptr<Stmt> Parser::return_statement() {
@@ -165,6 +165,7 @@ std::unique_ptr<Stmt> Parser::return_statement() {
 }
 
 std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
+    Token equals_token = this->previous();
     std::unique_ptr<Expr> value = this->expression();
 
     // TODO: is there a better way to do this
@@ -174,7 +175,7 @@ std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
             std::make_unique<AssignExpr>(name, std::move(value)));
     }
 
-    this->error("Invalid assignment target.");
+    this->error(equals_token, "Invalid assignment target.");
     exit(2);
 }
 
@@ -456,7 +457,7 @@ std::unique_ptr<Expr> Parser::primary() {
         return std::make_unique<GroupingExpr>(std::move(expr));
     }
 
-    this->error("Expected expression.");
+    this->error(this->peek(), "Expected expression.");
     exit(2);
 }
 
@@ -478,20 +479,20 @@ std::unique_ptr<Expr> Parser::finish_struct_init(Token name) {
     return std::make_unique<StructInitExpr>(name, std::move(properties));
 }
 
-std::optional<Token> Parser::advance() {
+Token Parser::advance() {
     this->prev = this->current;
     this->current = scanner->scan_token();
 
-    return this->prev;
+    return this->previous();
 }
 
-std::optional<Token> Parser::peek() {
+Token Parser::peek() {
     return this->current;
 }
 
 Token Parser::previous() {
     if (!this->prev.has_value()) {
-        this->error("[BUG] Expected previous token to exist.");
+        std::cerr << "[BUG] Expected previous token to exist." << std::endl;
         exit(3);
     }
 
@@ -508,24 +509,25 @@ bool Parser::match(TokenType t) {
 }
 
 bool Parser::check(TokenType t) {
-    std::optional<Token> curr = this->peek();
-    if (!curr.has_value())
+    Token curr = this->peek();
+    if (curr.t == TokenType::EOF_)
         return false;
 
-    return curr->t == t;
+    return curr.t == t;
 }
 
 Token Parser::consume(TokenType t, std::string error_message) {
-    if (this->check(t)) {
-        auto curr = this->advance();
-        if (curr.has_value())
-            return curr.value();
-    }
+    if (this->check(t))
+        return this->advance();
 
-    this->error(error_message);
+    this->error(this->peek(), error_message);
     exit(2);
 }
 
-void Parser::error(std::string message) {
-    std::cerr << "Error on line " << this->current->line << ": " << message << std::endl;
+void Parser::error(Token error_token, std::string message) {
+    std::string where = "end";
+    if (error_token.t != TokenType::EOF_)
+        where = "'" + error_token.lexeme + "'";
+
+    std::cerr << "[line " << error_token.line << "] Error at " << where << ": " << message << std::endl;
 }

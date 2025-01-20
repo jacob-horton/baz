@@ -4,5 +4,5 @@
 
 class MockScanner : public Scanner {
   public:
-    MOCK_METHOD0(scan_token, std::optional<Token>());
+    MOCK_METHOD0(scan_token, Token());
 };

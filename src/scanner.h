@@ -73,7 +73,7 @@ const std::map<char, TokenType> SYMBOLS = {
 
 class Scanner {
   public:
-    virtual std::optional<Token> scan_token() = 0;
+    virtual Token scan_token() = 0;
     virtual ~Scanner() = default;
 };
 
@@ -85,8 +85,8 @@ class TextScanner : public Scanner {
     long line;
 
     Token make_token(TokenType t);
-    Token make_token(TokenType t, std::string literal);
-    Token make_token(TokenType t, std::string literal, long line);
+    Token make_token(TokenType t, std::string lexeme);
+    Token make_token(TokenType t, std::string lexeme, long line);
 
     // If token is a keyword, return the keyword type,
     // otherwise it is an identifier
@@ -107,5 +107,5 @@ class TextScanner : public Scanner {
   public:
     TextScanner(std::string &source);
 
-    std::optional<Token> scan_token() override;
+    Token scan_token() override;
 };

@@ -14,7 +14,7 @@ class Parser {
     std::unique_ptr<Scanner> scanner;
 
     std::optional<Token> prev;
-    std::optional<Token> current;
+    Token current;
 
     std::optional<std::unique_ptr<Stmt>> top_level_decl();
     std::unique_ptr<Stmt> nested_decl();
@@ -52,15 +52,15 @@ class Parser {
     EnumVariant enum_variant();
     Token type();
 
-    std::optional<Token> advance();
-    std::optional<Token> peek();
+    Token advance();
+    Token peek();
     Token previous();
 
     bool match(TokenType t);
     bool check(TokenType t);
     Token consume(TokenType t, std::string error_message);
 
-    void error(std::string message);
+    void error(Token error_token, std::string message);
 
   public:
     Parser(std::unique_ptr<Scanner> scanner);

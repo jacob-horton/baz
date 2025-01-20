@@ -62,13 +62,15 @@ enum TokenType {
     PRINT,
 
     IDENTIFIER,
+
+    EOF_,
 };
 
 const std::string get_token_type_str(TokenType t);
 
 struct Token {
     TokenType t;
-    std::string literal;
+    std::string lexeme;
     long line;
 
   public:

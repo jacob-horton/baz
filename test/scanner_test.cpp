@@ -19,7 +19,7 @@ TEST(ScannerTest, Identifier) {
 
     std::optional<Token> next = scan.scan_token();
     EXPECT_EQ(next->t, TokenType::IDENTIFIER);
-    EXPECT_EQ(next->literal, "some_identifier1");
+    EXPECT_EQ(next->lexeme, "some_identifier1");
 }
 
 TEST(ScannerTest, MultipleLines) {
@@ -83,7 +83,7 @@ TEST(ScannerTest, Numbers) {
     for (auto ex : expected) {
         std::optional<Token> next = scan.scan_token();
         EXPECT_EQ(next->t, std::get<0>(ex));
-        EXPECT_EQ(next->literal, std::get<1>(ex));
+        EXPECT_EQ(next->lexeme, std::get<1>(ex));
     }
 }
 
@@ -95,7 +95,7 @@ TEST(ScannerTest, RawTokenContents) {
 
     for (auto ex : expected) {
         std::optional<Token> next = scan.scan_token();
-        EXPECT_EQ(next->literal, ex);
+        EXPECT_EQ(next->lexeme, ex);
     }
 }
 
@@ -168,6 +168,6 @@ TEST(ScannerTest, Types) {
     for (auto ex : expected) {
         std::optional<Token> next = scan.scan_token();
         EXPECT_EQ(next->t, std::get<0>(ex));
-        EXPECT_EQ(next->literal, std::get<1>(ex));
+        EXPECT_EQ(next->lexeme, std::get<1>(ex));
     }
 }

@@ -64,7 +64,7 @@ std::ostream &operator<<(std::ostream &os, const Token &t) {
     os << std::left;
     os << get_token_type_str(t.t);
 
-    os << t.literal;
+    os << t.lexeme;
 
     return os;
 }

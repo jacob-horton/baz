@@ -31,12 +31,12 @@ Token TextScanner::make_token(TokenType t) {
     return this->make_token(t, std::string(this->token_start, this->current - this->token_start));
 }
 
-Token TextScanner::make_token(TokenType t, std::string literal) {
-    return this->make_token(t, literal, this->line);
+Token TextScanner::make_token(TokenType t, std::string lexeme) {
+    return this->make_token(t, lexeme, this->line);
 }
 
-Token TextScanner::make_token(TokenType t, std::string literal, long line) {
-    return Token{t, literal, line};
+Token TextScanner::make_token(TokenType t, std::string lexeme, long line) {
+    return Token{t, lexeme, line};
 }
 
 Token TextScanner::number() {
@@ -57,7 +57,7 @@ Token TextScanner::number() {
     Token token = this->make_token(type);
     // Check that next token isn't alpha (i.e. we don't want "1234a")
     if (is_alpha(this->peek())) {
-        std::cerr << "Unexpected character in number: '" << token.literal << this->peek() << "'" << std::endl;
+        std::cerr << "Unexpected character in number: '" << token.lexeme << this->peek() << "'" << std::endl;
         exit(1);
     }
 
@@ -69,9 +69,8 @@ std::optional<TokenType> TextScanner::get_keyword_type() {
     std::string word(this->token_start, this->current - this->token_start);
 
     auto token_type = KEYWORDS.find(word);
-    if (token_type == KEYWORDS.end()) {
+    if (token_type == KEYWORDS.end())
         return {};
-    }
 
     return token_type->second;
 }
@@ -180,12 +179,12 @@ TextScanner::TextScanner(std::string &source) {
     this->line = 1;
 }
 
-std::optional<Token> TextScanner::scan_token() {
+Token TextScanner::scan_token() {
     this->skip_whitespace();
 
     // TOOD: function for is_at_end
     if (this->current >= this->end)
-        return {};
+        return this->make_token(TokenType::EOF_, "", this->line);
 
     this->token_start = this->current;
 

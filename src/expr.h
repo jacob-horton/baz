@@ -14,15 +14,6 @@ struct Expr {
     virtual ~Expr() = default;
 };
 
-struct AssignExpr : public Expr {
-    Token name;
-    std::unique_ptr<Expr> value;
-
-    AssignExpr(Token name, std::unique_ptr<Expr> value);
-
-    void accept(ExprVisitor &visitor) override;
-};
-
 struct VarExpr : public Expr {
     Token name;
 

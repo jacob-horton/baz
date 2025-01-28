@@ -171,8 +171,7 @@ std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
     // TODO: is there a better way to do this
     if (VarExpr *var = dynamic_cast<VarExpr *>(&lhs)) {
         Token name = var->name;
-        return std::make_unique<ExprStmt>(
-            std::make_unique<AssignExpr>(name, std::move(value)));
+        return std::make_unique<AssignStmt>(name, std::move(value));
     }
 
     this->error(equals_token, "Invalid assignment target.");
@@ -282,12 +281,12 @@ std::unique_ptr<FunDeclStmt> Parser::function_decl() {
     this->consume(TokenType::R_BRACKET, "Expected ')' after parameter list.");
 
     this->consume(TokenType::COLON, "Expected return type.");
-    Token type = this->type();
+    Token return_type = this->type();
 
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
     std::vector<std::unique_ptr<Stmt>> body = this->block();
 
-    return std::make_unique<FunDeclStmt>(name, params, std::move(body));
+    return std::make_unique<FunDeclStmt>(name, params, return_type, std::move(body));
 }
 
 std::unique_ptr<VariableDeclStmt> Parser::variable_decl() {
@@ -393,7 +392,8 @@ std::unique_ptr<Expr> Parser::fallback() {
 
 std::unique_ptr<Expr> Parser::unary() {
     if (this->match(TokenType::BANG) || this->match(TokenType::MINUS)) {
-        return std::make_unique<UnaryExpr>(this->previous(), this->unary());
+        Token prev = this->previous();
+        return std::make_unique<UnaryExpr>(prev, this->unary());
     }
 
     return this->call();

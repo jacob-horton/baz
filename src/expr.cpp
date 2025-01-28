@@ -1,11 +1,6 @@
 #include "expr.h"
 #include "expr_visitor.h"
 
-AssignExpr::AssignExpr(Token name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)) {}
-void AssignExpr::accept(ExprVisitor &visitor) {
-    visitor.visitAssignExpr(this);
-}
-
 VarExpr::VarExpr(Token name) : name(name) {}
 void VarExpr::accept(ExprVisitor &visitor) {
     visitor.visitVarExpr(this);

@@ -3,6 +3,7 @@
 #include <ostream>
 #include <string>
 
+#include "cpp_generator.h"
 #include "parser.h"
 #include "scanner.h"
 
@@ -85,13 +86,21 @@ fn main(): void {
 }
 )END";
 
-    std::unique_ptr<Scanner> scan = std::make_unique<TextScanner>(source);
+    source = "fn main(): void { if (true) { 1 + 3 * 4 / (5 + -variable && !other.something.that(1,2,3,4) + another.value); } else { 5; } }";
+
+    std::unique_ptr<Scanner>
+        scan = std::make_unique<TextScanner>(source);
     Parser parser = Parser(std::move(scan));
 
     auto stmt = parser.parse_stmt();
-    while (stmt) {
-        std::cout << &stmt << std::endl;
-        stmt = parser.parse_stmt();
-    }
+    auto visitor = CppGenerator();
+    stmt->get()->accept(visitor);
+    std::cout << std::endl;
+
+    // while (stmt) {
+    //     std::cout << &stmt << std::endl;
+    //     stmt = parser.parse_stmt();
+    // }
+
     return 0;
 }

@@ -9,17 +9,24 @@
 #include <ostream>
 #include <vector>
 
+// Forward declaration - actual implementation will import the visitor
+class StmtVisitor;
+
 struct Stmt {
+    virtual void accept(StmtVisitor &visitor) = 0;
+
     virtual ~Stmt() = default;
 };
 
 struct FunDeclStmt : public Stmt {
     Token name;
+    Token return_type;
     std::vector<TypedVar> params;
     std::vector<std::unique_ptr<Stmt>> body;
 
-    FunDeclStmt(Token name, std::vector<TypedVar> params, std::vector<std::unique_ptr<Stmt>> body)
-        : name(name), params(params), body(std::move(body)) {}
+    FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, std::vector<std::unique_ptr<Stmt>> body);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct StructDeclStmt : public Stmt {
@@ -27,8 +34,9 @@ struct StructDeclStmt : public Stmt {
     std::vector<TypedVar> properties;
     std::vector<std::unique_ptr<FunDeclStmt>> methods;
 
-    StructDeclStmt(Token name, std::vector<TypedVar> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods)
-        : name(name), properties(properties), methods(std::move(methods)) {}
+    StructDeclStmt(Token name, std::vector<TypedVar> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct EnumDeclStmt : public Stmt {
@@ -36,27 +44,34 @@ struct EnumDeclStmt : public Stmt {
     std::vector<EnumVariant> variants;
     std::vector<std::unique_ptr<FunDeclStmt>> methods;
 
-    EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<FunDeclStmt>> methods)
-        : name(name), variants(variants), methods(std::move(methods)) {}
+    EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<FunDeclStmt>> methods);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct VariableDeclStmt : public Stmt {
     TypedVar name;
     std::unique_ptr<Expr> value;
 
-    VariableDeclStmt(TypedVar name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)) {}
+    VariableDeclStmt(TypedVar name, std::unique_ptr<Expr> value);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct ExprStmt : public Stmt {
     std::unique_ptr<Expr> expr;
 
-    ExprStmt(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
+    ExprStmt(std::unique_ptr<Expr> expr);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct BlockStmt : public Stmt {
     std::vector<std::unique_ptr<Stmt>> stmts;
 
-    BlockStmt(std::vector<std::unique_ptr<Stmt>> stmts) : stmts(std::move(stmts)) {}
+    BlockStmt(std::vector<std::unique_ptr<Stmt>> stmts);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct IfStmt : public Stmt {
@@ -64,30 +79,34 @@ struct IfStmt : public Stmt {
     std::vector<std::unique_ptr<Stmt>> true_block;
     std::optional<std::vector<std::unique_ptr<Stmt>>> false_block;
 
-    IfStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> true_block, std::optional<std::vector<std::unique_ptr<Stmt>>> false_block)
-        : condition(std::move(condition)), true_block(std::move(true_block)), false_block(std::move(false_block)) {}
+    IfStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> true_block, std::optional<std::vector<std::unique_ptr<Stmt>>> false_block);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct MatchBranch {
     std::unique_ptr<Expr> pattern;
     std::vector<std::unique_ptr<Stmt>> body;
 
-    MatchBranch(std::unique_ptr<Expr> pattern, std::vector<std::unique_ptr<Stmt>> body) : pattern(std::move(pattern)), body(std::move(body)) {}
+    MatchBranch(std::unique_ptr<Expr> pattern, std::vector<std::unique_ptr<Stmt>> body);
 };
 
 struct MatchStmt : public Stmt {
     std::unique_ptr<Expr> target;
     std::vector<MatchBranch> branches;
 
-    MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches)
-        : target(std::move(target)), branches(std::move(branches)) {}
+    MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct WhileStmt : public Stmt {
     std::unique_ptr<Expr> condition;
     std::vector<std::unique_ptr<Stmt>> stmts;
 
-    WhileStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> stmts) : condition(std::move(condition)), stmts(std::move(stmts)) {}
+    WhileStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> stmts);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct ForStmt : public Stmt {
@@ -96,19 +115,33 @@ struct ForStmt : public Stmt {
     std::unique_ptr<Stmt> increment;
     std::vector<std::unique_ptr<Stmt>> stmts;
 
-    ForStmt(std::unique_ptr<Stmt> var, std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> increment, std::vector<std::unique_ptr<Stmt>> stmts)
-        : var(std::move(var)), condition(std::move(condition)), increment(std::move(increment)), stmts(std::move(stmts)) {}
+    ForStmt(std::unique_ptr<Stmt> var, std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> increment, std::vector<std::unique_ptr<Stmt>> stmts);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct PrintStmt : public Stmt {
     std::optional<std::unique_ptr<Expr>> expr;
     bool newline;
 
-    PrintStmt(std::optional<std::unique_ptr<Expr>> expr, bool newline) : expr(std::move(expr)), newline(newline) {}
+    PrintStmt(std::optional<std::unique_ptr<Expr>> expr, bool newline);
+
+    void accept(StmtVisitor &visitor) override;
 };
 
 struct ReturnStmt : public Stmt {
     std::optional<std::unique_ptr<Expr>> expr;
 
-    ReturnStmt(std::optional<std::unique_ptr<Expr>> expr) : expr(std::move(expr)) {}
+    ReturnStmt(std::optional<std::unique_ptr<Expr>> expr);
+
+    void accept(StmtVisitor &visitor) override;
+};
+
+struct AssignStmt : public Stmt {
+    Token name;
+    std::unique_ptr<Expr> value;
+
+    AssignStmt(Token name, std::unique_ptr<Expr> value);
+
+    void accept(StmtVisitor &visitor) override;
 };

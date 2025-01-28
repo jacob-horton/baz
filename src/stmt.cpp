@@ -53,7 +53,7 @@ void WhileStmt::accept(StmtVisitor &visitor) {
     visitor.visitWhileStmt(this);
 }
 
-ForStmt::ForStmt(std::unique_ptr<Stmt> var, std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> increment, std::vector<std::unique_ptr<Stmt>> stmts)
+ForStmt::ForStmt(std::unique_ptr<Stmt> var, std::unique_ptr<Stmt> condition, std::unique_ptr<Stmt> increment, std::vector<std::unique_ptr<Stmt>> stmts)
     : var(std::move(var)), condition(std::move(condition)), increment(std::move(increment)), stmts(std::move(stmts)) {}
 void ForStmt::accept(StmtVisitor &visitor) {
     visitor.visitForStmt(this);

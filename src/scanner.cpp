@@ -170,7 +170,7 @@ Token TextScanner::string() {
 
     this->advance();
 
-    return this->make_token(TokenType::STR_VAL, std::string(this->token_start + 1, this->current - this->token_start - 2), start_line);
+    return this->make_token(TokenType::STR_VAL, std::string(this->token_start, this->current - this->token_start), start_line);
 }
 
 TextScanner::TextScanner(std::string &source) {
@@ -184,7 +184,7 @@ Token TextScanner::scan_token() {
 
     // TOOD: function for is_at_end
     if (this->current >= this->end)
-        return this->make_token(TokenType::EOF_, "", this->line);
+        return this->make_token(TokenType::EOF_, "");
 
     this->token_start = this->current;
 

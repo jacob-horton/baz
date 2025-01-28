@@ -81,7 +81,7 @@ void CppGenerator::visitFunDeclStmt(FunDeclStmt *stmt) {
         if (!first)
             std::cout << ", ";
 
-        std::cout << param.type << " " << param.name;
+        std::cout << param.type.lexeme << " " << param.name.lexeme;
         first = false;
     }
 
@@ -94,18 +94,45 @@ void CppGenerator::visitFunDeclStmt(FunDeclStmt *stmt) {
     std::cout << "}" << std::endl;
 }
 
-void CppGenerator::visitStructDeclStmt(StructDeclStmt *stmt) {}
+void CppGenerator::visitStructDeclStmt(StructDeclStmt *stmt) {
+    std::cout << "struct " << stmt->name.lexeme << " {" << std::endl;
 
+    std::cout << "public:" << std::endl;
+    for (auto &prop : stmt->properties) {
+        std::cout << prop.type.lexeme << " " << prop.name.lexeme << ";" << std::endl;
+    }
+
+    for (auto &method : stmt->methods) {
+        std::cout << std::endl;
+        method->accept(*this);
+    }
+
+    std::cout << "};" << std::endl;
+}
+
+// TODO: enums
 void CppGenerator::visitEnumDeclStmt(EnumDeclStmt *stmt) {}
 
-void CppGenerator::visitVariableDeclStmt(VariableDeclStmt *stmt) {}
+void CppGenerator::visitVariableDeclStmt(VariableDeclStmt *stmt) {
+    std::cout << stmt->name.type.lexeme << " " << stmt->name.name.lexeme << " = ";
+    stmt->value->accept(*this);
+    std::cout << ";" << std::endl;
+}
 
 void CppGenerator::visitExprStmt(ExprStmt *stmt) {
     stmt->expr->accept(*this);
     std::cout << ";" << std::endl;
 }
 
-void CppGenerator::visitBlockStmt(BlockStmt *stmt) {}
+void CppGenerator::visitBlockStmt(BlockStmt *stmt) {
+    std::cout << "{" << std::endl;
+
+    for (auto &line : stmt->stmts) {
+        line->accept(*this);
+    }
+
+    std::cout << "}" << std::endl;
+}
 
 void CppGenerator::visitIfStmt(IfStmt *stmt) {
     std::cout << "if (";
@@ -128,14 +155,61 @@ void CppGenerator::visitIfStmt(IfStmt *stmt) {
     }
 }
 
+// TODO: match statements
 void CppGenerator::visitMatchStmt(MatchStmt *stmt) {}
 
-void CppGenerator::visitWhileStmt(WhileStmt *stmt) {}
+void CppGenerator::visitWhileStmt(WhileStmt *stmt) {
+    std::cout << "while (";
+    stmt->condition->accept(*this);
+    std::cout << ") {" << std::endl;
 
-void CppGenerator::visitForStmt(ForStmt *stmt) {}
+    for (auto &line : stmt->stmts) {
+        line->accept(*this);
+    }
 
-void CppGenerator::visitPrintStmt(PrintStmt *stmt) {}
+    std::cout << "}" << std::endl;
+}
 
-void CppGenerator::visitReturnStmt(ReturnStmt *stmt) {}
+void CppGenerator::visitForStmt(ForStmt *stmt) {
+    std::cout << "for (";
 
-void CppGenerator::visitAssignStmt(AssignStmt *stmt) {}
+    stmt->var->accept(*this);
+    stmt->condition->accept(*this);
+    // TODO: don't include semicolon at end
+    stmt->increment->accept(*this);
+
+    std::cout << ") {" << std::endl;
+
+    for (auto &line : stmt->stmts) {
+        line->accept(*this);
+    }
+
+    std::cout << "}" << std::endl;
+}
+
+void CppGenerator::visitPrintStmt(PrintStmt *stmt) {
+    std::cout << "std::cout << ";
+
+    if (stmt->expr.has_value())
+        stmt->expr.value()->accept(*this);
+
+    if (stmt->newline)
+        std::cout << " << std::endl";
+
+    std::cout << ";" << std::endl;
+}
+
+void CppGenerator::visitReturnStmt(ReturnStmt *stmt) {
+    std::cout << "return ";
+
+    if (stmt->expr.has_value())
+        stmt->expr.value()->accept(*this);
+
+    std::cout << ";" << std::endl;
+}
+
+void CppGenerator::visitAssignStmt(AssignStmt *stmt) {
+    std::cout << stmt->name.lexeme << " = ";
+    stmt->value->accept(*this);
+    std::cout << ";" << std::endl;
+}

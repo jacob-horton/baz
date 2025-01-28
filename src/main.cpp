@@ -86,7 +86,9 @@ fn main(): void {
 }
 )END";
 
-    source = "fn main(): void { if (true) { 1 + 3 * 4 / (5 + -variable && !other.something.that(1,2,3,4) + another.value); } else { 5; } }";
+    // source = "fn main(): void { for (let i: int = 0; i < 100; i = i + 1) { 1 + 3 * 4 / (5 + -variable && !other.something.that(1,2,3,4) + another.value); } if (true) { println(\"hi\"); } }";
+    // TODO: only allow void in func return type
+    source = "struct Name { prop1: int; prop2: bool; fn method1(arg1: float): int { return 5; } fn method2(): void {} }";
 
     std::unique_ptr<Scanner>
         scan = std::make_unique<TextScanner>(source);

@@ -111,11 +111,11 @@ struct WhileStmt : public Stmt {
 
 struct ForStmt : public Stmt {
     std::unique_ptr<Stmt> var;
-    std::unique_ptr<Expr> condition;
+    std::unique_ptr<Stmt> condition;
     std::unique_ptr<Stmt> increment;
     std::vector<std::unique_ptr<Stmt>> stmts;
 
-    ForStmt(std::unique_ptr<Stmt> var, std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> increment, std::vector<std::unique_ptr<Stmt>> stmts);
+    ForStmt(std::unique_ptr<Stmt> var, std::unique_ptr<Stmt> condition, std::unique_ptr<Stmt> increment, std::vector<std::unique_ptr<Stmt>> stmts);
 
     void accept(StmtVisitor &visitor) override;
 };

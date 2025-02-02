@@ -4,6 +4,7 @@
 #include "stmt.h"
 #include "token.h"
 #include "typed_var.h"
+
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -28,7 +29,7 @@ std::optional<std::unique_ptr<Stmt>> Parser::top_level_decl() {
         return this->enum_decl();
 
     if (this->match(TokenType::FN))
-        return this->function_decl();
+        return this->function_decl(FunType::FUNCTION);
 
     this->error(this->peek(), "Unexpected statement at top level.");
     exit(2);
@@ -218,7 +219,7 @@ std::unique_ptr<StructDeclStmt> Parser::struct_decl() {
 
     while (!this->check(TokenType::R_CURLY_BRACKET)) {
         if (this->match(TokenType::FN)) {
-            methods.push_back(this->function_decl());
+            methods.push_back(this->function_decl(FunType::METHOD));
         } else {
             properties.push_back(this->typed_identifier());
             this->consume(TokenType::SEMI_COLON, "Expected ';' after property.");
@@ -239,7 +240,7 @@ std::unique_ptr<EnumDeclStmt> Parser::enum_decl() {
 
     while (!this->check(TokenType::R_CURLY_BRACKET)) {
         if (this->match(TokenType::FN)) {
-            methods.push_back(this->function_decl());
+            methods.push_back(this->function_decl(FunType::METHOD));
         } else {
             variants.push_back(this->enum_variant());
             this->consume(TokenType::SEMI_COLON, "Expected ';' after property.");
@@ -266,8 +267,7 @@ EnumVariant Parser::enum_variant() {
     return EnumVariant(name, type, is_optional);
 }
 
-std::unique_ptr<FunDeclStmt> Parser::function_decl() {
-    // TODO: method or function
+std::unique_ptr<FunDeclStmt> Parser::function_decl(FunType fun_type) {
     Token name = this->consume(TokenType::IDENTIFIER, "Expected function name.");
     std::vector<TypedVar> params;
 
@@ -285,10 +285,15 @@ std::unique_ptr<FunDeclStmt> Parser::function_decl() {
     this->consume(TokenType::COLON, "Expected return type.");
     Token return_type = this->type();
 
+    if (fun_type == FunType::FUNCTION && name.lexeme == "main") {
+        if (return_type.lexeme != "void")
+            this->error(return_type, "Main function must have return type of 'void'.");
+    }
+
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
     std::vector<std::unique_ptr<Stmt>> body = this->block();
 
-    return std::make_unique<FunDeclStmt>(name, params, return_type, std::move(body));
+    return std::make_unique<FunDeclStmt>(name, params, return_type, std::move(body), fun_type);
 }
 
 std::unique_ptr<VariableDeclStmt> Parser::variable_decl() {

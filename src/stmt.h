@@ -18,13 +18,19 @@ struct Stmt {
     virtual ~Stmt() = default;
 };
 
+enum FunType {
+    FUNCTION,
+    METHOD,
+};
+
 struct FunDeclStmt : public Stmt {
     Token name;
     Token return_type;
     std::vector<TypedVar> params;
     std::vector<std::unique_ptr<Stmt>> body;
+    FunType fun_type;
 
-    FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, std::vector<std::unique_ptr<Stmt>> body);
+    FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type);
 
     void accept(StmtVisitor &visitor) override;
 };

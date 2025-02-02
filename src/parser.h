@@ -19,7 +19,7 @@ class Parser {
     std::optional<std::unique_ptr<Stmt>> top_level_decl();
     std::unique_ptr<Stmt> nested_decl();
 
-    std::unique_ptr<FunDeclStmt> function_decl();
+    std::unique_ptr<FunDeclStmt> function_decl(FunType fun_type);
     std::unique_ptr<StructDeclStmt> struct_decl();
     std::unique_ptr<EnumDeclStmt> enum_decl();
     std::unique_ptr<VariableDeclStmt> variable_decl();

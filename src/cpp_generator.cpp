@@ -1,157 +1,170 @@
 #include "cpp_generator.h"
+#include "stmt.h"
 
 #include <iostream>
 #include <ostream>
 
+CppGenerator::CppGenerator(std::ostream &output) : output(output) {
+    output << "#include <iostream>"
+           << std::endl
+           << std::endl;
+}
+
 // Expressions
 void CppGenerator::visitVarExpr(VarExpr *expr) {
-    std::cout << expr->name.lexeme;
+    this->output << expr->name.lexeme;
 }
 
 void CppGenerator::visitStructInitExpr(StructInitExpr *expr) {
     // TODO: finish this
-    std::cout << "struct init" << std::endl;
+    this->output << "struct init" << std::endl;
 }
 
 void CppGenerator::visitBinaryExpr(BinaryExpr *expr) {
-    std::cout << "(";
+    this->output << "(";
     expr->left->accept(*this);
-    std::cout << " " << expr->op.lexeme << " ";
+    this->output << " " << expr->op.lexeme << " ";
     expr->right->accept(*this);
-    std::cout << ")";
+    this->output << ")";
 }
 
 // TODO: is logical binary needed if we're just generating C++?
 void CppGenerator::visitLogicalBinaryExpr(LogicalBinaryExpr *expr) {
-    std::cout << "(";
+    this->output << "(";
     expr->left->accept(*this);
-    std::cout << " " << expr->op.lexeme << " ";
+    this->output << " " << expr->op.lexeme << " ";
     expr->right->accept(*this);
-    std::cout << ")";
+    this->output << ")";
 }
 
 void CppGenerator::visitUnaryExpr(UnaryExpr *expr) {
-    std::cout << "(";
-    std::cout << expr->op.lexeme;
+    this->output << "(";
+    this->output << expr->op.lexeme;
     expr->right->accept(*this);
-    std::cout << ")";
+    this->output << ")";
 }
 
 void CppGenerator::visitGetExpr(GetExpr *expr) {
     // TODO: enums
-    std::cout << "(";
+    this->output << "(";
     expr->value->accept(*this);
-    std::cout << "." << expr->name.lexeme << ")";
+    this->output << "." << expr->name.lexeme << ")";
 }
 
 void CppGenerator::visitCallExpr(CallExpr *expr) {
     // TODO: constructor
-    std::cout << "(";
+    this->output << "(";
     expr->callee->accept(*this);
-    std::cout << "(";
+    this->output << "(";
 
     bool first = true;
     for (auto &arg : expr->args) {
         if (!first)
-            std::cout << ", ";
+            this->output << ", ";
 
         arg->accept(*this);
         first = false;
     }
 
-    std::cout << "))";
+    this->output << "))";
 }
 
 void CppGenerator::visitGroupingExpr(GroupingExpr *expr) {
-    std::cout << "(";
+    this->output << "(";
     expr->expr->accept(*this);
-    std::cout << ")";
+    this->output << ")";
 }
 
 void CppGenerator::visitLiteralExpr(LiteralExpr *expr) {
-    std::cout << expr->literal.lexeme;
+    this->output << expr->literal.lexeme;
 }
 
 // Statments
 void CppGenerator::visitFunDeclStmt(FunDeclStmt *stmt) {
-    std::cout << stmt->return_type.lexeme << " " << stmt->name.lexeme << "(";
+    std::string return_type = stmt->return_type.lexeme;
+
+    // Convert main to use "int" instead of "void" for main
+    if (stmt->fun_type == FunType::FUNCTION && stmt->name.lexeme == "main")
+        return_type = "int";
+
+    this->output << return_type << " " << stmt->name.lexeme << "(";
 
     bool first = true;
     for (auto &param : stmt->params) {
         if (!first)
-            std::cout << ", ";
+            this->output << ", ";
 
-        std::cout << param.type.lexeme << " " << param.name.lexeme;
+        this->output << param.type.lexeme << " " << param.name.lexeme;
         first = false;
     }
 
-    std::cout << ") {" << std::endl;
+    this->output << ") {" << std::endl;
 
     for (auto &line : stmt->body) {
         line->accept(*this);
     }
 
-    std::cout << "}" << std::endl;
+    this->output << "}" << std::endl;
 }
 
 void CppGenerator::visitStructDeclStmt(StructDeclStmt *stmt) {
-    std::cout << "struct " << stmt->name.lexeme << " {" << std::endl;
+    this->output << "struct " << stmt->name.lexeme << " {" << std::endl;
 
-    std::cout << "public:" << std::endl;
+    this->output << "public:" << std::endl;
     for (auto &prop : stmt->properties) {
-        std::cout << prop.type.lexeme << " " << prop.name.lexeme << ";" << std::endl;
+        this->output << prop.type.lexeme << " " << prop.name.lexeme << ";" << std::endl;
     }
 
     for (auto &method : stmt->methods) {
-        std::cout << std::endl;
+        this->output << std::endl;
         method->accept(*this);
     }
 
-    std::cout << "};" << std::endl;
+    this->output << "};" << std::endl;
 }
 
 // TODO: enums
 void CppGenerator::visitEnumDeclStmt(EnumDeclStmt *stmt) {}
 
 void CppGenerator::visitVariableDeclStmt(VariableDeclStmt *stmt) {
-    std::cout << stmt->name.type.lexeme << " " << stmt->name.name.lexeme << " = ";
+    this->output << stmt->name.type.lexeme << " " << stmt->name.name.lexeme << " = ";
     stmt->value->accept(*this);
-    std::cout << ";" << std::endl;
+    this->output << ";" << std::endl;
 }
 
 void CppGenerator::visitExprStmt(ExprStmt *stmt) {
     stmt->expr->accept(*this);
-    std::cout << ";" << std::endl;
+    this->output << ";" << std::endl;
 }
 
 void CppGenerator::visitBlockStmt(BlockStmt *stmt) {
-    std::cout << "{" << std::endl;
+    this->output << "{" << std::endl;
 
     for (auto &line : stmt->stmts) {
         line->accept(*this);
     }
 
-    std::cout << "}" << std::endl;
+    this->output << "}" << std::endl;
 }
 
 void CppGenerator::visitIfStmt(IfStmt *stmt) {
-    std::cout << "if (";
+    this->output << "if (";
     stmt->condition->accept(*this);
-    std::cout << ") {" << std::endl;
+    this->output << ") {" << std::endl;
 
     for (auto &line : stmt->true_block) {
         line->accept(*this);
     }
 
-    std::cout << "}";
+    this->output << "}";
 
     if (stmt->false_block.has_value()) {
-        std::cout << " else {" << std::endl;
+        this->output << " else {" << std::endl;
         for (auto &line : stmt->false_block.value()) {
             line->accept(*this);
         }
 
-        std::cout << "}" << std::endl;
+        this->output << "}" << std::endl;
     }
 }
 
@@ -159,57 +172,57 @@ void CppGenerator::visitIfStmt(IfStmt *stmt) {
 void CppGenerator::visitMatchStmt(MatchStmt *stmt) {}
 
 void CppGenerator::visitWhileStmt(WhileStmt *stmt) {
-    std::cout << "while (";
+    this->output << "while (";
     stmt->condition->accept(*this);
-    std::cout << ") {" << std::endl;
+    this->output << ") {" << std::endl;
 
     for (auto &line : stmt->stmts) {
         line->accept(*this);
     }
 
-    std::cout << "}" << std::endl;
+    this->output << "}" << std::endl;
 }
 
 void CppGenerator::visitForStmt(ForStmt *stmt) {
-    std::cout << "for (";
+    this->output << "for (";
 
     stmt->var->accept(*this);
     stmt->condition->accept(*this);
     // TODO: don't include semicolon at end
     stmt->increment->accept(*this);
 
-    std::cout << ") {" << std::endl;
+    this->output << ") {" << std::endl;
 
     for (auto &line : stmt->stmts) {
         line->accept(*this);
     }
 
-    std::cout << "}" << std::endl;
+    this->output << "}" << std::endl;
 }
 
 void CppGenerator::visitPrintStmt(PrintStmt *stmt) {
-    std::cout << "std::cout << ";
+    this->output << "std::cout << ";
 
     if (stmt->expr.has_value())
         stmt->expr.value()->accept(*this);
 
     if (stmt->newline)
-        std::cout << " << std::endl";
+        this->output << " << std::endl";
 
-    std::cout << ";" << std::endl;
+    this->output << ";" << std::endl;
 }
 
 void CppGenerator::visitReturnStmt(ReturnStmt *stmt) {
-    std::cout << "return ";
+    this->output << "return ";
 
     if (stmt->expr.has_value())
         stmt->expr.value()->accept(*this);
 
-    std::cout << ";" << std::endl;
+    this->output << ";" << std::endl;
 }
 
 void CppGenerator::visitAssignStmt(AssignStmt *stmt) {
-    std::cout << stmt->name.lexeme << " = ";
+    this->output << stmt->name.lexeme << " = ";
     stmt->value->accept(*this);
-    std::cout << ";" << std::endl;
+    this->output << ";" << std::endl;
 }

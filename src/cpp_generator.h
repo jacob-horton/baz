@@ -2,9 +2,15 @@
 
 #include "expr_visitor.h"
 #include "stmt_visitor.h"
+#include <fstream>
 
 class CppGenerator : public ExprVisitor, public StmtVisitor {
+  private:
+    std::ostream &output;
+
   public:
+    CppGenerator(std::ostream &file);
+
     void visitVarExpr(VarExpr *expr);
     void visitStructInitExpr(StructInitExpr *expr);
     void visitBinaryExpr(BinaryExpr *expr);

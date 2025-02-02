@@ -25,13 +25,13 @@ class Parser {
     std::unique_ptr<VariableDeclStmt> variable_decl();
 
     std::unique_ptr<Stmt> statement();
-    std::unique_ptr<Stmt> assignment(Expr &lhs);
-    std::unique_ptr<Stmt> if_statement();
-    std::unique_ptr<Stmt> match_statement();
-    std::unique_ptr<Stmt> for_statement();
-    std::unique_ptr<Stmt> while_statement();
-    std::unique_ptr<Stmt> print_statement();
-    std::unique_ptr<Stmt> return_statement();
+    std::unique_ptr<AssignStmt> assignment(Expr &lhs);
+    std::unique_ptr<IfStmt> if_statement();
+    std::unique_ptr<MatchStmt> match_statement();
+    std::unique_ptr<ForStmt> for_statement();
+    std::unique_ptr<WhileStmt> while_statement();
+    std::unique_ptr<PrintStmt> print_statement();
+    std::unique_ptr<ReturnStmt> return_statement();
 
     std::unique_ptr<Expr> expression();
     std::unique_ptr<Expr> logical_or();

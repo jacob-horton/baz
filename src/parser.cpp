@@ -70,7 +70,7 @@ std::unique_ptr<Stmt> Parser::statement() {
     return std::make_unique<ExprStmt>(std::move(expr));
 }
 
-std::unique_ptr<Stmt> Parser::if_statement() {
+std::unique_ptr<IfStmt> Parser::if_statement() {
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'if'.");
     std::unique_ptr<Expr> condition = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after if condition.");
@@ -88,7 +88,7 @@ std::unique_ptr<Stmt> Parser::if_statement() {
     return std::make_unique<IfStmt>(std::move(condition), std::move(true_block), std::move(false_block));
 }
 
-std::unique_ptr<Stmt> Parser::match_statement() {
+std::unique_ptr<MatchStmt> Parser::match_statement() {
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'match'.");
     std::unique_ptr<Expr> target = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after match target.");
@@ -109,18 +109,19 @@ std::unique_ptr<Stmt> Parser::match_statement() {
     return std::make_unique<MatchStmt>(std::move(target), std::move(branches));
 }
 
-std::unique_ptr<Stmt> Parser::for_statement() {
+std::unique_ptr<ForStmt> Parser::for_statement() {
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'for'.");
     this->consume(TokenType::LET, "Expected variable declaration.");
-    std::unique_ptr<Stmt> var = this->variable_decl();
+    auto var = this->variable_decl();
 
-    std::unique_ptr<Expr> condition = this->expression();
+    auto condition = this->expression();
     this->consume(TokenType::SEMI_COLON, "Expected ';' after expression.");
     auto condition_stmt = std::make_unique<ExprStmt>(std::move(condition));
 
-    std::unique_ptr<Expr> expr = this->expression();
+    auto expr = this->expression();
     this->consume(TokenType::EQUAL, "Expected '=' after assignment target.");
-    std::unique_ptr<Stmt> increment = this->assignment(*expr);
+    auto increment = this->assignment(*expr);
+    increment->semicolon = false;
 
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after for condition.");
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before loop body.");
@@ -128,7 +129,7 @@ std::unique_ptr<Stmt> Parser::for_statement() {
     return std::make_unique<ForStmt>(std::move(var), std::move(condition_stmt), std::move(increment), std::move(body));
 }
 
-std::unique_ptr<Stmt> Parser::while_statement() {
+std::unique_ptr<WhileStmt> Parser::while_statement() {
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'while'.");
     std::unique_ptr<Expr> condition = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after while condition.");
@@ -138,7 +139,7 @@ std::unique_ptr<Stmt> Parser::while_statement() {
     return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
 }
 
-std::unique_ptr<Stmt> Parser::print_statement() {
+std::unique_ptr<PrintStmt> Parser::print_statement() {
     Token print = this->previous();
 
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'print'.");
@@ -156,7 +157,7 @@ std::unique_ptr<Stmt> Parser::print_statement() {
     return std::make_unique<PrintStmt>(std::move(value), print.lexeme == "println");
 }
 
-std::unique_ptr<Stmt> Parser::return_statement() {
+std::unique_ptr<ReturnStmt> Parser::return_statement() {
     if (this->match(TokenType::SEMI_COLON)) {
         return std::make_unique<ReturnStmt>(std::optional<std::unique_ptr<Expr>>{});
     }
@@ -167,7 +168,7 @@ std::unique_ptr<Stmt> Parser::return_statement() {
     return std::make_unique<ReturnStmt>(std::move(value));
 }
 
-std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
+std::unique_ptr<AssignStmt> Parser::assignment(Expr &lhs) {
     Token equals_token = this->previous();
     std::unique_ptr<Expr> value = this->expression();
 

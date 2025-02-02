@@ -115,13 +115,23 @@ struct WhileStmt : public Stmt {
     void accept(StmtVisitor &visitor) override;
 };
 
+struct AssignStmt : public Stmt {
+    Token name;
+    std::unique_ptr<Expr> value;
+    bool semicolon;
+
+    AssignStmt(Token name, std::unique_ptr<Expr> value);
+
+    void accept(StmtVisitor &visitor) override;
+};
+
 struct ForStmt : public Stmt {
-    std::unique_ptr<Stmt> var;
-    std::unique_ptr<Stmt> condition;
-    std::unique_ptr<Stmt> increment;
+    std::unique_ptr<VariableDeclStmt> var;
+    std::unique_ptr<ExprStmt> condition;
+    std::unique_ptr<AssignStmt> increment;
     std::vector<std::unique_ptr<Stmt>> stmts;
 
-    ForStmt(std::unique_ptr<Stmt> var, std::unique_ptr<Stmt> condition, std::unique_ptr<Stmt> increment, std::vector<std::unique_ptr<Stmt>> stmts);
+    ForStmt(std::unique_ptr<VariableDeclStmt> var, std::unique_ptr<ExprStmt> condition, std::unique_ptr<AssignStmt> increment, std::vector<std::unique_ptr<Stmt>> stmts);
 
     void accept(StmtVisitor &visitor) override;
 };
@@ -139,15 +149,6 @@ struct ReturnStmt : public Stmt {
     std::optional<std::unique_ptr<Expr>> expr;
 
     ReturnStmt(std::optional<std::unique_ptr<Expr>> expr);
-
-    void accept(StmtVisitor &visitor) override;
-};
-
-struct AssignStmt : public Stmt {
-    Token name;
-    std::unique_ptr<Expr> value;
-
-    AssignStmt(Token name, std::unique_ptr<Expr> value);
 
     void accept(StmtVisitor &visitor) override;
 };

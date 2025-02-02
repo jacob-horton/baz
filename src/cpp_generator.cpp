@@ -224,5 +224,7 @@ void CppGenerator::visitReturnStmt(ReturnStmt *stmt) {
 void CppGenerator::visitAssignStmt(AssignStmt *stmt) {
     this->output << stmt->name.lexeme << " = ";
     stmt->value->accept(*this);
-    this->output << ";" << std::endl;
+
+    if (stmt->semicolon)
+        this->output << ";" << std::endl;
 }

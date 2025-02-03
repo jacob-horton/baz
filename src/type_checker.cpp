@@ -36,16 +36,14 @@ void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
             auto left_t = std::move(this->result);
 
             // If not numeric, we can't operate
-            if (!(left_t->type_class == TypeClass::INT || left_t->type_class == TypeClass::FLOAT)) {
+            if (!(left_t->type_class == TypeClass::INT || left_t->type_class == TypeClass::FLOAT))
                 this->error(expr->op, "Operator can only be used on numeric types.");
-            }
 
             expr->right->accept(*this);
             auto right_t = std::move(this->result);
 
-            if (left_t->type_class != right_t->type_class) {
+            if (left_t->type_class != right_t->type_class)
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
-            }
 
             this->result = std::move(left_t);
             return;
@@ -59,36 +57,68 @@ void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
             auto left_t = std::move(this->result);
 
             // If not numeric, we can't compare
-            if (!(left_t->type_class == TypeClass::INT || left_t->type_class == TypeClass::FLOAT)) {
+            if (!(left_t->type_class == TypeClass::INT || left_t->type_class == TypeClass::FLOAT))
                 this->error(expr->op, "Operator can only be used on numeric types.");
-            }
 
             expr->right->accept(*this);
             auto right_t = std::move(this->result);
 
             // TODO: For now only supporting comparing same type, but need to extend to support float < int for example
-            if (left_t->type_class != right_t->type_class) {
+            if (left_t->type_class != right_t->type_class)
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
-            }
 
             this->result = std::move(left_t);
             return;
         }
         default:
-            std::cerr << "[BUG] Operator type '" << get_token_type_str(expr->op.t) << "' not handled." << std::endl;
+            std::cerr << "[BUG] Binary operator type '" << get_token_type_str(expr->op.t) << "' not handled." << std::endl;
             exit(3);
     }
 }
 
-void TypeChecker::visitLogicalBinaryExpr(LogicalBinaryExpr *expr) {}
+void TypeChecker::visitLogicalBinaryExpr(LogicalBinaryExpr *expr) {
+    expr->left->accept(*this);
+    auto left_t = std::move(this->result);
 
-void TypeChecker::visitUnaryExpr(UnaryExpr *expr) {}
+    if (left_t->type_class != TypeClass::BOOL)
+        this->error(expr->op, "Operator can only be used on boolean types.");
+
+    expr->right->accept(*this);
+    auto right_t = std::move(this->result);
+
+    if (left_t->type_class != right_t->type_class)
+        this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
+
+    this->result = std::move(left_t);
+}
+
+void TypeChecker::visitUnaryExpr(UnaryExpr *expr) {
+    expr->right->accept(*this);
+
+    switch (expr->op.t) {
+        case TokenType::BANG:
+            // If not boolean, we can't invert
+            if (this->result->type_class != TypeClass::BOOL)
+                this->error(expr->op, "Operator can only be used on a boolean type.");
+            break;
+        case TokenType::MINUS:
+            // If not numeric, we can't invert
+            if (!(this->result->type_class == TypeClass::INT || this->result->type_class == TypeClass::FLOAT))
+                this->error(expr->op, "Operator can only be used on numeric types.");
+            break;
+        default:
+            std::cerr << "[BUG] Unary operator type '" << get_token_type_str(expr->op.t) << "' not handled." << std::endl;
+            exit(3);
+    }
+}
 
 void TypeChecker::visitGetExpr(GetExpr *expr) {}
 
 void TypeChecker::visitCallExpr(CallExpr *expr) {}
 
-void TypeChecker::visitGroupingExpr(GroupingExpr *expr) {}
+void TypeChecker::visitGroupingExpr(GroupingExpr *expr) {
+    expr->expr->accept(*this);
+}
 
 void TypeChecker::visitLiteralExpr(LiteralExpr *expr) {
     // TODO: "this" and user defined types

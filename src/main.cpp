@@ -98,12 +98,13 @@ fn main(): void {
     auto stmt = parser.parse_stmt();
     auto visitor = TypeChecker();
     auto expr = std::move(((ExprStmt *)((FunDeclStmt *)stmt->get())->body[0].get())->expr);
-    expr->accept(visitor);
-    std::cout << (visitor.result.has_value() ? "Succeeded" : "Failed");
-    if (visitor.result.has_value())
-        std::cout << ": " << visitor.result.value()->type_class;
 
-    std::cout << std::endl;
+    try {
+        expr->accept(visitor);
+        std::cout << "Succeeded" << ": " << visitor.result->type_class << std::endl;
+    } catch (TypeCheckerError) {
+        std::cout << "Failed" << std::endl;
+    }
 
     // std::ofstream file("output.cpp");
     //

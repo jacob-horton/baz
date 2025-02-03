@@ -537,5 +537,5 @@ void Parser::error(Token error_token, std::string message) {
     if (error_token.t != TokenType::EOF_)
         where = "'" + error_token.lexeme + "'";
 
-    std::cerr << "[line " << error_token.line << "] Error at " << where << ": " << message << std::endl;
+    std::cerr << "[line " << error_token.line << "] Syntax error at " << where << ": " << message << std::endl;
 }

@@ -79,7 +79,7 @@ void CppGenerator::visitLiteralExpr(LiteralExpr *expr) {
     this->output << expr->literal.lexeme;
 }
 
-// Statments
+// Statements
 void CppGenerator::visitFunDeclStmt(FunDeclStmt *stmt) {
     std::string return_type = stmt->return_type.lexeme;
 

@@ -6,6 +6,16 @@
 
 TypeChecker::TypeChecker() {}
 
+void TypeChecker::error(Token error_token, std::string message) {
+    std::string where = "end";
+    if (error_token.t != TokenType::EOF_)
+        where = "'" + error_token.lexeme + "'";
+
+    std::cerr << "[line " << error_token.line << "] Type error at " << where << ": " << message << std::endl;
+
+    throw TypeCheckerError::OP_ON_INCOMPATIBLE_TYPES;
+}
+
 // Expressions
 void TypeChecker::visitVarExpr(VarExpr *expr) {
     // TODO: lookup type in environment
@@ -16,27 +26,25 @@ void TypeChecker::visitStructInitExpr(StructInitExpr *expr) {}
 
 void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
     switch (expr->op.t) {
+        // TODO: concatenating strings for PLUS
         case TokenType::PLUS:
         case TokenType::MINUS:
         case TokenType::STAR:
         case TokenType::SLASH: {
-            // TODO: only allow FLOAT, INT, STR
-
             // Check left and right are the same type
             expr->left->accept(*this);
-            if (!this->result.has_value())
-                return;
-
             auto left_t = std::move(this->result);
 
-            expr->right->accept(*this);
-            if (!this->result.has_value())
-                return;
+            // If not numeric, we can't operate
+            if (!(left_t->type_class == TypeClass::INT || left_t->type_class == TypeClass::FLOAT)) {
+                this->error(expr->op, "Operator can only be used on numeric types.");
+            }
 
+            expr->right->accept(*this);
             auto right_t = std::move(this->result);
-            if (left_t.value()->type_class != right_t.value()->type_class) {
-                this->result = {};
-                return;
+
+            if (left_t->type_class != right_t->type_class) {
+                this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
             }
 
             this->result = std::move(left_t);
@@ -48,26 +56,19 @@ void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
         case TokenType::GREATER_EQUAL: {
             // Check left and right are the same type, and numeric
             expr->left->accept(*this);
-            if (!this->result.has_value())
-                return;
-
-            // If not numeric, we can't compare
-            if (!(this->result.value()->type_class == TypeClass::INT || this->result.value()->type_class == TypeClass::FLOAT)) {
-                this->result = {};
-                return;
-            }
-
             auto left_t = std::move(this->result);
 
-            expr->right->accept(*this);
-            if (!this->result.has_value())
-                return;
+            // If not numeric, we can't compare
+            if (!(left_t->type_class == TypeClass::INT || left_t->type_class == TypeClass::FLOAT)) {
+                this->error(expr->op, "Operator can only be used on numeric types.");
+            }
 
+            expr->right->accept(*this);
             auto right_t = std::move(this->result);
+
             // TODO: For now only supporting comparing same type, but need to extend to support float < int for example
-            if (left_t.value()->type_class != right_t.value()->type_class) {
-                this->result = {};
-                return;
+            if (left_t->type_class != right_t->type_class) {
+                this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
             }
 
             this->result = std::move(left_t);
@@ -112,11 +113,9 @@ void TypeChecker::visitLiteralExpr(LiteralExpr *expr) {
             std::cerr << "[BUG] Token type '" << get_token_type_str(expr->literal.t) << "' not handled." << std::endl;
             exit(3);
     }
-
-    this->success = true;
 }
 
-// Statments
+// Statements
 void TypeChecker::visitFunDeclStmt(FunDeclStmt *stmt) {}
 
 void TypeChecker::visitStructDeclStmt(StructDeclStmt *stmt) {}

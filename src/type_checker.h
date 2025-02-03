@@ -3,6 +3,11 @@
 #include "expr_visitor.h"
 #include "stmt_visitor.h"
 #include <fstream>
+#include <string>
+
+enum TypeCheckerError {
+    OP_ON_INCOMPATIBLE_TYPES,
+};
 
 enum TypeClass {
     INT,
@@ -46,10 +51,12 @@ struct StrType : public Type {
 
 class TypeChecker : public ExprVisitor,
                     public StmtVisitor {
-  private:
   public:
-    std::optional<std::unique_ptr<Type>> result;
+    // TODO: should this be private?
+    std::unique_ptr<Type> result;
     TypeChecker();
+
+    void error(Token t, std::string message);
 
     void visitVarExpr(VarExpr *expr);
     void visitStructInitExpr(StructInitExpr *expr);

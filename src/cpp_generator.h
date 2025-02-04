@@ -11,6 +11,8 @@ class CppGenerator : public ExprVisitor, public StmtVisitor {
   public:
     CppGenerator(std::ostream &file);
 
+    void generate(std::vector<std::unique_ptr<Stmt>> &stmts);
+
     void visitVarExpr(VarExpr *expr);
     void visitStructInitExpr(StructInitExpr *expr);
     void visitBinaryExpr(BinaryExpr *expr);

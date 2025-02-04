@@ -2,7 +2,9 @@
 #include <memory>
 #include <ostream>
 #include <string>
+#include <vector>
 
+#include "cpp_generator.h"
 #include "parser.h"
 #include "resolver.h"
 #include "scanner.h"
@@ -93,30 +95,30 @@ fn main(): void {
     auto scan = std::make_unique<TextScanner>(source);
     Parser parser = Parser(std::move(scan));
 
+    std::vector<std::unique_ptr<Stmt>> stmts;
     auto stmt = parser.parse_stmt();
-    auto resolver = Resolver();
-    auto type_checker = TypeChecker();
-
-    // Resolve types
-    stmt->get()->accept(resolver);
-
-    try {
-        stmt->get()->accept(type_checker);
-        std::cout << "Succeeded" << std::endl;
-    } catch (TypeCheckerError) {
-        std::cout << "Failed" << std::endl;
+    while (stmt.has_value()) {
+        stmts.push_back(std::move(stmt.value()));
+        stmt = parser.parse_stmt();
     }
 
-    // std::ofstream file("output.cpp");
-    //
-    // auto stmt = parser.parse_stmt();
-    // auto visitor = CppGenerator(file);
-    //
-    // while (stmt) {
-    //     stmt->get()->accept(visitor);
-    //     file << std::endl;
-    //     stmt = parser.parse_stmt();
-    // }
+    // Resolve types
+    auto resolver = Resolver();
+    resolver.resolve(stmts);
+
+    // Check types
+    auto type_checker = TypeChecker();
+    try {
+        type_checker.check(stmts);
+    } catch (TypeCheckerError) {
+        std::cout << "Failed type check" << std::endl;
+        exit(4);
+    }
+
+    // Generate C++
+    std::ofstream file("output.cpp");
+    auto cpp_generator = CppGenerator(file);
+    cpp_generator.generate(stmts);
 
     return 0;
 }

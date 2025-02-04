@@ -7,6 +7,12 @@
 
 TypeChecker::TypeChecker() {}
 
+void TypeChecker::check(std::vector<std::unique_ptr<Stmt>> &stmts) {
+    for (auto &stmt : stmts) {
+        stmt->accept(*this);
+    }
+}
+
 void TypeChecker::error(Token error_token, std::string message) {
     std::string where = "end";
     if (error_token.t != TokenType::EOF_)

@@ -120,6 +120,7 @@ struct AssignStmt : public Stmt {
     std::unique_ptr<Expr> value;
     bool semicolon;
 
+    // NOTE: this gets set when resolving
     std::shared_ptr<Type> target_type;
 
     AssignStmt(Token name, std::unique_ptr<Expr> value);

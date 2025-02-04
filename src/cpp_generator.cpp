@@ -4,10 +4,17 @@
 #include <iostream>
 #include <ostream>
 
-CppGenerator::CppGenerator(std::ostream &output) : output(output) {
+CppGenerator::CppGenerator(std::ostream &output) : output(output) {}
+
+void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
     output << "#include <iostream>"
            << std::endl
            << std::endl;
+
+    for (auto &stmt : stmts) {
+        stmt->accept(*this);
+        this->output << std::endl;
+    }
 }
 
 // Expressions

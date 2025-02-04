@@ -4,18 +4,22 @@
 #include "stmt_visitor.h"
 #include "type.h"
 #include <fstream>
+#include <memory>
 #include <string>
+#include <vector>
 
 enum TypeCheckerError {
     OP_ON_INCOMPATIBLE_TYPES,
 };
 
-class TypeChecker : public ExprVisitor,
-                    public StmtVisitor {
-  public:
-    // TODO: should this be private?
+class TypeChecker : public ExprVisitor, public StmtVisitor {
+  private:
     std::shared_ptr<Type> result;
+
+  public:
     TypeChecker();
+
+    void check(std::vector<std::unique_ptr<Stmt>> &stmts);
 
     void error(Token t, std::string message);
 

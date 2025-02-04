@@ -17,6 +17,8 @@ struct Expr {
 
 struct VarExpr : public Expr {
     Token name;
+
+    // NOTE: this gets set during resolving
     std::shared_ptr<Type> type;
 
     VarExpr(Token name);

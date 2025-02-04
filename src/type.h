@@ -1,6 +1,6 @@
 #pragma once
 
-#include "typed_var.h"
+#include "token.h"
 #include <memory>
 
 enum TypeClass {
@@ -42,7 +42,3 @@ struct NullType : public Type {
 struct StrType : public Type {
     StrType() : Type(TypeClass::STR) {}
 };
-
-// TODO: better naming
-std::unique_ptr<Type> from_literal(Token literal);
-std::unique_ptr<Type> from_typed_var(TypedVar var);

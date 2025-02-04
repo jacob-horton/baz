@@ -118,7 +118,7 @@ void TypeChecker::visitGroupingExpr(GroupingExpr *expr) {
 }
 
 void TypeChecker::visitLiteralExpr(LiteralExpr *expr) {
-    this->result = from_literal(expr->literal);
+    this->result = expr->get_type();
 }
 
 // Statements
@@ -134,8 +134,8 @@ void TypeChecker::visitEnumDeclStmt(EnumDeclStmt *stmt) {}
 
 void TypeChecker::visitVariableDeclStmt(VariableDeclStmt *stmt) {
     stmt->initialiser->accept(*this);
-    if (from_typed_var(stmt->name)->type_class != this->result->type_class) {
-        this->error(stmt->name.name, "Cannot assign a type '" + std::to_string(this->result->type_class) + "' to variable of type '" + std::to_string(from_typed_var(stmt->name)->type_class) + "'.");
+    if (stmt->name.get_type()->type_class != this->result->type_class) {
+        this->error(stmt->name.name, "Cannot assign a type '" + std::to_string(this->result->type_class) + "' to variable of type '" + std::to_string(stmt->name.get_type()->type_class) + "'.");
     }
 }
 

@@ -83,13 +83,12 @@ void Resolver::declare(TypedVar var) {
     }
 
     auto &scope = this->scopes.back();
-    std::shared_ptr<Type> type = from_typed_var(var);
 
     scope[var.name.lexeme] = BoundVariable{
         var.name.lexeme,
         false,
         // TODO: actually work this out from var.type
-        type,
+        var.get_type(),
     };
 }
 

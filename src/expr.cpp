@@ -1,5 +1,6 @@
 #include "expr.h"
 #include "expr_visitor.h"
+#include <iostream>
 
 // TODO: remove type({})
 VarExpr::VarExpr(Token name) : name(name), type({}) {}
@@ -48,4 +49,24 @@ void GroupingExpr::accept(ExprVisitor &visitor) {
 LiteralExpr::LiteralExpr(Token literal) : literal(literal) {}
 void LiteralExpr::accept(ExprVisitor &visitor) {
     visitor.visitLiteralExpr(this);
+}
+
+std::unique_ptr<Type> LiteralExpr::get_type() {
+    // TODO: "this" and user defined types
+    switch (this->literal.t) {
+        case TokenType::TRUE:
+        case TokenType::FALSE:
+            return std::make_unique<BoolType>();
+        case TokenType::NULL_VAL:
+            return std::make_unique<NullType>();
+        case TokenType::INT_VAL:
+            return std::make_unique<IntType>();
+        case TokenType::FLOAT_VAL:
+            return std::make_unique<FloatType>();
+        case TokenType::STR_VAL:
+            return std::make_unique<StrType>();
+        default:
+            std::cerr << "[BUG] Token type '" << get_token_type_str(this->literal.t) << "' not handled." << std::endl;
+            exit(3);
+    }
 }

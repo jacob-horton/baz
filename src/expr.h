@@ -95,4 +95,5 @@ struct LiteralExpr : public Expr {
     LiteralExpr(Token literal);
 
     void accept(ExprVisitor &visitor) override;
+    std::unique_ptr<Type> get_type();
 };

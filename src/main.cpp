@@ -1,10 +1,8 @@
-#include <fstream>
 #include <iostream>
 #include <memory>
 #include <ostream>
 #include <string>
 
-#include "cpp_generator.h"
 #include "parser.h"
 #include "resolver.h"
 #include "scanner.h"
@@ -90,7 +88,7 @@ fn main(): void {
 )END";
 
     source = "struct Name { prop1: int; prop2: bool; fn method1(arg1: float): int { return 5; } fn method2(): void {} }\n fn main(): void { for (let i: int = 0; i < 100; i = i + 1) { 1 + 3 * 4 / (5 + -variable && !other.something.that(1,2,3,4) + another.value); } if (true) { println(\"hi\"); } }";
-    source = "fn main(): void { let some_int: int = 4; let some_float: float = 1.0; let final: float = some_float; final = 1; }";
+    source = "fn main(): void { let some_int: int = 4; let some_float: float = 1.0; let final: float = some_float; final = final + 1.0; }";
 
     auto scan = std::make_unique<TextScanner>(source);
     Parser parser = Parser(std::move(scan));

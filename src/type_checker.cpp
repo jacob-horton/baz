@@ -24,17 +24,17 @@ void TypeChecker::error(Token error_token, std::string message) {
 }
 
 // Expressions
-void TypeChecker::visitVarExpr(VarExpr *expr) {
+void TypeChecker::visit_var_expr(VarExpr *expr) {
     this->result = expr->type;
 }
 
-void TypeChecker::visitStructInitExpr(StructInitExpr *expr) {}
+void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {}
 
 bool is_numeric(Type *t) {
     return t->can_coerce_to(TypeClass::INT) || t->can_coerce_to(TypeClass::FLOAT);
 }
 
-void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
+void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
     switch (expr->op.t) {
         // TODO: concatenating strings for PLUS
         case TokenType::PLUS:
@@ -85,7 +85,7 @@ void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
     }
 }
 
-void TypeChecker::visitLogicalBinaryExpr(LogicalBinaryExpr *expr) {
+void TypeChecker::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
     expr->left->accept(*this);
     auto left_t = this->result;
 
@@ -99,7 +99,7 @@ void TypeChecker::visitLogicalBinaryExpr(LogicalBinaryExpr *expr) {
         this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 }
 
-void TypeChecker::visitUnaryExpr(UnaryExpr *expr) {
+void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
     expr->right->accept(*this);
 
     switch (expr->op.t) {
@@ -119,43 +119,43 @@ void TypeChecker::visitUnaryExpr(UnaryExpr *expr) {
     }
 }
 
-void TypeChecker::visitGetExpr(GetExpr *expr) {}
+void TypeChecker::visit_get_expr(GetExpr *expr) {}
 
-void TypeChecker::visitCallExpr(CallExpr *expr) {}
+void TypeChecker::visit_call_expr(CallExpr *expr) {}
 
-void TypeChecker::visitGroupingExpr(GroupingExpr *expr) {
+void TypeChecker::visit_grouping_expr(GroupingExpr *expr) {
     expr->expr->accept(*this);
 }
 
-void TypeChecker::visitLiteralExpr(LiteralExpr *expr) {
+void TypeChecker::visit_literal_expr(LiteralExpr *expr) {
     this->result = expr->get_type();
 }
 
 // Statements
-void TypeChecker::visitFunDeclStmt(FunDeclStmt *fun) {
+void TypeChecker::visit_fun_decl_stmt(FunDeclStmt *fun) {
     for (auto &stmt : fun->body) {
         stmt->accept(*this);
     }
 }
 
-void TypeChecker::visitStructDeclStmt(StructDeclStmt *stmt) {}
+void TypeChecker::visit_struct_decl_stmt(StructDeclStmt *stmt) {}
 
-void TypeChecker::visitEnumDeclStmt(EnumDeclStmt *stmt) {}
+void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
 
-void TypeChecker::visitVariableDeclStmt(VariableDeclStmt *stmt) {
+void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     stmt->initialiser->accept(*this);
     if (*stmt->name.get_type() != *this->result) {
         this->error(stmt->name.name, "Cannot assign a type '" + this->result->to_string() + "' to variable of type '" + stmt->name.get_type()->to_string() + "'.");
     }
 }
 
-void TypeChecker::visitExprStmt(ExprStmt *stmt) {
+void TypeChecker::visit_expr_stmt(ExprStmt *stmt) {
     stmt->expr->accept(*this);
 }
 
-void TypeChecker::visitBlockStmt(BlockStmt *stmt) {}
+void TypeChecker::visit_block_stmt(BlockStmt *stmt) {}
 
-void TypeChecker::visitIfStmt(IfStmt *stmt) {
+void TypeChecker::visit_if_stmt(IfStmt *stmt) {
     stmt->condition->accept(*this);
     if (!this->result->can_coerce_to(TypeClass::BOOL)) {
         // TODO: store if token for error reporting
@@ -173,17 +173,17 @@ void TypeChecker::visitIfStmt(IfStmt *stmt) {
     }
 }
 
-void TypeChecker::visitMatchStmt(MatchStmt *stmt) {}
+void TypeChecker::visit_match_stmt(MatchStmt *stmt) {}
 
-void TypeChecker::visitWhileStmt(WhileStmt *stmt) {}
+void TypeChecker::visit_while_stmt(WhileStmt *stmt) {}
 
-void TypeChecker::visitForStmt(ForStmt *stmt) {}
+void TypeChecker::visit_for_stmt(ForStmt *stmt) {}
 
-void TypeChecker::visitPrintStmt(PrintStmt *stmt) {}
+void TypeChecker::visit_print_stmt(PrintStmt *stmt) {}
 
-void TypeChecker::visitReturnStmt(ReturnStmt *stmt) {}
+void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {}
 
-void TypeChecker::visitAssignStmt(AssignStmt *stmt) {
+void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
     if (*this->result != *stmt->target_type) {

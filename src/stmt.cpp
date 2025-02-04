@@ -4,40 +4,40 @@
 FunDeclStmt::FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type)
     : name(name), params(params), return_type(return_type), body(std::move(body)), fun_type(fun_type) {}
 void FunDeclStmt::accept(StmtVisitor &visitor) {
-    visitor.visitFunDeclStmt(this);
+    visitor.visit_fun_decl_stmt(this);
 }
 
 StructDeclStmt::StructDeclStmt(Token name, std::vector<TypedVar> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods)
     : name(name), properties(properties), methods(std::move(methods)) {}
 void StructDeclStmt::accept(StmtVisitor &visitor) {
-    visitor.visitStructDeclStmt(this);
+    visitor.visit_struct_decl_stmt(this);
 }
 
 EnumDeclStmt::EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<FunDeclStmt>> methods)
     : name(name), variants(variants), methods(std::move(methods)) {}
 void EnumDeclStmt::accept(StmtVisitor &visitor) {
-    visitor.visitEnumDeclStmt(this);
+    visitor.visit_enum_decl_stmt(this);
 }
 
 VariableDeclStmt::VariableDeclStmt(TypedVar name, std::unique_ptr<Expr> initialiser) : name(name), initialiser(std::move(initialiser)) {}
 void VariableDeclStmt::accept(StmtVisitor &visitor) {
-    visitor.visitVariableDeclStmt(this);
+    visitor.visit_variable_decl_stmt(this);
 }
 
 ExprStmt::ExprStmt(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
 void ExprStmt::accept(StmtVisitor &visitor) {
-    visitor.visitExprStmt(this);
+    visitor.visit_expr_stmt(this);
 }
 
 BlockStmt::BlockStmt(std::vector<std::unique_ptr<Stmt>> stmts) : stmts(std::move(stmts)) {}
 void BlockStmt::accept(StmtVisitor &visitor) {
-    visitor.visitBlockStmt(this);
+    visitor.visit_block_stmt(this);
 }
 
 IfStmt::IfStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> true_block, std::optional<std::vector<std::unique_ptr<Stmt>>> false_block)
     : condition(std::move(condition)), true_block(std::move(true_block)), false_block(std::move(false_block)) {}
 void IfStmt::accept(StmtVisitor &visitor) {
-    visitor.visitIfStmt(this);
+    visitor.visit_if_stmt(this);
 }
 
 MatchBranch::MatchBranch(std::unique_ptr<Expr> pattern, std::vector<std::unique_ptr<Stmt>> body) : pattern(std::move(pattern)), body(std::move(body)) {}
@@ -45,31 +45,31 @@ MatchBranch::MatchBranch(std::unique_ptr<Expr> pattern, std::vector<std::unique_
 MatchStmt::MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches)
     : target(std::move(target)), branches(std::move(branches)) {}
 void MatchStmt::accept(StmtVisitor &visitor) {
-    visitor.visitMatchStmt(this);
+    visitor.visit_match_stmt(this);
 }
 
 WhileStmt::WhileStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> stmts) : condition(std::move(condition)), stmts(std::move(stmts)) {}
 void WhileStmt::accept(StmtVisitor &visitor) {
-    visitor.visitWhileStmt(this);
+    visitor.visit_while_stmt(this);
 }
 
 ForStmt::ForStmt(std::unique_ptr<VariableDeclStmt> var, std::unique_ptr<ExprStmt> condition, std::unique_ptr<AssignStmt> increment, std::vector<std::unique_ptr<Stmt>> stmts)
     : var(std::move(var)), condition(std::move(condition)), increment(std::move(increment)), stmts(std::move(stmts)) {}
 void ForStmt::accept(StmtVisitor &visitor) {
-    visitor.visitForStmt(this);
+    visitor.visit_for_stmt(this);
 }
 
 PrintStmt::PrintStmt(std::optional<std::unique_ptr<Expr>> expr, bool newline) : expr(std::move(expr)), newline(newline) {}
 void PrintStmt::accept(StmtVisitor &visitor) {
-    visitor.visitPrintStmt(this);
+    visitor.visit_print_stmt(this);
 }
 
 ReturnStmt::ReturnStmt(std::optional<std::unique_ptr<Expr>> expr) : expr(std::move(expr)) {}
 void ReturnStmt::accept(StmtVisitor &visitor) {
-    visitor.visitReturnStmt(this);
+    visitor.visit_return_stmt(this);
 }
 
 AssignStmt::AssignStmt(Token name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)), semicolon(true) {}
 void AssignStmt::accept(StmtVisitor &visitor) {
-    visitor.visitAssignStmt(this);
+    visitor.visit_assign_stmt(this);
 }

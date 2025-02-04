@@ -1,7 +1,6 @@
 #include "resolver.h"
 #include "stmt.h"
 #include "token.h"
-#include "type.h"
 
 #include <iostream>
 #include <memory>
@@ -19,11 +18,11 @@ void Resolver::error(Token error_token, std::string message) {
     exit(3);
 }
 
-void Resolver::beginScope() {
+void Resolver::begin_scope() {
     this->scopes.push_back({});
 }
 
-void Resolver::endScope() {
+void Resolver::end_scope() {
     this->scopes.pop_back();
 }
 
@@ -41,7 +40,7 @@ void Resolver::resolve(Expr *expr) {
     expr->accept(*this);
 }
 
-BoundVariable Resolver::resolveLocal(Token name) {
+BoundVariable Resolver::resolve_local(Token name) {
     for (int i = this->scopes.size() - 1; i >= 0; i--) {
         auto scope = this->scopes[i];
         auto resolved = scope.find(name.lexeme);
@@ -55,15 +54,15 @@ BoundVariable Resolver::resolveLocal(Token name) {
     exit(3);
 }
 
-void Resolver::resolveFunction(FunDeclStmt *fun) {
-    this->beginScope();
+void Resolver::resolve_function(FunDeclStmt *fun) {
+    this->begin_scope();
     for (auto param : fun->params) {
         this->declare(param);
         this->define(param);
     }
 
     this->resolve(fun->body);
-    this->endScope();
+    this->end_scope();
 }
 
 void Resolver::define(TypedVar var) {
@@ -93,35 +92,35 @@ void Resolver::declare(TypedVar var) {
 }
 
 // Expressions
-void Resolver::visitVarExpr(VarExpr *expr) {
+void Resolver::visit_var_expr(VarExpr *expr) {
     if (this->scopes.size() != 0 && !scopes.back()[expr->name.lexeme].defined)
         this->error(expr->name, "Cannot read local variable in its own initialiser.");
 
-    expr->type = this->resolveLocal(expr->name).type;
+    expr->type = this->resolve_local(expr->name).type;
 }
 
 // TODO:
-void Resolver::visitStructInitExpr(StructInitExpr *expr) {}
+void Resolver::visit_struct_init_expr(StructInitExpr *expr) {}
 
-void Resolver::visitBinaryExpr(BinaryExpr *expr) {
+void Resolver::visit_binary_expr(BinaryExpr *expr) {
     this->resolve(expr->left.get());
     this->resolve(expr->right.get());
 }
 
-void Resolver::visitLogicalBinaryExpr(LogicalBinaryExpr *expr) {
+void Resolver::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
     this->resolve(expr->left.get());
     this->resolve(expr->right.get());
 }
 
-void Resolver::visitUnaryExpr(UnaryExpr *expr) {
+void Resolver::visit_unary_expr(UnaryExpr *expr) {
     this->resolve(expr->right.get());
 }
 
-void Resolver::visitGetExpr(GetExpr *expr) {
+void Resolver::visit_get_expr(GetExpr *expr) {
     this->resolve(expr->value.get());
 }
 
-void Resolver::visitCallExpr(CallExpr *expr) {
+void Resolver::visit_call_expr(CallExpr *expr) {
     this->resolve(expr->callee.get());
 
     for (auto &arg : expr->args) {
@@ -129,44 +128,44 @@ void Resolver::visitCallExpr(CallExpr *expr) {
     }
 }
 
-void Resolver::visitGroupingExpr(GroupingExpr *expr) {
+void Resolver::visit_grouping_expr(GroupingExpr *expr) {
     this->resolve(expr->expr.get());
 }
 
 // NOTE: do nothing here - no variables to resolve
-void Resolver::visitLiteralExpr(LiteralExpr *expr) {}
+void Resolver::visit_literal_expr(LiteralExpr *expr) {}
 
 // Statements
-void Resolver::visitFunDeclStmt(FunDeclStmt *stmt) {
+void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
     // TODO: Type for this
     // this->declare(stmt->name);
     // this->define(stmt->name);
-    this->resolveFunction(stmt);
+    this->resolve_function(stmt);
 }
 
 // TODO:
-void Resolver::visitStructDeclStmt(StructDeclStmt *stmt) {}
+void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {}
 
 // TODO:
-void Resolver::visitEnumDeclStmt(EnumDeclStmt *stmt) {}
+void Resolver::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
 
-void Resolver::visitVariableDeclStmt(VariableDeclStmt *stmt) {
+void Resolver::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     this->declare(stmt->name);
     this->resolve(stmt->initialiser.get());
     this->define(stmt->name);
 }
 
-void Resolver::visitExprStmt(ExprStmt *stmt) {
+void Resolver::visit_expr_stmt(ExprStmt *stmt) {
     this->resolve(stmt->expr.get());
 }
 
-void Resolver::visitBlockStmt(BlockStmt *stmt) {
-    this->beginScope();
+void Resolver::visit_block_stmt(BlockStmt *stmt) {
+    this->begin_scope();
     this->resolve(stmt->stmts);
-    this->endScope();
+    this->end_scope();
 }
 
-void Resolver::visitIfStmt(IfStmt *stmt) {
+void Resolver::visit_if_stmt(IfStmt *stmt) {
     this->resolve(stmt->condition.get());
     this->resolve(stmt->true_block);
 
@@ -175,31 +174,31 @@ void Resolver::visitIfStmt(IfStmt *stmt) {
 }
 
 // TODO:
-void Resolver::visitMatchStmt(MatchStmt *stmt) {}
+void Resolver::visit_match_stmt(MatchStmt *stmt) {}
 
-void Resolver::visitWhileStmt(WhileStmt *stmt) {
+void Resolver::visit_while_stmt(WhileStmt *stmt) {
     this->resolve(stmt->condition.get());
     this->resolve(stmt->stmts);
 }
 
-void Resolver::visitForStmt(ForStmt *stmt) {
+void Resolver::visit_for_stmt(ForStmt *stmt) {
     this->resolve(stmt->var.get());
     this->resolve(stmt->condition.get());
     this->resolve(stmt->increment.get());
     this->resolve(stmt->stmts);
 }
 
-void Resolver::visitPrintStmt(PrintStmt *stmt) {
+void Resolver::visit_print_stmt(PrintStmt *stmt) {
     if (stmt->expr.has_value())
         this->resolve(stmt->expr.value().get());
 }
 
-void Resolver::visitReturnStmt(ReturnStmt *stmt) {
+void Resolver::visit_return_stmt(ReturnStmt *stmt) {
     if (stmt->expr.has_value())
         this->resolve(stmt->expr.value().get());
 }
 
-void Resolver::visitAssignStmt(AssignStmt *stmt) {
+void Resolver::visit_assign_stmt(AssignStmt *stmt) {
     this->resolve(stmt->value.get());
-    stmt->target_type = this->resolveLocal(stmt->name).type;
+    stmt->target_type = this->resolve_local(stmt->name).type;
 }

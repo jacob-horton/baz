@@ -4,50 +4,50 @@
 
 VarExpr::VarExpr(Token name) : name(name) {}
 void VarExpr::accept(ExprVisitor &visitor) {
-    visitor.visitVarExpr(this);
+    visitor.visit_var_expr(this);
 }
 
 StructInitExpr::StructInitExpr(Token name, std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties) : name(name), properties(std::move(properties)) {}
 void StructInitExpr::accept(ExprVisitor &visitor) {
-    visitor.visitStructInitExpr(this);
+    visitor.visit_struct_init_expr(this);
 }
 
 BinaryExpr::BinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
     : left(std::move(left)), op(op), right(std::move(right)) {}
 void BinaryExpr::accept(ExprVisitor &visitor) {
-    visitor.visitBinaryExpr(this);
+    visitor.visit_binary_expr(this);
 }
 
 LogicalBinaryExpr::LogicalBinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
     : left(std::move(left)), op(op), right(std::move(right)) {}
 void LogicalBinaryExpr::accept(ExprVisitor &visitor) {
-    visitor.visitLogicalBinaryExpr(this);
+    visitor.visit_logical_binary_expr(this);
 }
 
 UnaryExpr::UnaryExpr(Token op, std::unique_ptr<Expr> right) : op(op), right(std::move(right)) {}
 void UnaryExpr::accept(ExprVisitor &visitor) {
-    visitor.visitUnaryExpr(this);
+    visitor.visit_unary_expr(this);
 }
 
 GetExpr::GetExpr(std::unique_ptr<Expr> value, Token name) : value(std::move(value)), name(name) {}
 void GetExpr::accept(ExprVisitor &visitor) {
-    visitor.visitGetExpr(this);
+    visitor.visit_get_expr(this);
 }
 
 CallExpr::CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args)
     : callee(std::move(callee)), args(std::move(args)) {}
 void CallExpr::accept(ExprVisitor &visitor) {
-    visitor.visitCallExpr(this);
+    visitor.visit_call_expr(this);
 }
 
 GroupingExpr::GroupingExpr(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
 void GroupingExpr::accept(ExprVisitor &visitor) {
-    visitor.visitGroupingExpr(this);
+    visitor.visit_grouping_expr(this);
 }
 
 LiteralExpr::LiteralExpr(Token literal) : literal(literal) {}
 void LiteralExpr::accept(ExprVisitor &visitor) {
-    visitor.visitLiteralExpr(this);
+    visitor.visit_literal_expr(this);
 }
 
 std::unique_ptr<Type> LiteralExpr::get_type() {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "token.h"
+#include "type.h"
 
 #include <memory>
 #include <vector>
@@ -16,6 +17,7 @@ struct Expr {
 
 struct VarExpr : public Expr {
     Token name;
+    std::shared_ptr<Type> type;
 
     VarExpr(Token name);
 

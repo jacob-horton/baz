@@ -1,7 +1,8 @@
 #include "expr.h"
 #include "expr_visitor.h"
 
-VarExpr::VarExpr(Token name) : name(name) {}
+// TODO: remove type({})
+VarExpr::VarExpr(Token name) : name(name), type({}) {}
 void VarExpr::accept(ExprVisitor &visitor) {
     visitor.visitVarExpr(this);
 }

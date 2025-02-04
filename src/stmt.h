@@ -57,9 +57,9 @@ struct EnumDeclStmt : public Stmt {
 
 struct VariableDeclStmt : public Stmt {
     TypedVar name;
-    std::unique_ptr<Expr> value;
+    std::unique_ptr<Expr> initialiser;
 
-    VariableDeclStmt(TypedVar name, std::unique_ptr<Expr> value);
+    VariableDeclStmt(TypedVar name, std::unique_ptr<Expr> initialiser);
 
     void accept(StmtVisitor &visitor) override;
 };
@@ -119,6 +119,8 @@ struct AssignStmt : public Stmt {
     Token name;
     std::unique_ptr<Expr> value;
     bool semicolon;
+
+    std::shared_ptr<Type> target_type;
 
     AssignStmt(Token name, std::unique_ptr<Expr> value);
 

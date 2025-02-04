@@ -3,21 +3,40 @@
 #include "expr_visitor.h"
 #include "stmt_visitor.h"
 #include "type.h"
+
 #include <fstream>
+#include <map>
 #include <string>
 
-enum TypeCheckerError {
-    OP_ON_INCOMPATIBLE_TYPES,
+// TODO: rename? Maybe ResolvedVariable
+struct BoundVariable {
+    std::string name;
+    bool defined;
+    std::shared_ptr<Type> type;
 };
 
-class TypeChecker : public ExprVisitor,
-                    public StmtVisitor {
+class Resolver : public ExprVisitor, public StmtVisitor {
+  private:
+    std::vector<std::map<std::string, BoundVariable>> scopes;
+
   public:
-    // TODO: should this be private?
-    std::shared_ptr<Type> result;
-    TypeChecker();
+    Resolver();
 
     void error(Token t, std::string message);
+
+    void beginScope();
+    void endScope();
+
+    // TODO: can we remove these?
+    void resolve(std::vector<std::unique_ptr<Stmt>> &stmts);
+    void resolve(Stmt *stmt);
+    void resolve(Expr *expr);
+    void resolveFunction(FunDeclStmt *fun);
+
+    BoundVariable resolveLocal(Token name);
+
+    void declare(TypedVar var);
+    void define(TypedVar var);
 
     void visitVarExpr(VarExpr *expr);
     void visitStructInitExpr(StructInitExpr *expr);

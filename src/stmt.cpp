@@ -19,7 +19,7 @@ void EnumDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visitEnumDeclStmt(this);
 }
 
-VariableDeclStmt::VariableDeclStmt(TypedVar name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)) {}
+VariableDeclStmt::VariableDeclStmt(TypedVar name, std::unique_ptr<Expr> initialiser) : name(name), initialiser(std::move(initialiser)) {}
 void VariableDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visitVariableDeclStmt(this);
 }

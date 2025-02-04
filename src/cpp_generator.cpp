@@ -128,7 +128,7 @@ void CppGenerator::visitEnumDeclStmt(EnumDeclStmt *stmt) {}
 
 void CppGenerator::visitVariableDeclStmt(VariableDeclStmt *stmt) {
     this->output << stmt->name.type.lexeme << " " << stmt->name.name.lexeme << " = ";
-    stmt->value->accept(*this);
+    stmt->initialiser->accept(*this);
     this->output << ";" << std::endl;
 }
 

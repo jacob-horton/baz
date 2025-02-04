@@ -24,6 +24,10 @@ void TypeChecker::visitVarExpr(VarExpr *expr) {
 
 void TypeChecker::visitStructInitExpr(StructInitExpr *expr) {}
 
+bool is_numeric(Type *t) {
+    return t->can_coerce_to(TypeClass::INT) || t->can_coerce_to(TypeClass::FLOAT);
+}
+
 void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
     switch (expr->op.t) {
         // TODO: concatenating strings for PLUS
@@ -36,13 +40,13 @@ void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
             auto left_t = this->result;
 
             // If not numeric, we can't operate
-            if (!(left_t->type_class == TypeClass::INT || left_t->type_class == TypeClass::FLOAT))
+            if (!is_numeric(left_t.get()))
                 this->error(expr->op, "Operator can only be used on numeric types.");
 
             expr->right->accept(*this);
             auto right_t = this->result;
 
-            if (left_t->type_class != right_t->type_class)
+            if (*left_t != *right_t)
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             return;
@@ -56,14 +60,14 @@ void TypeChecker::visitBinaryExpr(BinaryExpr *expr) {
             auto left_t = this->result;
 
             // If not numeric, we can't compare
-            if (!(left_t->type_class == TypeClass::INT || left_t->type_class == TypeClass::FLOAT))
+            if (!is_numeric(left_t.get()))
                 this->error(expr->op, "Operator can only be used on numeric types.");
 
             expr->right->accept(*this);
             auto right_t = this->result;
 
             // TODO: For now only supporting comparing same type, but need to extend to support float < int for example
-            if (left_t->type_class != right_t->type_class)
+            if (*left_t != *right_t)
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = left_t;
@@ -79,13 +83,13 @@ void TypeChecker::visitLogicalBinaryExpr(LogicalBinaryExpr *expr) {
     expr->left->accept(*this);
     auto left_t = this->result;
 
-    if (left_t->type_class != TypeClass::BOOL)
+    if (!left_t->can_coerce_to(TypeClass::BOOL))
         this->error(expr->op, "Operator can only be used on boolean types.");
 
     expr->right->accept(*this);
     auto right_t = this->result;
 
-    if (left_t->type_class != right_t->type_class)
+    if (*left_t != *right_t)
         this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 }
 
@@ -95,12 +99,12 @@ void TypeChecker::visitUnaryExpr(UnaryExpr *expr) {
     switch (expr->op.t) {
         case TokenType::BANG:
             // If not boolean, we can't invert
-            if (this->result->type_class != TypeClass::BOOL)
+            if (!this->result->can_coerce_to(TypeClass::BOOL))
                 this->error(expr->op, "Operator can only be used on a boolean type.");
             break;
         case TokenType::MINUS:
             // If not numeric, we can't invert
-            if (!(this->result->type_class == TypeClass::INT || this->result->type_class == TypeClass::FLOAT))
+            if (!is_numeric(this->result.get()))
                 this->error(expr->op, "Operator can only be used on numeric types.");
             break;
         default:
@@ -134,8 +138,8 @@ void TypeChecker::visitEnumDeclStmt(EnumDeclStmt *stmt) {}
 
 void TypeChecker::visitVariableDeclStmt(VariableDeclStmt *stmt) {
     stmt->initialiser->accept(*this);
-    if (stmt->name.get_type()->type_class != this->result->type_class) {
-        this->error(stmt->name.name, "Cannot assign a type '" + std::to_string(this->result->type_class) + "' to variable of type '" + std::to_string(stmt->name.get_type()->type_class) + "'.");
+    if (*stmt->name.get_type() != *this->result) {
+        this->error(stmt->name.name, "Cannot assign a type '" + this->result->to_string() + "' to variable of type '" + stmt->name.get_type()->to_string() + "'.");
     }
 }
 
@@ -147,7 +151,7 @@ void TypeChecker::visitBlockStmt(BlockStmt *stmt) {}
 
 void TypeChecker::visitIfStmt(IfStmt *stmt) {
     stmt->condition->accept(*this);
-    if (this->result->type_class != TypeClass::BOOL) {
+    if (!this->result->can_coerce_to(TypeClass::BOOL)) {
         // TODO: store if token for error reporting
         this->error(Token{}, "If condition must be a boolean.");
     }
@@ -176,7 +180,7 @@ void TypeChecker::visitReturnStmt(ReturnStmt *stmt) {}
 void TypeChecker::visitAssignStmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
-    if (this->result->type_class != stmt->target_type->type_class) {
+    if (*this->result != *stmt->target_type) {
         // TODO: use equal token?
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }

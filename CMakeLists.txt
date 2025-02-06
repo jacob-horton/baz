@@ -8,7 +8,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 include_directories(src)
 
-file(GLOB SOURCES "src/*.cpp")
+file(GLOB SOURCES "src/**/*.cpp" "src/*.cpp")
 add_executable(baz ${SOURCES})
 
 add_custom_target(run
@@ -23,11 +23,11 @@ add_custom_target(run
 enable_testing()
 
 # Get all cpp files in "src/" except main.cpp
-file(GLOB ALL_SRC_CPP "src/*.cpp")
+file(GLOB ALL_SRC_CPP "src/**/*.cpp")
 list(FILTER ALL_SRC_CPP EXCLUDE REGEX "src/main.cpp")
 
 # Get all cpp files in "test/" and add src files from above here
-file(GLOB TEST_SOURCES "test/*.cpp")
+file(GLOB TEST_SOURCES "test/**/*.cpp")
 list(APPEND TEST_SOURCES ${ALL_SRC_CPP})
 
 add_executable(tests ${TEST_SOURCES})

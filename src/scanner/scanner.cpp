@@ -1,5 +1,4 @@
 #include "scanner.h"
-#include "token.h"
 
 #include <cstring>
 #include <iostream>

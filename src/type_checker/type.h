@@ -1,6 +1,6 @@
 #pragma once
 
-#include "token.h"
+#include "../scanner/token.h"
 #include <memory>
 
 enum TypeClass {

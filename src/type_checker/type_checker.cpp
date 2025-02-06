@@ -1,7 +1,5 @@
 #include "type_checker.h"
-#include "stmt.h"
-#include "token.h"
-#include "type.h"
+
 #include <iostream>
 #include <memory>
 

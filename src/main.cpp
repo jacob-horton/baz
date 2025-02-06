@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-#include "cpp_generator.h"
-#include "parser.h"
-#include "resolver.h"
-#include "scanner.h"
-#include "type_checker.h"
+#include "code_generator/cpp_generator.h"
+#include "parser/parser.h"
+#include "scanner/scanner.h"
+#include "type_checker/resolver.h"
+#include "type_checker/type_checker.h"
 
 std::string read_file(std::string path) {
     std::ifstream file(path);

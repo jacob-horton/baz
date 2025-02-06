@@ -1,5 +1,4 @@
 #include "cpp_generator.h"
-#include "stmt.h"
 
 #include <iostream>
 #include <ostream>

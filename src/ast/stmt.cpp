@@ -1,4 +1,3 @@
-#include "stmt.h"
 #include "stmt_visitor.h"
 
 FunDeclStmt::FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type)

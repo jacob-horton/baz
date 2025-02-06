@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../scanner/token.h"
 #include "enum_variant.h"
 #include "expr.h"
-#include "token.h"
 #include "typed_var.h"
 
 #include <optional>

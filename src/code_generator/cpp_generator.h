@@ -1,7 +1,8 @@
 #pragma once
 
-#include "expr_visitor.h"
-#include "stmt_visitor.h"
+#include "../ast/expr_visitor.h"
+#include "../ast/stmt_visitor.h"
+
 #include <fstream>
 
 class CppGenerator : public ExprVisitor, public StmtVisitor {

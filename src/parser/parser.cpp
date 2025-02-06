@@ -1,9 +1,4 @@
 #include "parser.h"
-#include "enum_variant.h"
-#include "expr.h"
-#include "stmt.h"
-#include "token.h"
-#include "typed_var.h"
 
 #include <iostream>
 #include <memory>

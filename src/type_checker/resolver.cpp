@@ -1,6 +1,4 @@
 #include "resolver.h"
-#include "stmt.h"
-#include "token.h"
 
 #include <iostream>
 #include <memory>

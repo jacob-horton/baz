@@ -1,41 +1,28 @@
 #pragma once
 
-#include "expr_visitor.h"
-#include "stmt_visitor.h"
+#include "../ast/expr_visitor.h"
+#include "../ast/stmt_visitor.h"
 #include "type.h"
 
 #include <fstream>
-#include <map>
+#include <memory>
 #include <string>
+#include <vector>
 
-// TODO: rename? Maybe ResolvedVariable
-struct BoundVariable {
-    std::string name;
-    bool defined;
-    std::shared_ptr<Type> type;
+enum TypeCheckerError {
+    OP_ON_INCOMPATIBLE_TYPES,
 };
 
-class Resolver : public ExprVisitor, public StmtVisitor {
+class TypeChecker : public ExprVisitor, public StmtVisitor {
   private:
-    std::vector<std::map<std::string, BoundVariable>> scopes;
+    std::shared_ptr<Type> result;
 
   public:
-    Resolver();
+    TypeChecker();
+
+    void check(std::vector<std::unique_ptr<Stmt>> &stmts);
 
     void error(Token t, std::string message);
-
-    void begin_scope();
-    void end_scope();
-
-    void resolve(std::vector<std::unique_ptr<Stmt>> &stmts);
-    void resolve(Stmt *stmt);
-    void resolve(Expr *expr);
-    void resolve_function(FunDeclStmt *fun);
-
-    BoundVariable resolve_local(Token name);
-
-    void declare(TypedVar var);
-    void define(TypedVar var);
 
     void visit_var_expr(VarExpr *expr);
     void visit_struct_init_expr(StructInitExpr *expr);

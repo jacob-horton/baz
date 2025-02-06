@@ -27,19 +27,19 @@ bool is_alphanum(char c) {
     return false;
 }
 
-Token TextScanner::make_token(TokenType t) {
+Token StringScanner::make_token(TokenType t) {
     return this->make_token(t, std::string(this->token_start, this->current - this->token_start));
 }
 
-Token TextScanner::make_token(TokenType t, std::string lexeme) {
+Token StringScanner::make_token(TokenType t, std::string lexeme) {
     return this->make_token(t, lexeme, this->line);
 }
 
-Token TextScanner::make_token(TokenType t, std::string lexeme, long line) {
+Token StringScanner::make_token(TokenType t, std::string lexeme, long line) {
     return Token{t, lexeme, line};
 }
 
-Token TextScanner::number() {
+Token StringScanner::number() {
     TokenType type = TokenType::INT_VAL;
 
     // Consume digits - we already know we've got an initial one
@@ -65,7 +65,7 @@ Token TextScanner::number() {
 }
 
 // Returns TokenType of keyword if the current token is one
-std::optional<TokenType> TextScanner::get_keyword_type() {
+std::optional<TokenType> StringScanner::get_keyword_type() {
     std::string word(this->token_start, this->current - this->token_start);
 
     auto token_type = KEYWORDS.find(word);
@@ -77,7 +77,7 @@ std::optional<TokenType> TextScanner::get_keyword_type() {
 
 // If token is a keyword, return the keyword type,
 // otherwise it is an identifier
-Token TextScanner::identifier_or_keyword() {
+Token StringScanner::identifier_or_keyword() {
     // Consume alphanumeric - we've already consumed alpha
     while (is_alphanum(this->peek()))
         this->advance();
@@ -89,7 +89,7 @@ Token TextScanner::identifier_or_keyword() {
     return this->make_token(TokenType::IDENTIFIER);
 }
 
-Token TextScanner::symbol(char start) {
+Token StringScanner::symbol(char start) {
     TokenType type;
 
     auto equal_token_type = EQUAL_SYMBOLS.find(start);
@@ -114,7 +114,7 @@ Token TextScanner::symbol(char start) {
     return this->make_token(token_type->second);
 }
 
-void TextScanner::skip_whitespace() {
+void StringScanner::skip_whitespace() {
     // TODO: comments
     while (true) {
         switch (this->peek()) {
@@ -133,7 +133,7 @@ void TextScanner::skip_whitespace() {
     }
 }
 
-bool TextScanner::match(char c) {
+bool StringScanner::match(char c) {
     if (*this->current == c) {
         this->current++;
         return true;
@@ -142,18 +142,18 @@ bool TextScanner::match(char c) {
     return false;
 }
 
-char TextScanner::advance() {
+char StringScanner::advance() {
     char current = *this->current;
     this->current++;
 
     return current;
 }
 
-char TextScanner::peek() {
+char StringScanner::peek() {
     return *this->current;
 }
 
-Token TextScanner::string() {
+Token StringScanner::string() {
     long start_line = this->line;
 
     while (this->peek() != '"' && this->current < this->end) {
@@ -173,13 +173,13 @@ Token TextScanner::string() {
     return this->make_token(TokenType::STR_VAL, std::string(this->token_start, this->current - this->token_start), start_line);
 }
 
-TextScanner::TextScanner(std::string &source) {
+StringScanner::StringScanner(std::string &source) {
     this->current = source.c_str();
     this->end = source.c_str() + source.length();
     this->line = 1;
 }
 
-Token TextScanner::scan_token() {
+Token StringScanner::scan_token() {
     this->skip_whitespace();
 
     // TOOD: function for is_at_end

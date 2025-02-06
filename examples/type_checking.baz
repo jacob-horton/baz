@@ -1,0 +1,11 @@
+fn main(): void {
+	let some_int: int = 4;
+	let some_float: float = 1.0;
+	let final: float = some_float;
+	final = final + 1.0;
+
+	let condition: bool = true;
+	if (!!condition) {
+		println("hi");
+	}
+}

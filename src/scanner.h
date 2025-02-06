@@ -77,7 +77,7 @@ class Scanner {
     virtual ~Scanner() = default;
 };
 
-class TextScanner : public Scanner {
+class StringScanner : public Scanner {
   private:
     const char *token_start;
     const char *current;
@@ -105,7 +105,7 @@ class TextScanner : public Scanner {
     char peek();
 
   public:
-    TextScanner(std::string &source);
+    StringScanner(std::string &source);
 
     Token scan_token() override;
 };

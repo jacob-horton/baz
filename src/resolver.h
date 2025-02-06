@@ -27,7 +27,6 @@ class Resolver : public ExprVisitor, public StmtVisitor {
     void begin_scope();
     void end_scope();
 
-    // TODO: can we remove these?
     void resolve(std::vector<std::unique_ptr<Stmt>> &stmts);
     void resolve(Stmt *stmt);
     void resolve(Expr *expr);

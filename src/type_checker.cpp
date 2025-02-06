@@ -158,8 +158,7 @@ void TypeChecker::visit_block_stmt(BlockStmt *stmt) {}
 void TypeChecker::visit_if_stmt(IfStmt *stmt) {
     stmt->condition->accept(*this);
     if (!this->result->can_coerce_to(TypeClass::BOOL)) {
-        // TODO: store if token for error reporting
-        this->error(Token{}, "If condition must be a boolean.");
+        this->error(stmt->keyword, "If condition must be a boolean.");
     }
 
     for (auto &line : stmt->true_block) {
@@ -187,7 +186,7 @@ void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
     if (*this->result != *stmt->target_type) {
-        // TODO: use equal token?
+        // TODO: use equal token for error?
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }
 }

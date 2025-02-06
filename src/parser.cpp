@@ -71,6 +71,8 @@ std::unique_ptr<Stmt> Parser::statement() {
 }
 
 std::unique_ptr<IfStmt> Parser::if_statement() {
+    auto keyword = this->previous();
+
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'if'.");
     std::unique_ptr<Expr> condition = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after if condition.");
@@ -85,7 +87,7 @@ std::unique_ptr<IfStmt> Parser::if_statement() {
         false_block = this->block();
     }
 
-    return std::make_unique<IfStmt>(std::move(condition), std::move(true_block), std::move(false_block));
+    return std::make_unique<IfStmt>(keyword, std::move(condition), std::move(true_block), std::move(false_block));
 }
 
 std::unique_ptr<MatchStmt> Parser::match_statement() {

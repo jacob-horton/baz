@@ -81,11 +81,12 @@ struct BlockStmt : public Stmt {
 };
 
 struct IfStmt : public Stmt {
+    Token keyword;
     std::unique_ptr<Expr> condition;
     std::vector<std::unique_ptr<Stmt>> true_block;
     std::optional<std::vector<std::unique_ptr<Stmt>>> false_block;
 
-    IfStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> true_block, std::optional<std::vector<std::unique_ptr<Stmt>>> false_block);
+    IfStmt(Token keyword, std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> true_block, std::optional<std::vector<std::unique_ptr<Stmt>>> false_block);
 
     void accept(StmtVisitor &visitor) override;
 };

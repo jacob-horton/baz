@@ -3,6 +3,7 @@
 #include "../scanner/token.h"
 #include "../type_checker/type.h"
 
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -30,9 +31,13 @@ struct StructInitExpr : public Expr {
     Token name;
     std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties;
 
+    // NOTE: this gets set during resolving
+    std::shared_ptr<UserDefinedType> type;
+
     StructInitExpr(Token name, std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties);
 
     void accept(ExprVisitor &visitor) override;
+    std::shared_ptr<UserDefinedType> get_type();
 };
 
 struct BinaryExpr : public Expr {

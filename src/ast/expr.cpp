@@ -1,6 +1,8 @@
+#include "expr.h"
 #include "expr_visitor.h"
 
 #include <iostream>
+#include <memory>
 
 VarExpr::VarExpr(Token name) : name(name) {}
 void VarExpr::accept(ExprVisitor &visitor) {
@@ -10,6 +12,9 @@ void VarExpr::accept(ExprVisitor &visitor) {
 StructInitExpr::StructInitExpr(Token name, std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties) : name(name), properties(std::move(properties)) {}
 void StructInitExpr::accept(ExprVisitor &visitor) {
     visitor.visit_struct_init_expr(this);
+}
+std::shared_ptr<UserDefinedType> StructInitExpr::get_type() {
+    return this->type;
 }
 
 BinaryExpr::BinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
@@ -51,7 +56,7 @@ void LiteralExpr::accept(ExprVisitor &visitor) {
 }
 
 std::unique_ptr<Type> LiteralExpr::get_type() {
-    // TODO: "this" and user defined types
+    // TODO: "this"
     switch (this->literal.t) {
         case TokenType::TRUE:
         case TokenType::FALSE:

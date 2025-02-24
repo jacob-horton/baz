@@ -31,11 +31,12 @@ class Resolver : public ExprVisitor, public StmtVisitor {
     void resolve(Stmt *stmt);
     void resolve(Expr *expr);
     void resolve_function(FunDeclStmt *fun);
+    void resolve_struct(StructDeclStmt *s);
 
     BoundVariable resolve_local(Token name);
 
-    void declare(TypedVar var);
-    void define(TypedVar var);
+    void declare(std::string &name, std::shared_ptr<Type> type);
+    void define(std::string &name);
 
     void visit_var_expr(VarExpr *expr);
     void visit_struct_init_expr(StructInitExpr *expr);

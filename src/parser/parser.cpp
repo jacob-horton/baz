@@ -1,6 +1,7 @@
 #include "parser.h"
 
 #include <iostream>
+#include <map>
 #include <memory>
 #include <ostream>
 #include <vector>
@@ -444,10 +445,11 @@ std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
 
 std::unique_ptr<Expr> Parser::primary() {
     if (this->match(TokenType::IDENTIFIER) || this->match(TokenType::THIS)) {
+        auto identifier = this->previous();
         if (this->match(TokenType::L_CURLY_BRACKET))
-            return this->finish_struct_init(this->previous());
+            return this->finish_struct_init(identifier);
 
-        return std::make_unique<VarExpr>(this->previous());
+        return std::make_unique<VarExpr>(identifier);
     }
 
     if (this->match(TokenType::TRUE) || this->match(TokenType::FALSE) ||

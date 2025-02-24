@@ -1,9 +1,13 @@
 #include "resolver.h"
+#include "type.h"
 
 #include <iostream>
 #include <memory>
 
-Resolver::Resolver() {}
+Resolver::Resolver() {
+    // Global scope
+    this->scopes.push_back({});
+}
 
 void Resolver::error(Token error_token, std::string message) {
     std::string where = "end";
@@ -48,57 +52,65 @@ BoundVariable Resolver::resolve_local(Token name) {
     }
 
     // TODO: handle this - I don't think it's a bug in the compiler - it is a user error
-    std::cerr << "[BUG] could not find variable." << std::endl;
+    std::cerr << "[BUG] Could not find variable." << std::endl;
     exit(3);
 }
 
 void Resolver::resolve_function(FunDeclStmt *fun) {
     this->begin_scope();
     for (auto param : fun->params) {
-        this->declare(param);
-        this->define(param);
+        this->declare(param.name.lexeme, param.get_type());
+        this->define(param.name.lexeme);
     }
 
     this->resolve(fun->body);
     this->end_scope();
 }
 
-void Resolver::define(TypedVar var) {
-    // TODO: how to handle global variables
-    if (this->scopes.size() == 0)
-        return;
-
-    // TODO: handle case where not declared - should be bug
-    this->scopes.back()[var.name.lexeme].defined = true;
-}
-
-void Resolver::declare(TypedVar var) {
-    // TODO: is this correct - are top-level functions global variables?
-    if (scopes.size() == 0) {
-        std::cerr << "[BUG] Global variables should not be able to be defined." << std::endl;
-        exit(3);
+void Resolver::resolve_struct(StructDeclStmt *s) {
+    this->begin_scope();
+    for (auto &prop : s->properties) {
+        this->declare(prop.name.lexeme, prop.get_type());
+        this->define(prop.name.lexeme);
     }
 
+    for (auto &method : s->methods) {
+        method->accept(*this);
+    }
+
+    this->end_scope();
+}
+
+void Resolver::define(std::string &name) {
+    // TODO: handle case where not declared - should be bug
+    this->scopes.back()[name].defined = true;
+}
+
+void Resolver::declare(std::string &name, std::shared_ptr<Type> type) {
     auto &scope = this->scopes.back();
 
-    scope[var.name.lexeme] = BoundVariable{
-        var.name.lexeme,
+    scope[name] = BoundVariable{
+        name,
         false,
-        // TODO: actually work this out from var.type
-        var.get_type(),
+        type,
     };
 }
 
 // Expressions
 void Resolver::visit_var_expr(VarExpr *expr) {
-    if (this->scopes.size() != 0 && !scopes.back()[expr->name.lexeme].defined)
+    // TODO: update error message here ad struct init
+    if (!scopes.back()[expr->name.lexeme].defined)
         this->error(expr->name, "Cannot read local variable in its own initialiser.");
 
     expr->type = this->resolve_local(expr->name).type;
 }
 
-// TODO:
-void Resolver::visit_struct_init_expr(StructInitExpr *expr) {}
+void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
+    auto type = this->resolve_local(expr->name).type;
+    if (auto t = std::dynamic_pointer_cast<UserDefinedType>(type)) {
+        expr->type = t;
+    }
+}
 
 void Resolver::visit_binary_expr(BinaryExpr *expr) {
     this->resolve(expr->left.get());
@@ -141,16 +153,20 @@ void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
     this->resolve_function(stmt);
 }
 
-// TODO:
-void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {}
+void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {
+    this->declare(stmt->name.lexeme, stmt->get_type());
+    this->define(stmt->name.lexeme);
+
+    this->resolve_struct(stmt);
+}
 
 // TODO:
 void Resolver::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
 
 void Resolver::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
-    this->declare(stmt->name);
+    this->declare(stmt->name.name.lexeme, stmt->name.get_type());
     this->resolve(stmt->initialiser.get());
-    this->define(stmt->name);
+    this->define(stmt->name.name.lexeme);
 }
 
 void Resolver::visit_expr_stmt(ExprStmt *stmt) {

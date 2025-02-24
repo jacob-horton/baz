@@ -4,7 +4,7 @@
 
 std::unique_ptr<Type> TypedVar::get_type() {
     switch (this->type.t) {
-        case TokenType::TYPE:
+        case TokenType::TYPE: {
             if (this->type.lexeme == "str")
                 return std::make_unique<StrType>();
 
@@ -18,7 +18,12 @@ std::unique_ptr<Type> TypedVar::get_type() {
                 return std::make_unique<BoolType>();
 
             // TODO: void type
-            // TODO: user defined types
+        }
+        case TokenType::IDENTIFIER: {
+            // TODO: look up in resolver
+            std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
+            return std::make_unique<UserDefinedType>(this->type, props);
+        }
         default:
             std::cerr << "[BUG] Unrecognised type of token (" << get_token_type_str(this->type.t) << ", '" << this->type.lexeme << "')." << std::endl;
             exit(3);

@@ -1,5 +1,6 @@
 #include "cpp_generator.h"
 
+#include <algorithm>
 #include <iostream>
 #include <ostream>
 
@@ -22,8 +23,34 @@ void CppGenerator::visit_var_expr(VarExpr *expr) {
 }
 
 void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
-    // TODO: finish this
-    this->output << "struct init" << std::endl;
+    this->output << "new " << expr->name.lexeme << "{";
+
+    if (expr->properties.size() != expr->type->props.size()) {
+        // TODO: handle error properly, and report which are missing/extra
+        std::cerr << "[BUG] Incorrect number of properties." << std::endl;
+        exit(3);
+    }
+
+    // Loop through in order of declared type props
+    for (auto &prop : expr->type->props) {
+        auto name = std::get<0>(prop).lexeme;
+
+        // Find corresponding property
+        auto p = std::find_if(expr->properties.begin(), expr->properties.end(), [name](const auto &t) {
+            return std::get<0>(t).lexeme == name;
+        });
+
+        if (p != expr->properties.end()) {
+            std::get<1>(*p)->accept(*this);
+            this->output << ", ";
+        } else {
+            // TODO: handle error properly, and report which is missing
+            std::cerr << "[BUG] Not all properties initialised." << std::endl;
+            exit(3);
+        }
+    }
+
+    this->output << "}";
 }
 
 void CppGenerator::visit_binary_expr(BinaryExpr *expr) {
@@ -54,7 +81,7 @@ void CppGenerator::visit_get_expr(GetExpr *expr) {
     // TODO: enums
     this->output << "(";
     expr->value->accept(*this);
-    this->output << "." << expr->name.lexeme << ")";
+    this->output << "->" << expr->name.lexeme << ")";
 }
 
 void CppGenerator::visit_call_expr(CallExpr *expr) {
@@ -133,7 +160,10 @@ void CppGenerator::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
 
 void CppGenerator::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
-    this->output << stmt->name.type.lexeme << " " << stmt->name.name.lexeme << " = ";
+    // Pointer if user defined type
+    auto pointer = stmt->name.type.t == TokenType::IDENTIFIER ? "*" : "";
+
+    this->output << stmt->name.type.lexeme << pointer << " " << stmt->name.name.lexeme << " = ";
     stmt->initialiser->accept(*this);
     this->output << ";" << std::endl;
 }

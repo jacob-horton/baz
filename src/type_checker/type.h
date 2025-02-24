@@ -2,6 +2,8 @@
 
 #include "../scanner/token.h"
 #include <memory>
+#include <tuple>
+#include <vector>
 
 enum TypeClass {
     INT,
@@ -9,6 +11,7 @@ enum TypeClass {
     BOOL,
     NULL_,
     STR,
+    USER_DEF_TYPE,
 };
 
 struct Type {
@@ -19,10 +22,11 @@ struct Type {
     virtual ~Type() = default;
 
     virtual bool can_coerce_to(TypeClass tc);
-    virtual bool is_equal(const Type &other);
+    virtual bool is_equal(const Type &other) const;
     virtual std::string to_string() = 0;
 };
 
+// TODO: singletons, and equality is just pointer check?
 struct IntType : public Type {
     IntType() : Type(TypeClass::INT) {}
 
@@ -49,6 +53,15 @@ struct NullType : public Type {
 
 struct StrType : public Type {
     StrType() : Type(TypeClass::STR) {}
+
+    std::string to_string() override;
+};
+
+struct UserDefinedType : public Type {
+    Token name;
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
+
+    UserDefinedType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props) : Type(TypeClass::USER_DEF_TYPE), name(name), props(props) {}
 
     std::string to_string() override;
 };

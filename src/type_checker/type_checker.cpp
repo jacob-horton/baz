@@ -26,7 +26,9 @@ void TypeChecker::visit_var_expr(VarExpr *expr) {
     this->result = expr->type;
 }
 
-void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {}
+void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
+    this->result = expr->get_type();
+}
 
 bool is_numeric(Type *t) {
     return t->can_coerce_to(TypeClass::INT) || t->can_coerce_to(TypeClass::FLOAT);

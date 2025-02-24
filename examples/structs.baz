@@ -1,0 +1,27 @@
+struct Name {
+	prop1: int?;
+	prop2: bool;
+
+	fn method1(arg1: float): int {
+		return 5;
+	}
+
+	fn method2(): void {}
+}
+
+fn main(): void {
+	let name: Name = Name {
+		prop1: 1,
+		prop2: false,
+	};
+
+	name.method2();
+
+	while (true) {
+		if (name.method1(2.5) > 0) {
+			print("yay I got here\n");
+		} else {
+			print("nu uh\n");
+		}
+	}
+}

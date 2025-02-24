@@ -11,7 +11,9 @@ enum TypeClass {
     BOOL,
     NULL_,
     STR,
-    USER_DEF_TYPE,
+    VOID,
+    STRUCT_,
+    FUNC,
 };
 
 struct Type {
@@ -57,11 +59,28 @@ struct StrType : public Type {
     std::string to_string() override;
 };
 
+struct VoidType : public Type {
+    VoidType() : Type(TypeClass::VOID) {}
+
+    std::string to_string() override;
+};
+
+struct FunctionType : public Type {
+    Token name;
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
+    std::shared_ptr<Type> return_type;
+
+    FunctionType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> params, std::shared_ptr<Type> return_type) : Type(TypeClass::FUNC), name(name), params(params), return_type(return_type) {}
+
+    std::string to_string() override;
+};
+
+// TODO: support methods
 struct StructType : public Type {
     Token name;
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
 
-    StructType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props) : Type(TypeClass::USER_DEF_TYPE), name(name), props(props) {}
+    StructType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props) : Type(TypeClass::STRUCT_), name(name), props(props) {}
 
     std::string to_string() override;
 };

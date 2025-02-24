@@ -438,9 +438,9 @@ std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
         } while (this->match(TokenType::COMMA) && !this->check(TokenType::R_BRACKET));
     }
 
-    this->consume(TokenType::R_BRACKET, "Expected ')' after arguments.");
+    auto bracket = this->consume(TokenType::R_BRACKET, "Expected ')' after arguments.");
 
-    return std::make_unique<CallExpr>(std::move(callee), std::move(args));
+    return std::make_unique<CallExpr>(std::move(callee), std::move(args), bracket);
 }
 
 std::unique_ptr<Expr> Parser::primary() {

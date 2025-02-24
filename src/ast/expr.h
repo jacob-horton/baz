@@ -11,6 +11,10 @@
 class ExprVisitor;
 
 struct Expr {
+    // TODO: make this optional, and then have get_type which will error and quit if not set
+    // NOTE: this gets set during resolving
+    std::shared_ptr<Type> type;
+
     virtual void accept(ExprVisitor &visitor) = 0;
 
     virtual ~Expr() = default;
@@ -18,9 +22,6 @@ struct Expr {
 
 struct VarExpr : public Expr {
     Token name;
-
-    // NOTE: this gets set during resolving
-    std::shared_ptr<Type> type;
 
     VarExpr(Token name);
 
@@ -31,13 +32,9 @@ struct StructInitExpr : public Expr {
     Token name;
     std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties;
 
-    // NOTE: this gets set during resolving
-    std::shared_ptr<StructType> type;
-
     StructInitExpr(Token name, std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties);
 
     void accept(ExprVisitor &visitor) override;
-    std::shared_ptr<StructType> get_type();
 };
 
 struct BinaryExpr : public Expr {
@@ -83,7 +80,9 @@ struct CallExpr : public Expr {
     std::unique_ptr<Expr> callee;
     std::vector<std::unique_ptr<Expr>> args;
 
-    CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args);
+    Token bracket;
+
+    CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args, Token bracket);
 
     void accept(ExprVisitor &visitor) override;
 };
@@ -102,5 +101,4 @@ struct LiteralExpr : public Expr {
     LiteralExpr(Token literal);
 
     void accept(ExprVisitor &visitor) override;
-    std::unique_ptr<Type> get_type();
 };

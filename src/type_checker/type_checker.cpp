@@ -1,4 +1,5 @@
 #include "type_checker.h"
+#include "type.h"
 
 #include <iostream>
 #include <memory>
@@ -27,7 +28,7 @@ void TypeChecker::visit_var_expr(VarExpr *expr) {
 }
 
 void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
-    this->result = expr->get_type();
+    this->result = expr->type;
 }
 
 bool is_numeric(Type *t) {
@@ -76,7 +77,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             if (*left_t != *right_t)
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
-            this->result = left_t;
+            this->result = std::make_unique<BoolType>();
             return;
         }
         default:
@@ -121,14 +122,30 @@ void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
 
 void TypeChecker::visit_get_expr(GetExpr *expr) {}
 
-void TypeChecker::visit_call_expr(CallExpr *expr) {}
+void TypeChecker::visit_call_expr(CallExpr *expr) {
+    if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->type)) {
+        if (expr->args.size() != t->params.size()) {
+            this->error(expr->bracket, "Expected " + std::to_string(t->params.size()) + " arguments, received " + std::to_string(expr->args.size()) + ".");
+        }
+
+        for (int i = 0; i < expr->args.size(); i++) {
+            if (*expr->args[i]->type != *std::get<1>(t->params[i])) {
+                this->error(expr->bracket, "Invalid type passed to function.");
+            }
+        }
+    } else {
+        this->error(expr->bracket, "Cannot call non-function.");
+    }
+
+    this->result = expr->type;
+}
 
 void TypeChecker::visit_grouping_expr(GroupingExpr *expr) {
     expr->expr->accept(*this);
 }
 
 void TypeChecker::visit_literal_expr(LiteralExpr *expr) {
-    this->result = expr->get_type();
+    this->result = expr->type;
 }
 
 // Statements

@@ -1,8 +1,10 @@
 #include "resolver.h"
 #include "type.h"
 
+#include <algorithm>
 #include <iostream>
 #include <memory>
+#include <tuple>
 
 Resolver::Resolver() {
     // Global scope
@@ -59,7 +61,7 @@ BoundVariable Resolver::resolve_local(Token name) {
 void Resolver::resolve_function(FunDeclStmt *fun) {
     this->begin_scope();
     for (auto param : fun->params) {
-        this->declare(param.name.lexeme, param.get_type());
+        this->declare(param.name.lexeme, this->token_to_type(param.type));
         this->define(param.name.lexeme);
     }
 
@@ -70,7 +72,7 @@ void Resolver::resolve_function(FunDeclStmt *fun) {
 void Resolver::resolve_struct(StructDeclStmt *s) {
     this->begin_scope();
     for (auto &prop : s->properties) {
-        this->declare(prop.name.lexeme, prop.get_type());
+        this->declare(prop.name.lexeme, this->token_to_type(prop.type));
         this->define(prop.name.lexeme);
     }
 
@@ -99,16 +101,19 @@ void Resolver::declare(std::string &name, std::shared_ptr<Type> type) {
 // Expressions
 void Resolver::visit_var_expr(VarExpr *expr) {
     // TODO: update error message here ad struct init
-    if (!scopes.back()[expr->name.lexeme].defined)
+    auto resolved = this->resolve_local(expr->name);
+    if (!resolved.defined)
         this->error(expr->name, "Cannot read local variable in its own initialiser.");
 
-    expr->type = this->resolve_local(expr->name).type;
+    expr->type = resolved.type;
 }
 
 void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
     auto type = this->resolve_local(expr->name).type;
     if (auto t = std::dynamic_pointer_cast<StructType>(type)) {
         expr->type = t;
+    } else {
+        this->error(expr->name, "Cannot use struct initialiser on non-struct.");
     }
 }
 
@@ -128,10 +133,34 @@ void Resolver::visit_unary_expr(UnaryExpr *expr) {
 
 void Resolver::visit_get_expr(GetExpr *expr) {
     this->resolve(expr->value.get());
+
+    if (auto t = std::dynamic_pointer_cast<StructType>(expr->value->type)) {
+        // TODO: use hashmap or lookup function
+        auto name = expr->name.lexeme;
+        auto p = std::find_if(t->props.begin(), t->props.end(), [name](const auto &t) {
+            return std::get<0>(t).lexeme == name;
+        });
+
+        if (p != t->props.end()) {
+            expr->type = std::get<1>(*p);
+        } else {
+            // TODO: handle error properly, and report which is missing
+            this->error(expr->name, "Could not find property on struct.");
+        }
+    } else {
+        this->error(expr->name, "Cannot get property on non-struct.");
+    }
 }
 
 void Resolver::visit_call_expr(CallExpr *expr) {
     this->resolve(expr->callee.get());
+
+    // TODO: check this
+    if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->type)) {
+        expr->type = t->return_type;
+    } else {
+        this->error(expr->bracket, "Cannot call non-function.");
+    }
 
     for (auto &arg : expr->args) {
         this->resolve(arg.get());
@@ -142,14 +171,66 @@ void Resolver::visit_grouping_expr(GroupingExpr *expr) {
     this->resolve(expr->expr.get());
 }
 
-// NOTE: do nothing here - no variables to resolve
-void Resolver::visit_literal_expr(LiteralExpr *expr) {}
+// NOTE: no variables to resolve here
+void Resolver::visit_literal_expr(LiteralExpr *expr) {
+    expr->type = this->token_to_type(expr->literal);
+}
+
+std::shared_ptr<Type> Resolver::token_to_type(Token type) {
+    switch (type.t) {
+        case TokenType::TYPE: {
+            if (type.lexeme == "str")
+                return std::make_unique<StrType>();
+
+            if (type.lexeme == "int")
+                return std::make_unique<IntType>();
+
+            if (type.lexeme == "float")
+                return std::make_unique<FloatType>();
+
+            if (type.lexeme == "bool")
+                return std::make_unique<BoolType>();
+
+            // TODO: only allow for return type
+            if (type.lexeme == "void")
+                return std::make_unique<VoidType>();
+        }
+        case TokenType::TRUE:
+        case TokenType::FALSE:
+            return std::make_unique<BoolType>();
+        case TokenType::NULL_VAL:
+            return std::make_unique<NullType>();
+        case TokenType::INT_VAL:
+            return std::make_unique<IntType>();
+        case TokenType::FLOAT_VAL:
+            return std::make_unique<FloatType>();
+        case TokenType::STR_VAL:
+            return std::make_unique<StrType>();
+        case TokenType::IDENTIFIER: {
+            return this->resolve_local(type).type;
+        }
+        default:
+            std::cerr << "[BUG] Unrecognised type of token (" << get_token_type_str(type.t) << ", '" << type.lexeme << "')." << std::endl;
+            exit(3);
+    }
+}
 
 // Statements
 void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
-    // TODO: Type for this
-    // this->declare(stmt->name);
-    // this->define(stmt->name);
+    auto return_type = this->token_to_type(stmt->return_type);
+
+    // TODO: move this to FunDeclStmt? To match with StructDeclStmt
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
+    std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
+        return std::make_tuple(param.name, this->token_to_type(param.type));
+    });
+    auto func_type = std::make_unique<FunctionType>(
+        stmt->name,
+        params,
+        std::move(return_type));
+    this->declare(stmt->name.lexeme, std::move(func_type));
+    this->define(stmt->name.lexeme);
+
     this->resolve_function(stmt);
 }
 
@@ -164,7 +245,7 @@ void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 void Resolver::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
 
 void Resolver::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
-    this->declare(stmt->name.name.lexeme, stmt->name.get_type());
+    this->declare(stmt->name.name.lexeme, this->token_to_type(stmt->name.type));
     this->resolve(stmt->initialiser.get());
     this->define(stmt->name.name.lexeme);
 }

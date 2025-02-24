@@ -13,9 +13,6 @@ StructInitExpr::StructInitExpr(Token name, std::vector<std::tuple<Token, std::un
 void StructInitExpr::accept(ExprVisitor &visitor) {
     visitor.visit_struct_init_expr(this);
 }
-std::shared_ptr<StructType> StructInitExpr::get_type() {
-    return this->type;
-}
 
 BinaryExpr::BinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
     : left(std::move(left)), op(op), right(std::move(right)) {}
@@ -39,8 +36,8 @@ void GetExpr::accept(ExprVisitor &visitor) {
     visitor.visit_get_expr(this);
 }
 
-CallExpr::CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args)
-    : callee(std::move(callee)), args(std::move(args)) {}
+CallExpr::CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args, Token bracket)
+    : callee(std::move(callee)), args(std::move(args)), bracket(bracket) {}
 void CallExpr::accept(ExprVisitor &visitor) {
     visitor.visit_call_expr(this);
 }
@@ -53,24 +50,4 @@ void GroupingExpr::accept(ExprVisitor &visitor) {
 LiteralExpr::LiteralExpr(Token literal) : literal(literal) {}
 void LiteralExpr::accept(ExprVisitor &visitor) {
     visitor.visit_literal_expr(this);
-}
-
-std::unique_ptr<Type> LiteralExpr::get_type() {
-    // TODO: "this"
-    switch (this->literal.t) {
-        case TokenType::TRUE:
-        case TokenType::FALSE:
-            return std::make_unique<BoolType>();
-        case TokenType::NULL_VAL:
-            return std::make_unique<NullType>();
-        case TokenType::INT_VAL:
-            return std::make_unique<IntType>();
-        case TokenType::FLOAT_VAL:
-            return std::make_unique<FloatType>();
-        case TokenType::STR_VAL:
-            return std::make_unique<StrType>();
-        default:
-            std::cerr << "[BUG] Token type '" << get_token_type_str(this->literal.t) << "' not handled." << std::endl;
-            exit(3);
-    }
 }

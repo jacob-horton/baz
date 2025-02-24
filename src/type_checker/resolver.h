@@ -35,6 +35,8 @@ class Resolver : public ExprVisitor, public StmtVisitor {
 
     BoundVariable resolve_local(Token name);
 
+    std::shared_ptr<Type> token_to_type(Token name);
+
     void declare(std::string &name, std::shared_ptr<Type> type);
     void define(std::string &name);
 

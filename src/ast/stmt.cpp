@@ -7,6 +7,7 @@ void FunDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visit_fun_decl_stmt(this);
 }
 
+// TODO: do this in resolver
 StructDeclStmt::StructDeclStmt(Token name, std::vector<TypedVar> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods)
     : name(name), properties(properties), methods(std::move(methods)) {
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;

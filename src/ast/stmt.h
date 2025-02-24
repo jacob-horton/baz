@@ -23,6 +23,7 @@ enum FunType {
     METHOD,
 };
 
+// TODO: all decl stmts to have type set by resolver
 struct FunDeclStmt : public Stmt {
     Token name;
     Token return_type;

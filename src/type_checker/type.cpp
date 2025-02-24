@@ -11,6 +11,8 @@ std::string FloatType::to_string() { return "float"; }
 std::string BoolType::to_string() { return "bool"; }
 std::string NullType::to_string() { return "null"; }
 std::string StrType::to_string() { return "str"; }
+std::string VoidType::to_string() { return "void"; }
 
-// TODO: is_equal and can_coerce_to for struct type
+// TODO: is_equal and can_coerce_to for these
 std::string StructType::to_string() { return this->name.lexeme; }
+std::string FunctionType::to_string() { return this->name.lexeme; }

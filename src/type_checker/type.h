@@ -57,11 +57,11 @@ struct StrType : public Type {
     std::string to_string() override;
 };
 
-struct UserDefinedType : public Type {
+struct StructType : public Type {
     Token name;
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
 
-    UserDefinedType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props) : Type(TypeClass::USER_DEF_TYPE), name(name), props(props) {}
+    StructType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props) : Type(TypeClass::USER_DEF_TYPE), name(name), props(props) {}
 
     std::string to_string() override;
 };

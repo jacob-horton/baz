@@ -12,5 +12,5 @@ std::string BoolType::to_string() { return "bool"; }
 std::string NullType::to_string() { return "null"; }
 std::string StrType::to_string() { return "str"; }
 
-// TODO: is_equal and can_coerce_to for user def type
-std::string UserDefinedType::to_string() { return this->name.lexeme; }
+// TODO: is_equal and can_coerce_to for struct type
+std::string StructType::to_string() { return this->name.lexeme; }

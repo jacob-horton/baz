@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+// TODO: calculate these in resolver instead and store on this object?
 std::unique_ptr<Type> TypedVar::get_type() {
     switch (this->type.t) {
         case TokenType::TYPE: {
@@ -20,9 +21,8 @@ std::unique_ptr<Type> TypedVar::get_type() {
             // TODO: void type
         }
         case TokenType::IDENTIFIER: {
-            // TODO: look up in resolver
             std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
-            return std::make_unique<UserDefinedType>(this->type, props);
+            return std::make_unique<StructType>(this->type, props);
         }
         default:
             std::cerr << "[BUG] Unrecognised type of token (" << get_token_type_str(this->type.t) << ", '" << this->type.lexeme << "')." << std::endl;

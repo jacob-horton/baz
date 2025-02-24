@@ -107,7 +107,7 @@ void Resolver::visit_var_expr(VarExpr *expr) {
 
 void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
     auto type = this->resolve_local(expr->name).type;
-    if (auto t = std::dynamic_pointer_cast<UserDefinedType>(type)) {
+    if (auto t = std::dynamic_pointer_cast<StructType>(type)) {
         expr->type = t;
     }
 }

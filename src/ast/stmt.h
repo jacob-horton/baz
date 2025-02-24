@@ -40,12 +40,12 @@ struct StructDeclStmt : public Stmt {
     std::vector<TypedVar> properties;
     std::vector<std::unique_ptr<FunDeclStmt>> methods;
 
-    std::shared_ptr<UserDefinedType> type;
+    std::shared_ptr<StructType> type;
 
     StructDeclStmt(Token name, std::vector<TypedVar> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods);
 
     void accept(StmtVisitor &visitor) override;
-    std::shared_ptr<UserDefinedType> get_type();
+    std::shared_ptr<StructType> get_type();
 };
 
 struct EnumDeclStmt : public Stmt {

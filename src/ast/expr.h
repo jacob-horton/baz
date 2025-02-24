@@ -32,12 +32,12 @@ struct StructInitExpr : public Expr {
     std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties;
 
     // NOTE: this gets set during resolving
-    std::shared_ptr<UserDefinedType> type;
+    std::shared_ptr<StructType> type;
 
     StructInitExpr(Token name, std::vector<std::tuple<Token, std::unique_ptr<Expr>>> properties);
 
     void accept(ExprVisitor &visitor) override;
-    std::shared_ptr<UserDefinedType> get_type();
+    std::shared_ptr<StructType> get_type();
 };
 
 struct BinaryExpr : public Expr {

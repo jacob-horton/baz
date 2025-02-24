@@ -13,7 +13,7 @@ StructInitExpr::StructInitExpr(Token name, std::vector<std::tuple<Token, std::un
 void StructInitExpr::accept(ExprVisitor &visitor) {
     visitor.visit_struct_init_expr(this);
 }
-std::shared_ptr<UserDefinedType> StructInitExpr::get_type() {
+std::shared_ptr<StructType> StructInitExpr::get_type() {
     return this->type;
 }
 

@@ -13,12 +13,12 @@ StructDeclStmt::StructDeclStmt(Token name, std::vector<TypedVar> properties, std
     for (auto &prop : properties) {
         props.push_back(std::make_tuple(prop.name, prop.get_type()));
     }
-    this->type = std::make_unique<UserDefinedType>(name, props);
+    this->type = std::make_unique<StructType>(name, props);
 }
 void StructDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visit_struct_decl_stmt(this);
 }
-std::shared_ptr<UserDefinedType> StructDeclStmt::get_type() {
+std::shared_ptr<StructType> StructDeclStmt::get_type() {
     return this->type;
 }
 

@@ -128,13 +128,14 @@ std::unique_ptr<ForStmt> Parser::for_statement() {
 }
 
 std::unique_ptr<WhileStmt> Parser::while_statement() {
+    auto keyword = this->previous();
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'while'.");
     std::unique_ptr<Expr> condition = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after while condition.");
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before loop body.");
 
     auto body = this->block();
-    return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body), keyword);
 }
 
 std::unique_ptr<PrintStmt> Parser::print_statement() {

@@ -53,7 +53,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             expr->right->accept(*this);
             auto right_t = this->result;
 
-            if (*left_t != *right_t)
+            if (left_t != right_t)
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             return;
@@ -74,7 +74,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             auto right_t = this->result;
 
             // TODO: For now only supporting comparing same type, but need to extend to support float < int for example
-            if (*left_t != *right_t)
+            if (left_t != right_t)
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = this->type_env["bool"];
@@ -96,7 +96,7 @@ void TypeChecker::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
     expr->right->accept(*this);
     auto right_t = this->result;
 
-    if (*left_t != *right_t)
+    if (left_t != right_t)
         this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 }
 
@@ -120,16 +120,20 @@ void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
     }
 }
 
-void TypeChecker::visit_get_expr(GetExpr *expr) {}
+void TypeChecker::visit_get_expr(GetExpr *expr) {
+    expr->value->accept(*this);
+}
 
 void TypeChecker::visit_call_expr(CallExpr *expr) {
+    expr->callee->accept(*this);
+
     if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->type)) {
         if (expr->args.size() != t->params.size()) {
             this->error(expr->bracket, "Expected " + std::to_string(t->params.size()) + " arguments, received " + std::to_string(expr->args.size()) + ".");
         }
 
         for (int i = 0; i < expr->args.size(); i++) {
-            if (*expr->args[i]->type != *std::get<1>(t->params[i])) {
+            if (expr->args[i]->type != std::get<1>(t->params[i])) {
                 this->error(expr->bracket, "Invalid type passed to function.");
             }
         }
@@ -150,18 +154,23 @@ void TypeChecker::visit_literal_expr(LiteralExpr *expr) {
 
 // Statements
 void TypeChecker::visit_fun_decl_stmt(FunDeclStmt *fun) {
-    for (auto &stmt : fun->body) {
-        stmt->accept(*this);
+    this->check(fun->body);
+}
+
+void TypeChecker::visit_struct_decl_stmt(StructDeclStmt *stmt) {
+    for (auto &method : stmt->methods) {
+        method->accept(*this);
     }
 }
 
-void TypeChecker::visit_struct_decl_stmt(StructDeclStmt *stmt) {}
-
-void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
+void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
+    std::cerr << "Unimplemented" << std::endl;
+    exit(3);
+}
 
 void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     stmt->initialiser->accept(*this);
-    if (*this->type_env[stmt->name.type.lexeme] != *this->result) {
+    if (this->type_env[stmt->name.type.lexeme] != this->result) {
         this->error(stmt->name.name, "Cannot assign a type '" + this->result->to_string() + "' to variable of type '" + this->type_env[stmt->name.type.lexeme]->to_string() + "'.");
     }
 }
@@ -170,12 +179,14 @@ void TypeChecker::visit_expr_stmt(ExprStmt *stmt) {
     stmt->expr->accept(*this);
 }
 
-void TypeChecker::visit_block_stmt(BlockStmt *stmt) {}
+void TypeChecker::visit_block_stmt(BlockStmt *stmt) {
+    this->check(stmt->stmts);
+}
 
 void TypeChecker::visit_if_stmt(IfStmt *stmt) {
     stmt->condition->accept(*this);
     if (!this->result->can_coerce_to(TypeClass::BOOL)) {
-        this->error(stmt->keyword, "If condition must be a boolean.");
+        this->error(stmt->keyword, "If condition must be a boolean value.");
     }
 
     for (auto &line : stmt->true_block) {
@@ -189,20 +200,39 @@ void TypeChecker::visit_if_stmt(IfStmt *stmt) {
     }
 }
 
-void TypeChecker::visit_match_stmt(MatchStmt *stmt) {}
+void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
+    std::cerr << "Unimplemented" << std::endl;
+    exit(3);
+}
 
-void TypeChecker::visit_while_stmt(WhileStmt *stmt) {}
+void TypeChecker::visit_while_stmt(WhileStmt *stmt) {
+    stmt->condition->accept(*this);
+    if (!this->result->can_coerce_to(TypeClass::BOOL)) {
+        this->error(stmt->keyword, "While condition must be a boolean value.");
+    }
 
-void TypeChecker::visit_for_stmt(ForStmt *stmt) {}
+    this->check(stmt->stmts);
+}
 
-void TypeChecker::visit_print_stmt(PrintStmt *stmt) {}
+void TypeChecker::visit_for_stmt(ForStmt *stmt) {
+    std::cerr << "Unimplemented" << std::endl;
+    exit(3);
+}
 
-void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {}
+void TypeChecker::visit_print_stmt(PrintStmt *stmt) {
+    if (stmt->expr.has_value())
+        stmt->expr.value()->accept(*this);
+}
+
+void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {
+    if (stmt->expr.has_value())
+        stmt->expr.value()->accept(*this);
+}
 
 void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
-    if (*this->result != *stmt->target_type) {
+    if (this->result != stmt->target_type) {
         // TODO: use equal token for error?
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }

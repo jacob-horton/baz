@@ -112,7 +112,9 @@ struct WhileStmt : public Stmt {
     std::unique_ptr<Expr> condition;
     std::vector<std::unique_ptr<Stmt>> stmts;
 
-    WhileStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> stmts);
+    Token keyword;
+
+    WhileStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> stmts, Token keyword);
 
     void accept(StmtVisitor &visitor) override;
 };

@@ -2,6 +2,7 @@
 
 #include "../scanner/token.h"
 #include <memory>
+#include <optional>
 #include <tuple>
 #include <vector>
 
@@ -24,7 +25,7 @@ struct Type {
     virtual ~Type() = default;
 
     virtual bool can_coerce_to(TypeClass tc);
-    virtual bool is_equal(const Type &other) const;
+    // virtual bool is_equal(const Type &other) const;
     virtual std::string to_string() = 0;
 };
 
@@ -74,15 +75,14 @@ struct FunctionType : public Type {
     std::string to_string() override;
 };
 
-// TODO: support methods
 struct StructType : public Type {
     Token name;
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
 
-    StructType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props) : Type(TypeClass::STRUCT_), name(name), props(props) {}
+    StructType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::STRUCT_), name(name), props(props), methods(methods) {}
+
+    std::optional<std::shared_ptr<Type>> get_member_type(std::string name);
 
     std::string to_string() override;
 };
-
-bool operator==(const Type &lhs, const Type &rhs);
-bool operator!=(const Type &lhs, const Type &rhs);

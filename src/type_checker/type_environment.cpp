@@ -1,6 +1,8 @@
 #include "type_environment.h"
 
+#include <algorithm>
 #include <iostream>
+#include <memory>
 
 TypeEnvironment::TypeEnvironment() {
     // Add primitives
@@ -73,9 +75,23 @@ void TypeEnvironment::visit_struct_decl_stmt(StructDeclStmt *stmt) {
         props.push_back(std::make_tuple(prop.name, this->type_env[prop.type.lexeme]));
     }
 
-    // TODO: functions
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
+    for (auto &method : stmt->methods) {
+        auto return_type = this->type_env[method->return_type.lexeme];
 
-    this->type_env[stmt->name.lexeme] = std::make_unique<StructType>(stmt->name, props);
+        std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
+        std::transform(method->params.begin(), method->params.end(), std::back_inserter(params), [this](TypedVar param) {
+            return std::make_tuple(param.name, this->type_env[param.type.lexeme]);
+        });
+        std::shared_ptr<Type> func_type = std::make_unique<FunctionType>(
+            stmt->name,
+            params,
+            std::move(return_type));
+
+        methods.push_back(std::make_tuple(method->name, func_type));
+    }
+
+    this->type_env[stmt->name.lexeme] = std::make_unique<StructType>(stmt->name, props, methods);
 }
 
 void TypeEnvironment::visit_enum_decl_stmt(EnumDeclStmt *stmt) {

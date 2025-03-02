@@ -48,7 +48,7 @@ void MatchStmt::accept(StmtVisitor &visitor) {
     visitor.visit_match_stmt(this);
 }
 
-WhileStmt::WhileStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> stmts) : condition(std::move(condition)), stmts(std::move(stmts)) {}
+WhileStmt::WhileStmt(std::unique_ptr<Expr> condition, std::vector<std::unique_ptr<Stmt>> stmts, Token keyword) : condition(std::move(condition)), stmts(std::move(stmts)), keyword(keyword) {}
 void WhileStmt::accept(StmtVisitor &visitor) {
     visitor.visit_while_stmt(this);
 }

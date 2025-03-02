@@ -135,14 +135,9 @@ void Resolver::visit_get_expr(GetExpr *expr) {
     this->resolve(expr->value.get());
 
     if (auto t = std::dynamic_pointer_cast<StructType>(expr->value->type)) {
-        // TODO: use hashmap or lookup function
-        auto name = expr->name.lexeme;
-        auto p = std::find_if(t->props.begin(), t->props.end(), [name](const auto &t) {
-            return std::get<0>(t).lexeme == name;
-        });
-
-        if (p != t->props.end()) {
-            expr->type = std::get<1>(*p);
+        auto type = t->get_member_type(expr->name.lexeme);
+        if (type.has_value()) {
+            expr->type = type.value();
         } else {
             // TODO: handle error properly, and report which is missing
             this->error(expr->name, "Could not find property on struct.");
@@ -179,6 +174,10 @@ void Resolver::visit_literal_expr(LiteralExpr *expr) {
         case TokenType::BOOL_VAL:  expr->type = this->type_env["bool"]; break;
         case TokenType::NULL_VAL:  expr->type = this->type_env["null"]; break;
         case TokenType::STR_VAL:   expr->type = this->type_env["str"]; break;
+        case TokenType::TRUE:
+        case TokenType::FALSE:
+            expr->type = this->type_env["bool"];
+            break;
         default:
             std::cout << "[BUG] Literal type unknown" << std::endl;
             exit(3);

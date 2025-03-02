@@ -171,7 +171,6 @@ std::unique_ptr<AssignStmt> Parser::assignment(Expr &lhs) {
     Token equals_token = this->previous();
     std::unique_ptr<Expr> value = this->expression();
 
-    // TODO: is there a better way to do this
     if (VarExpr *var = dynamic_cast<VarExpr *>(&lhs)) {
         Token name = var->name;
         return std::make_unique<AssignStmt>(name, std::move(value));

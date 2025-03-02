@@ -65,6 +65,7 @@ struct VoidType : public Type {
     std::string to_string() override;
 };
 
+// TODO: store this on the function?
 struct FunctionType : public Type {
     Token name;
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;

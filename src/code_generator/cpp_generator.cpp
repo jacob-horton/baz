@@ -54,14 +54,12 @@ void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
                 std::get<1>(*p)->accept(*this);
                 this->output << ", ";
             } else {
-                // TODO: handle error properly, and report which is missing
-                std::cerr << "[BUG] Not all properties initialised." << std::endl;
+                std::cerr << "[BUG] Not all properties initialised. This should be checked in the type checker." << std::endl;
                 exit(3);
             }
         }
     } else {
-        // TODO: handle error properly, and report which is missing
-        std::cerr << "[BUG] Trying to initialise non-struct." << std::endl;
+        std::cerr << "[BUG] Trying to initialise non-struct. This should be checked in the type checker" << std::endl;
         exit(3);
     }
 
@@ -100,7 +98,7 @@ void CppGenerator::visit_get_expr(GetExpr *expr) {
 }
 
 void CppGenerator::visit_call_expr(CallExpr *expr) {
-    // TODO: constructor
+    // TODO: enum constructor
     this->output << "(";
     expr->callee->accept(*this);
     this->output << "(";
@@ -124,6 +122,11 @@ void CppGenerator::visit_grouping_expr(GroupingExpr *expr) {
 }
 
 void CppGenerator::visit_literal_expr(LiteralExpr *expr) {
+    if (expr->literal.t == TokenType::STR_VAL) {
+        this->output << "std::string(" << expr->literal.lexeme << ")";
+        return;
+    }
+
     this->output << expr->literal.lexeme;
 }
 

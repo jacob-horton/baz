@@ -1,6 +1,7 @@
 #include "type_checker.h"
 #include "type.h"
 
+#include <algorithm>
 #include <iostream>
 #include <memory>
 
@@ -28,6 +29,27 @@ void TypeChecker::visit_var_expr(VarExpr *expr) {
 }
 
 void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
+    if (auto t = std::dynamic_pointer_cast<StructType>(expr->type)) {
+        if (expr->properties.size() != t->props.size())
+            this->error(expr->name, "Expected " + std::to_string(t->props.size()) + " arguments, received " + std::to_string(expr->properties.size()) + ".");
+
+        // Loop through in order of declared type props
+        for (auto &prop : t->props) {
+            auto name = std::get<0>(prop).lexeme;
+
+            // Find corresponding property
+            // TODO: use hashmap or lookup function
+            auto p = std::find_if(expr->properties.begin(), expr->properties.end(), [name](const auto &t) {
+                return std::get<0>(t).lexeme == name;
+            });
+
+            if (p == expr->properties.end())
+                this->error(expr->name, "Missing property " + name + " from constructor.");
+        }
+    } else {
+        this->error(expr->name, "Cannot initialise non-struct.");
+    }
+
     this->result = expr->type;
 }
 
@@ -37,7 +59,6 @@ bool is_numeric(Type *t) {
 
 void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
     switch (expr->op.t) {
-        // TODO: concatenating strings for PLUS
         case TokenType::PLUS:
         case TokenType::MINUS:
         case TokenType::STAR:
@@ -46,9 +67,9 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             expr->left->accept(*this);
             auto left_t = this->result;
 
-            // If not numeric, we can't operate
-            if (!is_numeric(left_t.get()))
-                this->error(expr->op, "Operator can only be used on numeric types.");
+            // If not numeric or string, we can't operate
+            if (!(is_numeric(left_t.get()) || left_t.get()->type_class == TypeClass::STR))
+                this->error(expr->op, "Operator can only be used on numeric or string types.");
 
             expr->right->accept(*this);
             auto right_t = this->result;
@@ -233,7 +254,6 @@ void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
     if (this->result != stmt->target_type) {
-        // TODO: use equal token for error?
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }
 }

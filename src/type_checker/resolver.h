@@ -8,8 +8,7 @@
 #include <map>
 #include <string>
 
-// TODO: rename? Maybe ResolvedVariable
-struct BoundVariable {
+struct ResolvedVariable {
     std::string name;
     bool defined;
     std::shared_ptr<Type> type;
@@ -17,7 +16,7 @@ struct BoundVariable {
 
 class Resolver : public ExprVisitor, public StmtVisitor {
   private:
-    std::vector<std::map<std::string, BoundVariable>> scopes;
+    std::vector<std::map<std::string, ResolvedVariable>> scopes;
     std::map<std::string, std::shared_ptr<Type>> type_env;
 
   public:
@@ -34,7 +33,7 @@ class Resolver : public ExprVisitor, public StmtVisitor {
     void resolve_function(FunDeclStmt *fun);
     void resolve_struct(StructDeclStmt *s);
 
-    BoundVariable resolve_local(Token name);
+    std::optional<ResolvedVariable> resolve_local(Token name);
 
     void declare(std::string &name, std::shared_ptr<Type> type);
     void define(std::string &name);

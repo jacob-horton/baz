@@ -44,7 +44,7 @@ void Resolver::resolve(Expr *expr) {
     expr->accept(*this);
 }
 
-BoundVariable Resolver::resolve_local(Token name) {
+std::optional<ResolvedVariable> Resolver::resolve_local(Token name) {
     for (int i = this->scopes.size() - 1; i >= 0; i--) {
         auto scope = this->scopes[i];
         auto resolved = scope.find(name.lexeme);
@@ -53,9 +53,7 @@ BoundVariable Resolver::resolve_local(Token name) {
         }
     }
 
-    // TODO: handle this - I don't think it's a bug in the compiler - it is a user error
-    std::cerr << "[BUG] Could not find variable." << std::endl;
-    exit(3);
+    return {};
 }
 
 void Resolver::resolve_function(FunDeclStmt *fun) {
@@ -84,14 +82,20 @@ void Resolver::resolve_struct(StructDeclStmt *s) {
 }
 
 void Resolver::define(std::string &name) {
-    // TODO: handle case where not declared - should be bug
-    this->scopes.back()[name].defined = true;
+    auto scope = this->scopes.back();
+    auto val = scope.find(name);
+    if (val == scope.end()) {
+        std::cerr << "[BUG] Defining a variable that doesn't exist" << std::endl;
+        exit(3);
+    }
+
+    scope[name].defined = true;
 }
 
 void Resolver::declare(std::string &name, std::shared_ptr<Type> type) {
     auto &scope = this->scopes.back();
 
-    scope[name] = BoundVariable{
+    scope[name] = ResolvedVariable{
         name,
         false,
         type,
@@ -100,21 +104,23 @@ void Resolver::declare(std::string &name, std::shared_ptr<Type> type) {
 
 // Expressions
 void Resolver::visit_var_expr(VarExpr *expr) {
-    // TODO: update error message here ad struct init
     auto resolved = this->resolve_local(expr->name);
-    if (!resolved.defined)
+    if (!resolved.has_value())
+        this->error(expr->name, "Unknown variable - not declared at this point.");
+
+    if (!resolved.value().defined)
         this->error(expr->name, "Cannot read local variable in its own initialiser.");
 
-    expr->type = resolved.type;
+    expr->type = resolved.value().type;
 }
 
 void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
-    auto type = this->resolve_local(expr->name).type;
-    if (auto t = std::dynamic_pointer_cast<StructType>(type)) {
+    if (auto t = std::dynamic_pointer_cast<StructType>(this->type_env[expr->name.lexeme])) {
         expr->type = t;
-    } else {
-        this->error(expr->name, "Cannot use struct initialiser on non-struct.");
+        return;
     }
+
+    this->error(expr->name, "Cannot use struct initialiser on non-struct.");
 }
 
 void Resolver::visit_binary_expr(BinaryExpr *expr) {
@@ -139,7 +145,6 @@ void Resolver::visit_get_expr(GetExpr *expr) {
         if (type.has_value()) {
             expr->type = type.value();
         } else {
-            // TODO: handle error properly, and report which is missing
             this->error(expr->name, "Could not find property on struct.");
         }
     } else {
@@ -150,7 +155,6 @@ void Resolver::visit_get_expr(GetExpr *expr) {
 void Resolver::visit_call_expr(CallExpr *expr) {
     this->resolve(expr->callee.get());
 
-    // TODO: check this
     if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->type)) {
         expr->type = t->return_type;
     } else {
@@ -264,5 +268,10 @@ void Resolver::visit_return_stmt(ReturnStmt *stmt) {
 
 void Resolver::visit_assign_stmt(AssignStmt *stmt) {
     this->resolve(stmt->value.get());
-    stmt->target_type = this->resolve_local(stmt->name).type;
+    auto var = this->resolve_local(stmt->name);
+
+    if (!var.has_value())
+        this->error(stmt->name, "Cannot assign to a variable that hasn't been declared.");
+
+    stmt->target_type = var.value().type;
 }

@@ -7,20 +7,10 @@ void FunDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visit_fun_decl_stmt(this);
 }
 
-// TODO: do this in resolver
 StructDeclStmt::StructDeclStmt(Token name, std::vector<TypedVar> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods)
-    : name(name), properties(properties), methods(std::move(methods)) {
-    std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
-    for (auto &prop : properties) {
-        props.push_back(std::make_tuple(prop.name, prop.get_type()));
-    }
-    this->type = std::make_unique<StructType>(name, props);
-}
+    : name(name), properties(properties), methods(std::move(methods)) {}
 void StructDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visit_struct_decl_stmt(this);
-}
-std::shared_ptr<StructType> StructDeclStmt::get_type() {
-    return this->type;
 }
 
 EnumDeclStmt::EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<FunDeclStmt>> methods)

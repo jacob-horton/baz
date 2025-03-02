@@ -28,7 +28,6 @@ struct Type {
     virtual std::string to_string() = 0;
 };
 
-// TODO: singletons, and equality is just pointer check?
 struct IntType : public Type {
     IntType() : Type(TypeClass::INT) {}
 

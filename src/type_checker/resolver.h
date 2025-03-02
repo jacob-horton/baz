@@ -18,9 +18,10 @@ struct BoundVariable {
 class Resolver : public ExprVisitor, public StmtVisitor {
   private:
     std::vector<std::map<std::string, BoundVariable>> scopes;
+    std::map<std::string, std::shared_ptr<Type>> type_env;
 
   public:
-    Resolver();
+    Resolver(std::map<std::string, std::shared_ptr<Type>> type_env);
 
     void error(Token t, std::string message);
 
@@ -34,8 +35,6 @@ class Resolver : public ExprVisitor, public StmtVisitor {
     void resolve_struct(StructDeclStmt *s);
 
     BoundVariable resolve_local(Token name);
-
-    std::shared_ptr<Type> token_to_type(Token name);
 
     void declare(std::string &name, std::shared_ptr<Type> type);
     void define(std::string &name);

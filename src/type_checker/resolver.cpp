@@ -6,7 +6,7 @@
 #include <memory>
 #include <tuple>
 
-Resolver::Resolver() {
+Resolver::Resolver(std::map<std::string, std::shared_ptr<Type>> type_env) : type_env(type_env) {
     // Global scope
     this->scopes.push_back({});
 }
@@ -61,7 +61,7 @@ BoundVariable Resolver::resolve_local(Token name) {
 void Resolver::resolve_function(FunDeclStmt *fun) {
     this->begin_scope();
     for (auto param : fun->params) {
-        this->declare(param.name.lexeme, this->token_to_type(param.type));
+        this->declare(param.name.lexeme, this->type_env[param.type.lexeme]);
         this->define(param.name.lexeme);
     }
 
@@ -72,7 +72,7 @@ void Resolver::resolve_function(FunDeclStmt *fun) {
 void Resolver::resolve_struct(StructDeclStmt *s) {
     this->begin_scope();
     for (auto &prop : s->properties) {
-        this->declare(prop.name.lexeme, this->token_to_type(prop.type));
+        this->declare(prop.name.lexeme, this->type_env[prop.type.lexeme]);
         this->define(prop.name.lexeme);
     }
 
@@ -173,56 +173,26 @@ void Resolver::visit_grouping_expr(GroupingExpr *expr) {
 
 // NOTE: no variables to resolve here
 void Resolver::visit_literal_expr(LiteralExpr *expr) {
-    expr->type = this->token_to_type(expr->literal);
-}
-
-std::shared_ptr<Type> Resolver::token_to_type(Token type) {
-    switch (type.t) {
-        case TokenType::TYPE: {
-            if (type.lexeme == "str")
-                return std::make_unique<StrType>();
-
-            if (type.lexeme == "int")
-                return std::make_unique<IntType>();
-
-            if (type.lexeme == "float")
-                return std::make_unique<FloatType>();
-
-            if (type.lexeme == "bool")
-                return std::make_unique<BoolType>();
-
-            // TODO: only allow for return type
-            if (type.lexeme == "void")
-                return std::make_unique<VoidType>();
-        }
-        case TokenType::TRUE:
-        case TokenType::FALSE:
-            return std::make_unique<BoolType>();
-        case TokenType::NULL_VAL:
-            return std::make_unique<NullType>();
-        case TokenType::INT_VAL:
-            return std::make_unique<IntType>();
-        case TokenType::FLOAT_VAL:
-            return std::make_unique<FloatType>();
-        case TokenType::STR_VAL:
-            return std::make_unique<StrType>();
-        case TokenType::IDENTIFIER: {
-            return this->resolve_local(type).type;
-        }
+    switch (expr->literal.t) {
+        case TokenType::INT_VAL:   expr->type = this->type_env["int"]; break;
+        case TokenType::FLOAT_VAL: expr->type = this->type_env["float"]; break;
+        case TokenType::BOOL_VAL:  expr->type = this->type_env["bool"]; break;
+        case TokenType::NULL_VAL:  expr->type = this->type_env["null"]; break;
+        case TokenType::STR_VAL:   expr->type = this->type_env["str"]; break;
         default:
-            std::cerr << "[BUG] Unrecognised type of token (" << get_token_type_str(type.t) << ", '" << type.lexeme << "')." << std::endl;
+            std::cout << "[BUG] Literal type unknown" << std::endl;
             exit(3);
-    }
+    };
 }
 
 // Statements
 void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
-    auto return_type = this->token_to_type(stmt->return_type);
+    auto return_type = this->type_env[stmt->return_type.lexeme];
 
     // TODO: move this to FunDeclStmt? To match with StructDeclStmt
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
     std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
-        return std::make_tuple(param.name, this->token_to_type(param.type));
+        return std::make_tuple(param.name, this->type_env[param.type.lexeme]);
     });
     auto func_type = std::make_unique<FunctionType>(
         stmt->name,
@@ -235,7 +205,7 @@ void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
 }
 
 void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {
-    this->declare(stmt->name.lexeme, stmt->get_type());
+    this->declare(stmt->name.lexeme, this->type_env[stmt->name.lexeme]);
     this->define(stmt->name.lexeme);
 
     this->resolve_struct(stmt);
@@ -245,7 +215,7 @@ void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 void Resolver::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
 
 void Resolver::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
-    this->declare(stmt->name.name.lexeme, this->token_to_type(stmt->name.type));
+    this->declare(stmt->name.name.lexeme, this->type_env[stmt->name.type.lexeme]);
     this->resolve(stmt->initialiser.get());
     this->define(stmt->name.name.lexeme);
 }

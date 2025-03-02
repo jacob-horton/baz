@@ -4,7 +4,7 @@
 #include <iostream>
 #include <memory>
 
-TypeChecker::TypeChecker() {}
+TypeChecker::TypeChecker(std::map<std::string, std::shared_ptr<Type>> type_env) : type_env(type_env) {}
 
 void TypeChecker::check(std::vector<std::unique_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) {
@@ -77,7 +77,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             if (*left_t != *right_t)
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
-            this->result = std::make_unique<BoolType>();
+            this->result = this->type_env["bool"];
             return;
         }
         default:
@@ -161,8 +161,8 @@ void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
 
 void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     stmt->initialiser->accept(*this);
-    if (*stmt->name.get_type() != *this->result) {
-        this->error(stmt->name.name, "Cannot assign a type '" + this->result->to_string() + "' to variable of type '" + stmt->name.get_type()->to_string() + "'.");
+    if (*this->type_env[stmt->name.type.lexeme] != *this->result) {
+        this->error(stmt->name.name, "Cannot assign a type '" + this->result->to_string() + "' to variable of type '" + this->type_env[stmt->name.type.lexeme]->to_string() + "'.");
     }
 }
 

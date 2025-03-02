@@ -2,28 +2,20 @@
 
 #include "../ast/expr_visitor.h"
 #include "../ast/stmt_visitor.h"
-#include "type.h"
+#include "../type_checker/type.h"
 
 #include <fstream>
+#include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
-enum TypeCheckerError {
-    OP_ON_INCOMPATIBLE_TYPES,
-};
-
-class TypeChecker : public ExprVisitor, public StmtVisitor {
-  private:
-    std::shared_ptr<Type> result;
+class TypeEnvironment : public ExprVisitor, public StmtVisitor {
+  public:
     std::map<std::string, std::shared_ptr<Type>> type_env;
 
-  public:
-    TypeChecker(std::map<std::string, std::shared_ptr<Type>> type_env);
+    TypeEnvironment();
 
-    void check(std::vector<std::unique_ptr<Stmt>> &stmts);
-
-    void error(Token t, std::string message);
+    void generate_type_env(std::vector<std::unique_ptr<Stmt>> &stmts);
 
     void visit_var_expr(VarExpr *expr);
     void visit_struct_init_expr(StructInitExpr *expr);

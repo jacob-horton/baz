@@ -9,6 +9,7 @@
 #include "scanner/scanner.h"
 #include "type_checker/resolver.h"
 #include "type_checker/type_checker.h"
+#include "type_checker/type_environment.h"
 
 std::string read_file(std::string path) {
     std::ifstream file(path);
@@ -42,12 +43,16 @@ int main(int argc, char *argv[]) {
         stmt = parser.parse_stmt();
     }
 
+    // Generate type environment
+    auto type_env = TypeEnvironment();
+    type_env.generate_type_env(stmts);
+
     // Resolve types
-    auto resolver = Resolver();
+    auto resolver = Resolver(type_env.type_env);
     resolver.resolve(stmts);
 
     // Check types
-    auto type_checker = TypeChecker();
+    auto type_checker = TypeChecker(type_env.type_env);
     try {
         type_checker.check(stmts);
     } catch (TypeCheckerError) {

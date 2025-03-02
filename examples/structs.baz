@@ -15,7 +15,9 @@ fn main(): void {
 		prop2: false,
 	};
 
-	name.method2();
+	// Comment a
+	name.method2(); // Comment b
+	let unknown: str = /* comment c */ "unknown";
 
 	while (true) {
 		if (name.method1(2.5) > 0) {

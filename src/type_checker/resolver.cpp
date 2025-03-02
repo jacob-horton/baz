@@ -82,7 +82,7 @@ void Resolver::resolve_struct(StructDeclStmt *s) {
 }
 
 void Resolver::define(std::string &name) {
-    auto scope = this->scopes.back();
+    auto &scope = this->scopes.back();
     auto val = scope.find(name);
     if (val == scope.end()) {
         std::cerr << "[BUG] Defining a variable that doesn't exist" << std::endl;

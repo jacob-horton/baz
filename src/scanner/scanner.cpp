@@ -126,6 +126,32 @@ void StringScanner::skip_whitespace() {
             case '\r':
                 this->advance();
                 break;
+            case '/':
+                // Skip single line comments
+                if (this->peek_next() == '/') {
+                    while (this->peek() != '\n' && !this->is_at_end())
+                        this->advance();
+                } else if (this->peek_next() == '*') {
+                    while ((this->peek() != '*' || this->peek_next() != '/') && !this->is_at_end()) {
+                        this->advance();
+                    }
+
+                    if (this->is_at_end()) {
+                        std::cerr << "Unterminated multiline comment." << std::endl;
+                        exit(1);
+                    }
+
+                    this->advance();
+
+                    if (this->is_at_end()) {
+                        std::cerr << "Unterminated multiline comment." << std::endl;
+                        exit(1);
+                    }
+
+                    this->advance();
+                }
+
+                break;
             default:
                 return;
         }
@@ -150,6 +176,10 @@ char StringScanner::advance() {
 
 char StringScanner::peek() {
     return *this->current;
+}
+
+char StringScanner::peek_next() {
+    return this->current[1];
 }
 
 Token StringScanner::string() {
@@ -178,11 +208,14 @@ StringScanner::StringScanner(std::string &source) {
     this->line = 1;
 }
 
+bool StringScanner::is_at_end() {
+    return this->current >= this->end;
+}
+
 Token StringScanner::scan_token() {
     this->skip_whitespace();
 
-    // TOOD: function for is_at_end
-    if (this->current >= this->end)
+    if (this->is_at_end())
         return this->make_token(TokenType::EOF_, "");
 
     this->token_start = this->current;

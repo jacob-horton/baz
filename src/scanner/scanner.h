@@ -103,6 +103,9 @@ class StringScanner : public Scanner {
     bool match(char c);
     char advance();
     char peek();
+    char peek_next();
+
+    bool is_at_end();
 
   public:
     StringScanner(std::string &source);

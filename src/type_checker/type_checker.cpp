@@ -146,8 +146,26 @@ void TypeChecker::visit_get_expr(GetExpr *expr) {
 }
 
 void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
+    // Check payload if there is one
+    if (expr->payload.has_value()) {
+        expr->payload.value()->accept(*this);
+
+        // Cast to enum type (should always be enum type)
+        if (auto t = std::dynamic_pointer_cast<EnumType>(expr->type)) {
+            // Check type of payload for this variant
+            auto payload_type_symbol = t->get_variant_payload_type(expr->name.lexeme)->lexeme;
+            auto payload_type = this->type_env[payload_type_symbol];
+
+            if (!this->result->can_coerce_to(payload_type->type_class)) {
+                this->error(expr->name, "Payload of enum cannot be coerced to a valid type.");
+            }
+        } else {
+            std::cerr << "[BUG] Enum doesn't have enum type" << std::endl;
+            exit(3);
+        }
+    }
+
+    this->result = expr->type;
 }
 
 void TypeChecker::visit_call_expr(CallExpr *expr) {
@@ -195,8 +213,9 @@ void TypeChecker::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 }
 
 void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
-    std::cerr << "Unimplemented TODO: remove" << std::endl;
-    exit(3);
+    for (auto &method : stmt->methods) {
+        method->accept(*this);
+    }
 }
 
 void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
@@ -263,7 +282,7 @@ void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {
 void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
-    if (this->result != stmt->target_type) {
+    if (this->result->can_coerce_to(stmt->target_type->type_class)) {
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }
 }

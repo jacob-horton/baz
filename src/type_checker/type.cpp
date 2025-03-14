@@ -44,3 +44,14 @@ std::optional<std::shared_ptr<Type>> EnumType::get_method_type(std::string name)
 
     return {};
 }
+
+std::optional<Token> EnumType::get_variant_payload_type(std::string name) {
+    auto m = std::find_if(this->variants.begin(), this->variants.end(), [name](const auto &v) {
+        return v.name.lexeme == name;
+    });
+
+    if (m != this->variants.end())
+        return m->payload_type;
+
+    return {};
+}

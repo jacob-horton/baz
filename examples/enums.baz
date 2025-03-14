@@ -2,7 +2,7 @@ enum Optional {
 	Some(int);
 	None;
 
-	fn do_something(): int {
+	fn do_something(a: int): int {
 		return 12;
 	}
 }
@@ -11,6 +11,6 @@ fn main(): void {
 	let tree: Optional = Optional::Some(5);
 	let other: Optional = Optional::None;
 
-	let smth: int = other.do_something();
+	let smth: int = other.do_something(1);
 	println(smth);
 }

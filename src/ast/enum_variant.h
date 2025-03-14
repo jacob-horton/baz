@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../scanner/token.h"
-
 #include <optional>
 
 struct EnumVariant {

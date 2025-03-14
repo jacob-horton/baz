@@ -170,6 +170,10 @@ void Resolver::visit_get_expr(GetExpr *expr) {
 }
 
 void Resolver::visit_enum_init_expr(EnumInitExpr *expr) {
+    if (expr->payload.has_value()) {
+        expr->payload.value()->accept(*this);
+    }
+
     auto enum_name = expr->enum_namespace->name;
     if (auto t = std::dynamic_pointer_cast<EnumType>(this->type_env[enum_name.lexeme])) {
         expr->type = t;

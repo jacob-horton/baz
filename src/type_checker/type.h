@@ -100,6 +100,7 @@ struct EnumType : public Type {
     EnumType(Token name, std::vector<EnumVariant> variants, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::ENUM_), name(name), variants(variants), methods(methods) {}
 
     std::optional<std::shared_ptr<Type>> get_method_type(std::string name);
+    std::optional<Token> get_variant_payload_type(std::string name);
 
     std::string to_string() override;
 };

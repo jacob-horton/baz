@@ -1,7 +1,6 @@
 #include "expr.h"
 #include "expr_visitor.h"
 
-#include <iostream>
 #include <memory>
 
 VarExpr::VarExpr(Token name) : name(name) {}

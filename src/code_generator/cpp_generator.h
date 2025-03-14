@@ -8,6 +8,7 @@
 class CppGenerator : public ExprVisitor, public StmtVisitor {
   private:
     std::ostream &output;
+    std::string this_keyword;
 
   public:
     CppGenerator(std::ostream &file);

@@ -5,6 +5,10 @@ enum Optional {
 	fn do_something(a: int): int {
 		return 12;
 	}
+
+	fn get_this(): Optional {
+		return this;
+	}
 }
 
 fn main(): void {
@@ -13,4 +17,6 @@ fn main(): void {
 
 	let smth: int = other.do_something(1);
 	println(smth);
+
+	let tree2: Optional = tree.get_this();
 }

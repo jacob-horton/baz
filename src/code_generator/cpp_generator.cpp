@@ -13,7 +13,7 @@ std::string baz_to_cpp_type(Token type) {
     return type.lexeme;
 }
 
-CppGenerator::CppGenerator(std::ostream &output) : output(output) {}
+CppGenerator::CppGenerator(std::ostream &output) : output(output), this_keyword("this") {}
 
 void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
     output << "#include <iostream>" << std::endl
@@ -29,6 +29,10 @@ void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
 
 // Expressions
 void CppGenerator::visit_var_expr(VarExpr *expr) {
+    if (expr->name.lexeme == "this") {
+        this->output << this->this_keyword;
+        return;
+    }
     this->output << expr->name.lexeme;
 }
 
@@ -190,9 +194,8 @@ void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
 
 void CppGenerator::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     auto &stmt = enum_stmt->fun_definition;
-    std::string return_type = stmt->return_type.lexeme;
-
-    this->output << return_type << " Baz_" << enum_stmt->enum_name.lexeme << "_" << stmt->name.lexeme << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
+    auto pointer = stmt->return_type.t == TokenType::IDENTIFIER ? "*" : "";
+    this->output << baz_to_cpp_type(stmt->return_type) << pointer << " Baz_" << enum_stmt->enum_name.lexeme << "_" << stmt->name.lexeme << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
 
     for (auto &param : stmt->params) {
         this->output << ", " << baz_to_cpp_type(param.type) << " " << param.name.lexeme;
@@ -201,7 +204,13 @@ void CppGenerator::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     this->output << ") {" << std::endl;
 
     for (auto &line : stmt->body) {
+        // Use "baz_this" instead of "this" as we are just using normal functions, not methods
+        auto prev_this_keyword = this->this_keyword;
+        this->this_keyword = "baz_this";
+
         line->accept(*this);
+
+        this->this_keyword = prev_this_keyword;
     }
 
     this->output << "}" << std::endl;

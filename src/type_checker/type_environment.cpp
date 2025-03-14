@@ -80,11 +80,17 @@ void TypeEnvironment::visit_enum_method_decl_stmt(EnumMethodDeclStmt *stmt) {}
 
 void TypeEnvironment::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
+    this->type_env[stmt->name.lexeme] = std::make_unique<StructType>(stmt->name, props, methods);
+
+    auto t = std::dynamic_pointer_cast<StructType>(this->type_env[stmt->name.lexeme]);
+    if (!t)
+        std::cerr << "[BUG] Struct does not have struct type";
+
     for (auto &prop : stmt->properties) {
-        props.push_back(std::make_tuple(prop.name, this->type_env[prop.type.lexeme]));
+        t->props.push_back(std::make_tuple(prop.name, this->type_env[prop.type.lexeme]));
     }
 
-    std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
     for (auto &method : stmt->methods) {
         auto return_type = this->type_env[method->return_type.lexeme];
 
@@ -95,16 +101,20 @@ void TypeEnvironment::visit_struct_decl_stmt(StructDeclStmt *stmt) {
         std::shared_ptr<Type> func_type = std::make_unique<FunctionType>(
             stmt->name,
             params,
-            std::move(return_type));
+            return_type);
 
-        methods.push_back(std::make_tuple(method->name, func_type));
+        t->methods.push_back(std::make_tuple(method->name, func_type));
     }
-
-    this->type_env[stmt->name.lexeme] = std::make_unique<StructType>(stmt->name, props, methods);
 }
 
 void TypeEnvironment::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
+    this->type_env[stmt->name.lexeme] = std::make_unique<EnumType>(stmt->name, stmt->variants, methods);
+
+    auto t = std::dynamic_pointer_cast<EnumType>(this->type_env[stmt->name.lexeme]);
+    if (!t)
+        std::cerr << "[BUG] Enum does not have enum type";
+
     for (auto &method : stmt->methods) {
         auto return_type = this->type_env[method->fun_definition->return_type.lexeme];
 
@@ -115,12 +125,10 @@ void TypeEnvironment::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
         std::shared_ptr<Type> func_type = std::make_unique<FunctionType>(
             stmt->name,
             params,
-            std::move(return_type));
+            return_type);
 
-        methods.push_back(std::make_tuple(method->fun_definition->name, func_type));
+        t->methods.push_back(std::make_tuple(method->fun_definition->name, func_type));
     }
-
-    this->type_env[stmt->name.lexeme] = std::make_unique<EnumType>(stmt->name, stmt->variants, methods);
 }
 
 void TypeEnvironment::visit_variable_decl_stmt(VariableDeclStmt *stmt) {

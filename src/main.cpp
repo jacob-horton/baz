@@ -20,7 +20,7 @@ std::string read_file(std::string path) {
 }
 
 int main(int argc, char *argv[]) {
-    auto source = read_file("./examples/functions.baz");
+    auto source = read_file("./examples/enums.baz");
     if (argc == 2) {
         auto arg = argv[1];
         if (strcmp(arg, "--help") == 0) {

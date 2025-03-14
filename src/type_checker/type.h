@@ -27,8 +27,7 @@ struct Type {
 
     virtual ~Type() = default;
 
-    virtual bool can_coerce_to(TypeClass tc);
-    // virtual bool is_equal(const Type &other) const;
+    virtual bool can_coerce_to(std::shared_ptr<Type> t);
     virtual std::string to_string() = 0;
 };
 

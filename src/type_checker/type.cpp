@@ -1,7 +1,7 @@
 #include "type.h"
 #include <algorithm>
 
-bool Type::can_coerce_to(TypeClass tc) { return tc == this->type_class; }
+bool Type::can_coerce_to(std::shared_ptr<Type> t) { return this == t.get(); }
 
 std::string IntType::to_string() { return "int"; }
 std::string FloatType::to_string() { return "float"; }

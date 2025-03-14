@@ -69,6 +69,11 @@ void Resolver::resolve_function(FunDeclStmt *fun) {
 
 void Resolver::resolve_struct(StructDeclStmt *s) {
     this->begin_scope();
+
+    std::string this_keyword("this");
+    this->declare(this_keyword, this->type_env[s->name.lexeme]);
+    this->define(this_keyword);
+
     for (auto &prop : s->properties) {
         this->declare(prop.name.lexeme, this->type_env[prop.type.lexeme]);
         this->define(prop.name.lexeme);
@@ -83,6 +88,11 @@ void Resolver::resolve_struct(StructDeclStmt *s) {
 
 void Resolver::resolve_enum(EnumDeclStmt *e) {
     this->begin_scope();
+
+    std::string this_keyword("this");
+    this->declare(this_keyword, this->type_env[e->name.lexeme]);
+    this->define(this_keyword);
+
     for (auto &method : e->methods) {
         method->accept(*this);
     }
@@ -94,7 +104,7 @@ void Resolver::define(std::string &name) {
     auto &scope = this->scopes.back();
     auto val = scope.find(name);
     if (val == scope.end()) {
-        std::cerr << "[BUG] Defining a variable that doesn't exist" << std::endl;
+        std::cerr << "[BUG] Defining a variable that doesn't exist." << std::endl;
         exit(3);
     }
 
@@ -228,11 +238,11 @@ void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
     std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
         return std::make_tuple(param.name, this->type_env[param.type.lexeme]);
     });
-    auto func_type = std::make_unique<FunctionType>(
+    auto func_type = std::make_shared<FunctionType>(
         stmt->name,
         params,
-        std::move(return_type));
-    this->declare(stmt->name.lexeme, std::move(func_type));
+        return_type);
+    this->declare(stmt->name.lexeme, func_type);
     this->define(stmt->name.lexeme);
 
     this->resolve_function(stmt);
@@ -247,11 +257,11 @@ void Resolver::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
         return std::make_tuple(param.name, this->type_env[param.type.lexeme]);
     });
-    auto func_type = std::make_unique<FunctionType>(
+    auto func_type = std::make_shared<FunctionType>(
         stmt->name,
         params,
-        std::move(return_type));
-    this->declare(stmt->name.lexeme, std::move(func_type));
+        return_type);
+    this->declare(stmt->name.lexeme, func_type);
     this->define(stmt->name.lexeme);
 
     // TODO: put this in method

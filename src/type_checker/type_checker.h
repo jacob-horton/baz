@@ -25,6 +25,8 @@ class TypeChecker : public ExprVisitor, public StmtVisitor {
 
     void error(Token t, std::string message);
 
+    bool is_numeric(Type *t);
+
     void visit_var_expr(VarExpr *expr);
     void visit_struct_init_expr(StructInitExpr *expr);
     void visit_binary_expr(BinaryExpr *expr);

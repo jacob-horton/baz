@@ -53,8 +53,8 @@ void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
     this->result = expr->type;
 }
 
-bool is_numeric(Type *t) {
-    return t->can_coerce_to(TypeClass::INT) || t->can_coerce_to(TypeClass::FLOAT);
+bool TypeChecker::is_numeric(Type *t) {
+    return t->can_coerce_to(this->type_env["int"]) || t->can_coerce_to(this->type_env["float"]);
 }
 
 void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
@@ -111,7 +111,7 @@ void TypeChecker::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
     expr->left->accept(*this);
     auto left_t = this->result;
 
-    if (!left_t->can_coerce_to(TypeClass::BOOL))
+    if (!left_t->can_coerce_to(this->type_env["bool"]))
         this->error(expr->op, "Operator can only be used on boolean types.");
 
     expr->right->accept(*this);
@@ -127,7 +127,7 @@ void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
     switch (expr->op.t) {
         case TokenType::BANG:
             // If not boolean, we can't invert
-            if (!this->result->can_coerce_to(TypeClass::BOOL))
+            if (!this->result->can_coerce_to(this->type_env["bool"]))
                 this->error(expr->op, "Operator can only be used on a boolean type.");
             break;
         case TokenType::MINUS:
@@ -156,7 +156,7 @@ void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
             auto payload_type_symbol = t->get_variant_payload_type(expr->name.lexeme)->lexeme;
             auto payload_type = this->type_env[payload_type_symbol];
 
-            if (!this->result->can_coerce_to(payload_type->type_class)) {
+            if (!this->result->can_coerce_to(payload_type)) {
                 this->error(expr->name, "Payload of enum cannot be coerced to a valid type.");
             }
         } else {
@@ -220,7 +220,7 @@ void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
 
 void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     stmt->initialiser->accept(*this);
-    if (this->type_env[stmt->name.type.lexeme] != this->result) {
+    if (!this->result->can_coerce_to(this->type_env[stmt->name.type.lexeme])) {
         this->error(stmt->name.name, "Cannot assign a type '" + this->result->to_string() + "' to variable of type '" + this->type_env[stmt->name.type.lexeme]->to_string() + "'.");
     }
 }
@@ -235,7 +235,7 @@ void TypeChecker::visit_block_stmt(BlockStmt *stmt) {
 
 void TypeChecker::visit_if_stmt(IfStmt *stmt) {
     stmt->condition->accept(*this);
-    if (!this->result->can_coerce_to(TypeClass::BOOL)) {
+    if (!this->result->can_coerce_to(this->type_env["bool"])) {
         this->error(stmt->keyword, "If condition must be a boolean value.");
     }
 
@@ -257,7 +257,7 @@ void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
 
 void TypeChecker::visit_while_stmt(WhileStmt *stmt) {
     stmt->condition->accept(*this);
-    if (!this->result->can_coerce_to(TypeClass::BOOL)) {
+    if (!this->result->can_coerce_to(this->type_env["bool"])) {
         this->error(stmt->keyword, "While condition must be a boolean value.");
     }
 
@@ -282,7 +282,7 @@ void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {
 void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
-    if (this->result->can_coerce_to(stmt->target_type->type_class)) {
+    if (!this->result->can_coerce_to(stmt->target_type)) {
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }
 }

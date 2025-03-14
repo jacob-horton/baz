@@ -53,6 +53,7 @@ const std::map<char, TokenType> DOUBLE_SYMBOLS = {
     {'&', TokenType::AND},
     {'|', TokenType::OR},
     {'?', TokenType::QUESTION_QUESTION},
+    {':', TokenType::COLON_COLON},
 };
 
 const std::map<char, TokenType> SYMBOLS = {

@@ -81,6 +81,15 @@ void Resolver::resolve_struct(StructDeclStmt *s) {
     this->end_scope();
 }
 
+void Resolver::resolve_enum(EnumDeclStmt *e) {
+    this->begin_scope();
+    for (auto &method : e->methods) {
+        method->accept(*this);
+    }
+
+    this->end_scope();
+}
+
 void Resolver::define(std::string &name) {
     auto &scope = this->scopes.back();
     auto val = scope.find(name);
@@ -105,8 +114,9 @@ void Resolver::declare(std::string &name, std::shared_ptr<Type> type) {
 // Expressions
 void Resolver::visit_var_expr(VarExpr *expr) {
     auto resolved = this->resolve_local(expr->name);
-    if (!resolved.has_value())
+    if (!resolved.has_value()) {
         this->error(expr->name, "Unknown variable - not declared at this point.");
+    }
 
     if (!resolved.value().defined)
         this->error(expr->name, "Cannot read local variable in its own initialiser.");
@@ -147,9 +157,26 @@ void Resolver::visit_get_expr(GetExpr *expr) {
         } else {
             this->error(expr->name, "Could not find property on struct.");
         }
+    } else if (auto t = std::dynamic_pointer_cast<EnumType>(expr->value->type)) {
+        auto type = t->get_method_type(expr->name.lexeme);
+        if (type.has_value()) {
+            expr->type = type.value();
+        } else {
+            this->error(expr->name, "Could not find property on enum.");
+        }
     } else {
-        this->error(expr->name, "Cannot get property on non-struct.");
+        this->error(expr->name, "Cannot get property on a variable that is neither a struct nor enum.");
     }
+}
+
+void Resolver::visit_enum_init_expr(EnumInitExpr *expr) {
+    auto enum_name = expr->enum_namespace->name;
+    if (auto t = std::dynamic_pointer_cast<EnumType>(this->type_env[enum_name.lexeme])) {
+        expr->type = t;
+        return;
+    }
+
+    this->error(enum_name, "Cannot use struct initialiser on non-struct.");
 }
 
 void Resolver::visit_call_expr(CallExpr *expr) {
@@ -207,6 +234,33 @@ void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
     this->resolve_function(stmt);
 }
 
+void Resolver::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
+    auto &stmt = enum_stmt->fun_definition;
+    auto return_type = this->type_env[stmt->return_type.lexeme];
+
+    // TODO: move this to FunDeclStmt? To match with StructDeclStmt
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
+    std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
+        return std::make_tuple(param.name, this->type_env[param.type.lexeme]);
+    });
+    auto func_type = std::make_unique<FunctionType>(
+        stmt->name,
+        params,
+        std::move(return_type));
+    this->declare(stmt->name.lexeme, std::move(func_type));
+    this->define(stmt->name.lexeme);
+
+    // TODO: put this in method
+    this->begin_scope();
+    for (auto param : stmt->params) {
+        this->declare(param.name.lexeme, this->type_env[param.type.lexeme]);
+        this->define(param.name.lexeme);
+    }
+
+    this->resolve(stmt->body);
+    this->end_scope();
+}
+
 void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     this->declare(stmt->name.lexeme, this->type_env[stmt->name.lexeme]);
     this->define(stmt->name.lexeme);
@@ -214,8 +268,12 @@ void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     this->resolve_struct(stmt);
 }
 
-// TODO:
-void Resolver::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
+void Resolver::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
+    this->declare(stmt->name.lexeme, this->type_env[stmt->name.lexeme]);
+    this->define(stmt->name.lexeme);
+
+    this->resolve_enum(stmt);
+}
 
 void Resolver::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     this->declare(stmt->name.name.lexeme, this->type_env[stmt->name.type.lexeme]);

@@ -5,6 +5,7 @@
 class StmtVisitor {
   public:
     virtual void visit_fun_decl_stmt(FunDeclStmt *stmt) = 0;
+    virtual void visit_enum_method_decl_stmt(EnumMethodDeclStmt *stmt) = 0;
     virtual void visit_struct_decl_stmt(StructDeclStmt *stmt) = 0;
     virtual void visit_enum_decl_stmt(EnumDeclStmt *stmt) = 0;
     virtual void visit_variable_decl_stmt(VariableDeclStmt *stmt) = 0;

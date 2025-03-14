@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iostream>
 #include <memory>
+#include <ostream>
+#include <tuple>
 
 TypeEnvironment::TypeEnvironment() {
     // Add primitives
@@ -51,6 +53,11 @@ void TypeEnvironment::visit_get_expr(GetExpr *expr) {
     exit(3);
 }
 
+void TypeEnvironment::visit_enum_init_expr(EnumInitExpr *expr) {
+    std::cerr << "Unimplemented" << std::endl;
+    exit(3);
+}
+
 void TypeEnvironment::visit_call_expr(CallExpr *expr) {
     std::cerr << "Unimplemented" << std::endl;
     exit(3);
@@ -68,6 +75,8 @@ void TypeEnvironment::visit_literal_expr(LiteralExpr *expr) {
 
 // Statements
 void TypeEnvironment::visit_fun_decl_stmt(FunDeclStmt *stmt) {}
+
+void TypeEnvironment::visit_enum_method_decl_stmt(EnumMethodDeclStmt *stmt) {}
 
 void TypeEnvironment::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
@@ -95,8 +104,23 @@ void TypeEnvironment::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 }
 
 void TypeEnvironment::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
+    for (auto &method : stmt->methods) {
+        auto return_type = this->type_env[method->fun_definition->return_type.lexeme];
+
+        std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
+        std::transform(method->fun_definition->params.begin(), method->fun_definition->params.end(), std::back_inserter(params), [this](TypedVar param) {
+            return std::make_tuple(param.name, this->type_env[param.type.lexeme]);
+        });
+        std::shared_ptr<Type> func_type = std::make_unique<FunctionType>(
+            stmt->name,
+            params,
+            std::move(return_type));
+
+        methods.push_back(std::make_tuple(method->fun_definition->name, func_type));
+    }
+
+    this->type_env[stmt->name.lexeme] = std::make_unique<EnumType>(stmt->name, stmt->variants, methods);
 }
 
 void TypeEnvironment::visit_variable_decl_stmt(VariableDeclStmt *stmt) {

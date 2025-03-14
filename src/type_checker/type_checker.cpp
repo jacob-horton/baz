@@ -145,6 +145,11 @@ void TypeChecker::visit_get_expr(GetExpr *expr) {
     expr->value->accept(*this);
 }
 
+void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
+    std::cerr << "Unimplemented" << std::endl;
+    exit(3);
+}
+
 void TypeChecker::visit_call_expr(CallExpr *expr) {
     expr->callee->accept(*this);
 
@@ -178,6 +183,11 @@ void TypeChecker::visit_fun_decl_stmt(FunDeclStmt *fun) {
     this->check(fun->body);
 }
 
+void TypeChecker::visit_enum_method_decl_stmt(EnumMethodDeclStmt *fun) {
+    // TODO: any extra stuff for enum methods
+    fun->fun_definition->accept(*this);
+}
+
 void TypeChecker::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     for (auto &method : stmt->methods) {
         method->accept(*this);
@@ -185,7 +195,7 @@ void TypeChecker::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 }
 
 void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
-    std::cerr << "Unimplemented" << std::endl;
+    std::cerr << "Unimplemented TODO: remove" << std::endl;
     exit(3);
 }
 

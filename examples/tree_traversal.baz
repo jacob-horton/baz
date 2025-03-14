@@ -9,8 +9,8 @@ enum Tree {
 
 	fn sum(): int {
 		match (this) {
-			Tree.Leaf(value): { return value; },
-			Tree.Node(tree_node): {
+			Tree::Leaf(value): { return value; },
+			Tree::Node(tree_node): {
 				return tree_node.left?.sum() ?? 0 + tree_node.right?.sum() ?? 0;
 			}
 		}
@@ -18,10 +18,10 @@ enum Tree {
 
 	fn increment_leaves(): void {
 		match (this) {
-			Tree.Leaf(value): {
+			Tree::Leaf(value): {
 				value = value + 1;
 			},
-			Tree.Node(tree_node): {
+			Tree::Node(tree_node): {
 				tree_node.left?.increment_leaves();
 				tree_node.right?.increment_leaves();
 			}
@@ -30,12 +30,12 @@ enum Tree {
 }
 
 fn main(): void {
-	let tree: Tree = Tree.Node(
+	let tree: Tree = Tree::Node(
 		TreeNode {
-			left: Tree.Leaf(1),
-			right: Tree.Node(
+			left: Tree::Leaf(1),
+			right: Tree::Node(
 				TreeNode {
-					left: Tree.Leaf(2),
+					left: Tree::Leaf(2),
 					right: null,
 				}
 			),

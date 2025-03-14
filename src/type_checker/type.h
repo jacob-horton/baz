@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../ast/enum_variant.h"
 #include "../scanner/token.h"
+
 #include <memory>
 #include <optional>
 #include <tuple>
@@ -14,6 +16,7 @@ enum TypeClass {
     STR,
     VOID,
     STRUCT_,
+    ENUM_,
     FUNC,
 };
 
@@ -78,12 +81,25 @@ struct FunctionType : public Type {
 
 struct StructType : public Type {
     Token name;
+    // TODO: just store identifiers rather than types?
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
 
     StructType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::STRUCT_), name(name), props(props), methods(methods) {}
 
     std::optional<std::shared_ptr<Type>> get_member_type(std::string name);
+
+    std::string to_string() override;
+};
+
+struct EnumType : public Type {
+    Token name;
+    std::vector<EnumVariant> variants;
+    std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
+
+    EnumType(Token name, std::vector<EnumVariant> variants, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::ENUM_), name(name), variants(variants), methods(methods) {}
+
+    std::optional<std::shared_ptr<Type>> get_method_type(std::string name);
 
     std::string to_string() override;
 };

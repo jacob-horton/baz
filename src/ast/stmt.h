@@ -36,6 +36,16 @@ struct FunDeclStmt : public Stmt {
     void accept(StmtVisitor &visitor) override;
 };
 
+// TODO: all decl stmts to have type set by resolver
+struct EnumMethodDeclStmt : public Stmt {
+    Token enum_name;
+    std::unique_ptr<FunDeclStmt> fun_definition;
+
+    EnumMethodDeclStmt(std::unique_ptr<FunDeclStmt> fun_definition, Token enum_name);
+
+    void accept(StmtVisitor &visitor) override;
+};
+
 struct StructDeclStmt : public Stmt {
     Token name;
     std::vector<TypedVar> properties;
@@ -49,9 +59,9 @@ struct StructDeclStmt : public Stmt {
 struct EnumDeclStmt : public Stmt {
     Token name;
     std::vector<EnumVariant> variants;
-    std::vector<std::unique_ptr<FunDeclStmt>> methods;
+    std::vector<std::unique_ptr<EnumMethodDeclStmt>> methods;
 
-    EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<FunDeclStmt>> methods);
+    EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<EnumMethodDeclStmt>> methods);
 
     void accept(StmtVisitor &visitor) override;
 };

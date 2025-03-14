@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <memory>
 #include <ostream>
 
 std::string baz_to_cpp_type(Token type) {
@@ -15,7 +16,8 @@ std::string baz_to_cpp_type(Token type) {
 CppGenerator::CppGenerator(std::ostream &output) : output(output) {}
 
 void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
-    output << "#include <iostream>"
+    output << "#include <iostream>" << std::endl
+           << "#include <variant>"
            << std::endl
            << std::endl;
 
@@ -91,17 +93,45 @@ void CppGenerator::visit_unary_expr(UnaryExpr *expr) {
 }
 
 void CppGenerator::visit_get_expr(GetExpr *expr) {
-    // TODO: enums
     this->output << "(";
     expr->value->accept(*this);
     this->output << "->" << expr->name.lexeme << ")";
 }
 
+void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
+    if (VarExpr *e = dynamic_cast<VarExpr *>(expr->enum_namespace.get())) {
+        this->output << "new " << e->name.lexeme << "(Baz_" << e->name.lexeme << expr->name.lexeme << "{";
+
+        if (expr->payload.has_value())
+            expr->payload.value()->accept(*this);
+
+        this->output << "})";
+    } else {
+        std::cerr << "[BUG] trying to initialise variant of non-enum." << std::endl;
+        exit(3);
+    }
+}
+
 void CppGenerator::visit_call_expr(CallExpr *expr) {
-    // TODO: enum constructor
     this->output << "(";
-    expr->callee->accept(*this);
-    this->output << "(";
+
+    // If we are doing x.y()
+    if (auto *enum_variant = dynamic_cast<GetExpr *>(expr->callee.get())) {
+        // And x is an enum type
+        if (auto t = std::dynamic_pointer_cast<EnumType>(enum_variant->value->type)) {
+            // We calling a method on the enum - need to call `Baz_EnumName_methodName(enum_variable, other, args, ...)`
+            this->output << "Baz_" << t->name.lexeme << "_" << enum_variant->name.lexeme << "(";
+            enum_variant->value->accept(*this);
+
+            for (auto &arg : expr->args) {
+                this->output << ", ";
+                arg->accept(*this);
+            }
+
+            this->output << "))";
+            return;
+        }
+    }
 
     bool first = true;
     for (auto &arg : expr->args) {
@@ -158,6 +188,25 @@ void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
     this->output << "}" << std::endl;
 }
 
+void CppGenerator::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
+    auto &stmt = enum_stmt->fun_definition;
+    std::string return_type = stmt->return_type.lexeme;
+
+    this->output << return_type << " Baz_" << enum_stmt->enum_name.lexeme << "_" << stmt->name.lexeme << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
+
+    for (auto &param : stmt->params) {
+        this->output << ", " << baz_to_cpp_type(param.type) << " " << param.name.lexeme;
+    }
+
+    this->output << ") {" << std::endl;
+
+    for (auto &line : stmt->body) {
+        line->accept(*this);
+    }
+
+    this->output << "}" << std::endl;
+}
+
 void CppGenerator::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     this->output << "struct " << stmt->name.lexeme << " {" << std::endl;
 
@@ -174,8 +223,29 @@ void CppGenerator::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     this->output << "};" << std::endl;
 }
 
-// TODO: enums
-void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {}
+void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
+    for (auto &variant : stmt->variants) {
+        this->output << "struct Baz_" << stmt->name.lexeme << variant.name.lexeme << "{ ";
+        if (variant.payload_type.has_value())
+            this->output << baz_to_cpp_type(variant.payload_type.value()) << " value; ";
+
+        this->output << "};" << std::endl;
+    }
+
+    this->output << "using " << stmt->name.lexeme << " = std::variant<";
+    for (int i = 0; i < stmt->variants.size(); i++) {
+        this->output << "Baz_" << stmt->name.lexeme << stmt->variants[i].name.lexeme;
+        if (i < stmt->variants.size() - 1)
+            this->output << ",";
+    }
+    this->output << ">;" << std::endl;
+
+    // TODO:
+    for (auto &method : stmt->methods) {
+        this->output << std::endl;
+        method->accept(*this);
+    }
+}
 
 void CppGenerator::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     // Pointer if user defined type

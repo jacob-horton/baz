@@ -3,6 +3,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <vector>
 
@@ -77,7 +78,7 @@ std::unique_ptr<IfStmt> Parser::if_statement() {
     auto true_block = this->block();
 
     // TODO: else if
-    std::optional<std::vector<std::unique_ptr<Stmt>>> false_block = {};
+    std::optional<std::vector<std::unique_ptr<Stmt>>> false_block = std::nullopt;
     if (this->match(TokenType::ELSE)) {
         this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before else branch.");
         false_block = this->block();
@@ -235,11 +236,13 @@ std::unique_ptr<EnumDeclStmt> Parser::enum_decl() {
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
 
     std::vector<EnumVariant> variants;
-    std::vector<std::unique_ptr<FunDeclStmt>> methods;
+    std::vector<std::unique_ptr<EnumMethodDeclStmt>> methods;
 
     while (!this->check(TokenType::R_CURLY_BRACKET)) {
         if (this->match(TokenType::FN)) {
-            methods.push_back(this->function_decl(FunType::METHOD));
+            auto fun = this->function_decl(FunType::METHOD);
+
+            methods.push_back(std::make_unique<EnumMethodDeclStmt>(std::move(fun), name));
         } else {
             variants.push_back(this->enum_variant());
             this->consume(TokenType::SEMI_COLON, "Expected ';' after property.");
@@ -254,7 +257,7 @@ std::unique_ptr<EnumDeclStmt> Parser::enum_decl() {
 EnumVariant Parser::enum_variant() {
     Token name = this->consume(TokenType::IDENTIFIER, "Expected name for enum variant.");
 
-    std::optional<Token> type = {};
+    std::optional<Token> type = std::nullopt;
     bool is_optional = false;
     if (this->match(TokenType::L_BRACKET)) {
         type = this->type();
@@ -411,12 +414,37 @@ std::unique_ptr<Expr> Parser::call() {
     while (true) {
         if (this->match(TokenType::L_BRACKET)) {
             expr = this->finish_call(std::move(expr));
+        } else if (this->match(TokenType::COLON_COLON)) {
+            // Enum variant
+            Token name = this->consume(TokenType::IDENTIFIER, "Expected variant name after '.'.");
+
+            if (auto e = std::unique_ptr<VarExpr>(dynamic_cast<VarExpr *>(expr.release()))) {
+                std::optional<std::unique_ptr<Expr>> payload = std::nullopt;
+
+                // If payload
+                if (this->match(TokenType::L_BRACKET)) {
+                    auto inner = this->expression();
+                    this->consume(TokenType::R_BRACKET, "Expected ')' after enum payload.");
+                    payload = std::move(inner);
+                }
+
+                expr = std::make_unique<EnumInitExpr>(
+                    name,
+                    std::move(e),
+                    std::move(payload));
+
+            } else {
+                std::cerr << "[BUG] tried to use variant on non-enum." << std::endl;
+                exit(3);
+            }
         } else if (this->match(TokenType::DOT)) {
+            // Property access
             Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
             expr = std::make_unique<GetExpr>(std::move(expr), name);
             // TODO: do we need to handle this better - if we have `call()?;` what will happen
             // TODO: remove duplication
         } else if (this->match(TokenType::QUESTION) && this->match(TokenType::DOT)) {
+            // Optional property access
             Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
             expr = std::make_unique<GetExpr>(std::move(expr), name);
         } else {

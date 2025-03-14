@@ -7,13 +7,19 @@ void FunDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visit_fun_decl_stmt(this);
 }
 
+EnumMethodDeclStmt::EnumMethodDeclStmt(std::unique_ptr<FunDeclStmt> fun_definition, Token enum_name)
+    : fun_definition(std::move(fun_definition)), enum_name(enum_name) {}
+void EnumMethodDeclStmt::accept(StmtVisitor &visitor) {
+    visitor.visit_enum_method_decl_stmt(this);
+}
+
 StructDeclStmt::StructDeclStmt(Token name, std::vector<TypedVar> properties, std::vector<std::unique_ptr<FunDeclStmt>> methods)
     : name(name), properties(properties), methods(std::move(methods)) {}
 void StructDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visit_struct_decl_stmt(this);
 }
 
-EnumDeclStmt::EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<FunDeclStmt>> methods)
+EnumDeclStmt::EnumDeclStmt(Token name, std::vector<EnumVariant> variants, std::vector<std::unique_ptr<EnumMethodDeclStmt>> methods)
     : name(name), variants(variants), methods(std::move(methods)) {}
 void EnumDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visit_enum_decl_stmt(this);

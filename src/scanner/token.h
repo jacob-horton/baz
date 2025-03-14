@@ -57,6 +57,7 @@ enum TokenType {
     SLASH,
 
     QUESTION_QUESTION,
+    COLON_COLON,
 
     RETURN,
     PRINT,

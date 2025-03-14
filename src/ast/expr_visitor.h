@@ -10,6 +10,7 @@ class ExprVisitor {
     virtual void visit_logical_binary_expr(LogicalBinaryExpr *expr) = 0;
     virtual void visit_unary_expr(UnaryExpr *expr) = 0;
     virtual void visit_get_expr(GetExpr *expr) = 0;
+    virtual void visit_enum_init_expr(EnumInitExpr *expr) = 0;
     virtual void visit_call_expr(CallExpr *expr) = 0;
     virtual void visit_grouping_expr(GroupingExpr *expr) = 0;
     virtual void visit_literal_expr(LiteralExpr *expr) = 0;

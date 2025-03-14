@@ -20,11 +20,13 @@ class CppGenerator : public ExprVisitor, public StmtVisitor {
     void visit_logical_binary_expr(LogicalBinaryExpr *expr);
     void visit_unary_expr(UnaryExpr *expr);
     void visit_get_expr(GetExpr *expr);
+    void visit_enum_init_expr(EnumInitExpr *expr);
     void visit_call_expr(CallExpr *expr);
     void visit_grouping_expr(GroupingExpr *expr);
     void visit_literal_expr(LiteralExpr *expr);
 
     void visit_fun_decl_stmt(FunDeclStmt *stmt);
+    void visit_enum_method_decl_stmt(EnumMethodDeclStmt *stmt);
     void visit_struct_decl_stmt(StructDeclStmt *stmt);
     void visit_enum_decl_stmt(EnumDeclStmt *stmt);
     void visit_variable_decl_stmt(VariableDeclStmt *stmt);

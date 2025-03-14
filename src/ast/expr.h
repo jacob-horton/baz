@@ -76,6 +76,16 @@ struct GetExpr : public Expr {
     void accept(ExprVisitor &visitor) override;
 };
 
+struct EnumInitExpr : public Expr {
+    Token name;
+    std::unique_ptr<VarExpr> enum_namespace;
+    std::optional<std::unique_ptr<Expr>> payload;
+
+    EnumInitExpr(Token name, std::unique_ptr<VarExpr> enum_namespace, std::optional<std::unique_ptr<Expr>> payload);
+
+    void accept(ExprVisitor &visitor) override;
+};
+
 struct CallExpr : public Expr {
     std::unique_ptr<Expr> callee;
     std::vector<std::unique_ptr<Expr>> args;

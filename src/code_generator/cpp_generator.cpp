@@ -117,14 +117,12 @@ void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
 }
 
 void CppGenerator::visit_call_expr(CallExpr *expr) {
-    this->output << "(";
-
     // If we are doing x.y()
     if (auto *enum_variant = dynamic_cast<GetExpr *>(expr->callee.get())) {
         // And x is an enum type
         if (auto t = std::dynamic_pointer_cast<EnumType>(enum_variant->value->type)) {
             // We calling a method on the enum - need to call `Baz_EnumName_methodName(enum_variable, other, args, ...)`
-            this->output << "Baz_" << t->name.lexeme << "_" << enum_variant->name.lexeme << "(";
+            this->output << "(Baz_" << t->name.lexeme << "_" << enum_variant->name.lexeme << "(";
             enum_variant->value->accept(*this);
 
             for (auto &arg : expr->args) {
@@ -136,6 +134,10 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
             return;
         }
     }
+
+    this->output << "(";
+    expr->callee->accept(*this);
+    this->output << "(";
 
     bool first = true;
     for (auto &arg : expr->args) {

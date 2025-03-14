@@ -202,7 +202,6 @@ void TypeChecker::visit_fun_decl_stmt(FunDeclStmt *fun) {
 }
 
 void TypeChecker::visit_enum_method_decl_stmt(EnumMethodDeclStmt *fun) {
-    // TODO: any extra stuff for enum methods
     fun->fun_definition->accept(*this);
 }
 

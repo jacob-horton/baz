@@ -303,8 +303,33 @@ void CppGenerator::visit_if_stmt(IfStmt *stmt) {
     }
 }
 
-// TODO: match statements
-void CppGenerator::visit_match_stmt(MatchStmt *stmt) {}
+void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
+    // TODO: make sure this is a unique name
+    std::string target_var("baz_enum_target");
+    this->output << "auto " << target_var << " = *";
+    stmt->target->accept(*this);
+    this->output << ";" << std::endl;
+
+    bool first = true;
+    for (auto &branch : stmt->branches) {
+        auto pattern_enum = "Baz_" + branch.pattern.enum_type.lexeme + branch.pattern.enum_variant.lexeme;
+
+        auto if_keyword = first ? "if" : "else if";
+        this->output << if_keyword << "(std::holds_alternative<" << pattern_enum << ">(" << target_var << ")) {" << std::endl;
+
+        if (branch.pattern.bound_variable.has_value()) {
+            this->output << "auto " << branch.pattern.bound_variable.value()->name.lexeme << " = std::get<" << pattern_enum << ">(" << target_var << ").value;" << std::endl;
+        }
+
+        for (auto &stmt : branch.body) {
+            stmt->accept(*this);
+            this->output << std::endl;
+        }
+
+        this->output << "}";
+        first = false;
+    }
+}
 
 void CppGenerator::visit_while_stmt(WhileStmt *stmt) {
     this->output << "while (";

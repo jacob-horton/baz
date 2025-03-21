@@ -102,11 +102,21 @@ struct IfStmt : public Stmt {
     void accept(StmtVisitor &visitor) override;
 };
 
+struct MatchPattern {
+    Token enum_type;
+    Token enum_variant;
+
+    // NOTE: if the enum variant has a payload, this is required
+    std::optional<std::unique_ptr<VarExpr>> bound_variable;
+
+    MatchPattern(Token enum_type, Token enum_variant, std::optional<std::unique_ptr<VarExpr>> bound_variable);
+};
+
 struct MatchBranch {
-    std::unique_ptr<Expr> pattern;
+    MatchPattern pattern;
     std::vector<std::unique_ptr<Stmt>> body;
 
-    MatchBranch(std::unique_ptr<Expr> pattern, std::vector<std::unique_ptr<Stmt>> body);
+    MatchBranch(MatchPattern pattern, std::vector<std::unique_ptr<Stmt>> body);
 };
 
 struct MatchStmt : public Stmt {

@@ -47,9 +47,11 @@ class Parser {
     std::unique_ptr<Expr> finish_call(std::unique_ptr<Expr> expr);
     std::unique_ptr<Expr> finish_struct_init(Token name);
 
+    MatchPattern match_pattern();
+
     std::vector<std::unique_ptr<Stmt>> block();
     TypedVar typed_identifier();
-    EnumVariant enum_variant();
+    EnumVariant enum_variant_decl();
     Token type();
 
     Token advance();

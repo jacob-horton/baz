@@ -28,7 +28,6 @@ enum TokenType {
     ENUM,
     INTERFACE,
 
-    THIS,
     TYPE,
 
     INT_VAL,

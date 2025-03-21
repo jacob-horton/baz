@@ -135,6 +135,10 @@ void Resolver::visit_var_expr(VarExpr *expr) {
 }
 
 void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
+    for (auto &prop : expr->properties) {
+        std::get<1>(prop)->accept(*this);
+    }
+
     if (auto t = std::dynamic_pointer_cast<StructType>(this->type_env[expr->name.lexeme])) {
         expr->type = t;
         return;

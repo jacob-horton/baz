@@ -19,4 +19,14 @@ fn main(): void {
 	println(smth);
 
 	let tree2: Optional = tree.get_this();
+
+	match (tree) {
+		Optional::Some(bound): {
+			print("Some: ");
+			println(bound);
+		},
+		Optional::None: {
+			println("None");
+		}
+	}
 }

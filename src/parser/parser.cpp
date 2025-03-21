@@ -95,7 +95,7 @@ std::unique_ptr<MatchStmt> Parser::match_statement() {
 
     std::vector<MatchBranch> branches;
     do {
-        auto pattern = this->call();
+        auto pattern = this->match_pattern();
         this->consume(TokenType::COLON, "Expected ':' after match pattern.");
 
         this->consume(TokenType::L_CURLY_BRACKET, "Expected block after match pattern.");
@@ -106,6 +106,35 @@ std::unique_ptr<MatchStmt> Parser::match_statement() {
 
     this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after match branches");
     return std::make_unique<MatchStmt>(std::move(target), std::move(branches));
+}
+
+MatchPattern Parser::match_pattern() {
+    if (!this->match(TokenType::IDENTIFIER))
+        this->error(this->peek(), "Expected identifier.");
+
+    auto enum_type = this->previous();
+
+    if (!this->match(TokenType::COLON_COLON)) {
+        this->error(this->peek(), "Expected '::' after enum name.");
+    }
+
+    if (!this->match(TokenType::IDENTIFIER))
+        this->error(this->peek(), "Expected variant.");
+
+    auto enum_variant = this->previous();
+
+    std::optional<std::unique_ptr<VarExpr>> payload = std::nullopt;
+    if (this->match(TokenType::L_BRACKET)) {
+        if (!this->match(TokenType::IDENTIFIER)) {
+            this->error(this->peek(), "Expected variable to bind to.");
+        }
+
+        auto identifier = this->previous();
+        payload = std::make_unique<VarExpr>(identifier);
+        this->consume(TokenType::R_BRACKET, "Expected ')' after enum payload.");
+    }
+
+    return MatchPattern(enum_type, enum_variant, std::move(payload));
 }
 
 std::unique_ptr<ForStmt> Parser::for_statement() {
@@ -244,7 +273,7 @@ std::unique_ptr<EnumDeclStmt> Parser::enum_decl() {
 
             methods.push_back(std::make_unique<EnumMethodDeclStmt>(std::move(fun), name));
         } else {
-            variants.push_back(this->enum_variant());
+            variants.push_back(this->enum_variant_decl());
             this->consume(TokenType::SEMI_COLON, "Expected ';' after property.");
         }
     };
@@ -254,7 +283,7 @@ std::unique_ptr<EnumDeclStmt> Parser::enum_decl() {
     return std::make_unique<EnumDeclStmt>(name, variants, std::move(methods));
 }
 
-EnumVariant Parser::enum_variant() {
+EnumVariant Parser::enum_variant_decl() {
     Token name = this->consume(TokenType::IDENTIFIER, "Expected name for enum variant.");
 
     std::optional<Token> type = std::nullopt;
@@ -472,9 +501,9 @@ std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
 }
 
 std::unique_ptr<Expr> Parser::primary() {
-    if (this->match(TokenType::IDENTIFIER) || this->match(TokenType::THIS)) {
+    if (this->match(TokenType::IDENTIFIER)) {
         auto identifier = this->previous();
-        if (this->match(TokenType::L_CURLY_BRACKET))
+        if (identifier.lexeme != "this" && this->match(TokenType::L_CURLY_BRACKET))
             return this->finish_struct_init(identifier);
 
         return std::make_unique<VarExpr>(identifier);

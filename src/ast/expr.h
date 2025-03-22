@@ -68,7 +68,7 @@ struct UnaryExpr : public Expr {
 };
 
 struct GetExpr : public Expr {
-    std::unique_ptr<Expr> value;
+    std::unique_ptr<Expr> object;
     Token name;
 
     GetExpr(std::unique_ptr<Expr> value, Token name);
@@ -77,7 +77,7 @@ struct GetExpr : public Expr {
 };
 
 struct EnumInitExpr : public Expr {
-    Token name;
+    Token variant;
     std::unique_ptr<VarExpr> enum_namespace;
     std::optional<std::unique_ptr<Expr>> payload;
 

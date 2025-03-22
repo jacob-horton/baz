@@ -14,6 +14,14 @@ std::string baz_to_cpp_type(Token type) {
     return type.lexeme + pointer;
 }
 
+std::string enum_variant_name(std::string enum_name, std::string variant_name) {
+    return "Baz_" + enum_name + variant_name;
+}
+
+std::string enum_method_name(std::string enum_name, std::string method_name) {
+    return "Baz_" + enum_name + "_" + method_name;
+}
+
 CppGenerator::CppGenerator(std::ostream &output, std::map<std::string, std::shared_ptr<Type>> type_env) : output(output), this_keyword("this"), type_env(type_env) {}
 
 void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
@@ -27,7 +35,7 @@ void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
             this->output << "struct " << std::get<0>(type) << ";" << std::endl;
         } else if (auto t = std::dynamic_pointer_cast<EnumType>(std::get<1>(type))) {
             for (auto variant : t->variants) {
-                this->output << "struct Baz_" << std::get<0>(type) << variant.name.lexeme << ";" << std::endl;
+                this->output << "struct " << enum_variant_name(std::get<0>(type), variant.name.lexeme) << ";" << std::endl;
             }
         }
     }
@@ -37,7 +45,7 @@ void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
         if (auto t = std::dynamic_pointer_cast<EnumType>(std::get<1>(type))) {
             this->output << "using " << t->name.lexeme << " = std::variant<";
             for (int i = 0; i < t->variants.size(); i++) {
-                this->output << "Baz_" << t->name.lexeme << t->variants[i].name.lexeme;
+                this->output << enum_variant_name(t->name.lexeme, t->variants[i].name.lexeme);
                 if (i < t->variants.size() - 1)
                     this->output << ",";
             }
@@ -124,13 +132,13 @@ void CppGenerator::visit_unary_expr(UnaryExpr *expr) {
 
 void CppGenerator::visit_get_expr(GetExpr *expr) {
     this->output << "(";
-    expr->value->accept(*this);
+    expr->object->accept(*this);
     this->output << "->" << expr->name.lexeme << ")";
 }
 
 void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
-    if (VarExpr *e = dynamic_cast<VarExpr *>(expr->enum_namespace.get())) {
-        this->output << "(new " << e->name.lexeme << "(Baz_" << e->name.lexeme << expr->name.lexeme << "{";
+    if (VarExpr *enum_name = dynamic_cast<VarExpr *>(expr->enum_namespace.get())) {
+        this->output << "(new " << enum_name->name.lexeme << "(" << enum_variant_name(enum_name->name.lexeme, expr->variant.lexeme) << "{";
 
         if (expr->payload.has_value())
             expr->payload.value()->accept(*this);
@@ -144,12 +152,11 @@ void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
 
 void CppGenerator::visit_call_expr(CallExpr *expr) {
     // If we are doing x.y()
-    if (auto *enum_variant = dynamic_cast<GetExpr *>(expr->callee.get())) {
+    if (auto *enum_method = dynamic_cast<GetExpr *>(expr->callee.get())) {
         // And x is an enum type
-        if (auto t = std::dynamic_pointer_cast<EnumType>(enum_variant->value->type)) {
-            // We calling a method on the enum - need to call `Baz_EnumName_methodName(enum_variable, other, args, ...)`
-            this->output << "(Baz_" << t->name.lexeme << "_" << enum_variant->name.lexeme << "(";
-            enum_variant->value->accept(*this);
+        if (auto t = std::dynamic_pointer_cast<EnumType>(enum_method->object->type)) {
+            this->output << "(" << enum_method_name(t->name.lexeme, enum_method->name.lexeme) << "(";
+            enum_method->object->accept(*this);
 
             for (auto &arg : expr->args) {
                 this->output << ", ";
@@ -222,7 +229,7 @@ void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
 
 void CppGenerator::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     auto &stmt = enum_stmt->fun_definition;
-    this->output << baz_to_cpp_type(stmt->return_type) << " Baz_" << enum_stmt->enum_name.lexeme << "_" << stmt->name.lexeme << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
+    this->output << baz_to_cpp_type(stmt->return_type) << " " << enum_method_name(enum_stmt->enum_name.lexeme, stmt->name.lexeme) << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
 
     for (auto &param : stmt->params) {
         this->output << ", " << baz_to_cpp_type(param.type) << " " << param.name.lexeme;
@@ -261,7 +268,7 @@ void CppGenerator::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 
 void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
     for (auto &variant : stmt->variants) {
-        this->output << "struct Baz_" << stmt->name.lexeme << variant.name.lexeme << "{ ";
+        this->output << "struct " << enum_variant_name(stmt->name.lexeme, variant.name.lexeme) << "{ ";
         if (variant.payload_type.has_value())
             this->output << baz_to_cpp_type(variant.payload_type.value()) << " value; ";
 
@@ -326,13 +333,13 @@ void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
 
     bool first = true;
     for (auto &branch : stmt->branches) {
-        auto pattern_enum = "Baz_" + branch.pattern.enum_type.lexeme + branch.pattern.enum_variant.lexeme;
+        auto pattern_variant = enum_variant_name(branch.pattern.enum_type.lexeme, branch.pattern.enum_variant.lexeme);
 
         auto if_keyword = first ? "if" : "else if";
-        this->output << if_keyword << "(std::holds_alternative<" << pattern_enum << ">(" << target_var << ")) {" << std::endl;
+        this->output << if_keyword << "(std::holds_alternative<" << pattern_variant << ">(" << target_var << ")) {" << std::endl;
 
         if (branch.pattern.bound_variable.has_value()) {
-            this->output << "auto " << branch.pattern.bound_variable.value()->name.lexeme << " = std::get<" << pattern_enum << ">(" << target_var << ").value;" << std::endl;
+            this->output << "auto " << branch.pattern.bound_variable.value()->name.lexeme << " = std::get<" << pattern_variant << ">(" << target_var << ").value;" << std::endl;
         }
 
         for (auto &stmt : branch.body) {

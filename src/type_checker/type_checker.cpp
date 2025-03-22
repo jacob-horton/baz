@@ -142,7 +142,7 @@ void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
 }
 
 void TypeChecker::visit_get_expr(GetExpr *expr) {
-    expr->value->accept(*this);
+    expr->object->accept(*this);
 }
 
 void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
@@ -153,11 +153,11 @@ void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
         // Cast to enum type (should always be enum type)
         if (auto t = std::dynamic_pointer_cast<EnumType>(expr->type)) {
             // Check type of payload for this variant
-            auto payload_type_symbol = t->get_variant_payload_type(expr->name.lexeme)->lexeme;
+            auto payload_type_symbol = t->get_variant_payload_type(expr->variant.lexeme)->lexeme;
             auto payload_type = this->type_env[payload_type_symbol];
 
             if (!this->result->can_coerce_to(payload_type)) {
-                this->error(expr->name, "Payload of enum cannot be coerced to a valid type.");
+                this->error(expr->variant, "Payload of enum cannot be coerced to a valid type.");
             }
         } else {
             std::cerr << "[BUG] Enum doesn't have enum type" << std::endl;

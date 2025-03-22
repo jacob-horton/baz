@@ -162,9 +162,9 @@ void Resolver::visit_unary_expr(UnaryExpr *expr) {
 }
 
 void Resolver::visit_get_expr(GetExpr *expr) {
-    this->resolve(expr->value.get());
+    this->resolve(expr->object.get());
 
-    if (auto t = std::dynamic_pointer_cast<StructType>(expr->value->type)) {
+    if (auto t = std::dynamic_pointer_cast<StructType>(expr->object->type)) {
         auto method_type = t->get_method_type(expr->name.lexeme);
         if (method_type.has_value()) {
             expr->type = method_type.value();
@@ -178,7 +178,7 @@ void Resolver::visit_get_expr(GetExpr *expr) {
         }
 
         this->error(expr->name, "Could not find member on struct.");
-    } else if (auto t = std::dynamic_pointer_cast<EnumType>(expr->value->type)) {
+    } else if (auto t = std::dynamic_pointer_cast<EnumType>(expr->object->type)) {
         auto type = t->get_method_type(expr->name.lexeme);
         if (type.has_value()) {
             expr->type = type.value();

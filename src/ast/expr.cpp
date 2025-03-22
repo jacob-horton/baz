@@ -13,7 +13,7 @@ void StructInitExpr::accept(ExprVisitor &visitor) {
     visitor.visit_struct_init_expr(this);
 }
 
-EnumInitExpr::EnumInitExpr(Token name, std::unique_ptr<VarExpr> enum_namespace, std::optional<std::unique_ptr<Expr>> payload) : name(name), enum_namespace(std::move(enum_namespace)), payload(std::move(payload)) {}
+EnumInitExpr::EnumInitExpr(Token variant, std::unique_ptr<VarExpr> enum_namespace, std::optional<std::unique_ptr<Expr>> payload) : variant(variant), enum_namespace(std::move(enum_namespace)), payload(std::move(payload)) {}
 void EnumInitExpr::accept(ExprVisitor &visitor) {
     visitor.visit_enum_init_expr(this);
 }
@@ -35,7 +35,7 @@ void UnaryExpr::accept(ExprVisitor &visitor) {
     visitor.visit_unary_expr(this);
 }
 
-GetExpr::GetExpr(std::unique_ptr<Expr> value, Token name) : value(std::move(value)), name(name) {}
+GetExpr::GetExpr(std::unique_ptr<Expr> value, Token name) : object(std::move(value)), name(name) {}
 void GetExpr::accept(ExprVisitor &visitor) {
     visitor.visit_get_expr(this);
 }

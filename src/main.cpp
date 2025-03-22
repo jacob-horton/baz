@@ -20,7 +20,7 @@ std::string read_file(std::string path) {
 }
 
 int main(int argc, char *argv[]) {
-    auto source = read_file("./examples/enums.baz");
+    auto source = read_file("./examples/tree_traversal.baz");
     if (argc == 2) {
         auto arg = argv[1];
         if (strcmp(arg, "--help") == 0) {
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 
     // Generate C++
     std::ofstream file("output.cpp");
-    auto cpp_generator = CppGenerator(file);
+    auto cpp_generator = CppGenerator(file, type_env.type_env);
     cpp_generator.generate(stmts);
 
     std::cout << "Successfully outputted to './output.cpp'" << std::endl;

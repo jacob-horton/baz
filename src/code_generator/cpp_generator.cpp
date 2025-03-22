@@ -13,13 +13,36 @@ std::string baz_to_cpp_type(Token type) {
     return type.lexeme;
 }
 
-CppGenerator::CppGenerator(std::ostream &output) : output(output), this_keyword("this") {}
+CppGenerator::CppGenerator(std::ostream &output, std::map<std::string, std::shared_ptr<Type>> type_env) : output(output), this_keyword("this"), type_env(type_env) {}
 
 void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
-    output << "#include <iostream>" << std::endl
-           << "#include <variant>"
-           << std::endl
-           << std::endl;
+    this->output << "#include <iostream>" << std::endl
+                 << "#include <variant>" << std::endl
+                 << std::endl;
+
+    // Declare all struct names (including enum variants)
+    for (auto type : this->type_env) {
+        if (auto t = std::dynamic_pointer_cast<StructType>(std::get<1>(type))) {
+            this->output << "struct " << std::get<0>(type) << ";" << std::endl;
+        } else if (auto t = std::dynamic_pointer_cast<EnumType>(std::get<1>(type))) {
+            for (auto variant : t->variants) {
+                this->output << "struct Baz_" << std::get<0>(type) << variant.name.lexeme << ";" << std::endl;
+            }
+        }
+    }
+
+    // Declare all enums
+    for (auto type : this->type_env) {
+        if (auto t = std::dynamic_pointer_cast<EnumType>(std::get<1>(type))) {
+            this->output << "using " << t->name.lexeme << " = std::variant<";
+            for (int i = 0; i < t->variants.size(); i++) {
+                this->output << "Baz_" << t->name.lexeme << t->variants[i].name.lexeme;
+                if (i < t->variants.size() - 1)
+                    this->output << ",";
+            }
+            this->output << ">;" << std::endl;
+        }
+    }
 
     for (auto &stmt : stmts) {
         stmt->accept(*this);
@@ -243,15 +266,6 @@ void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
         this->output << "};" << std::endl;
     }
 
-    this->output << "using " << stmt->name.lexeme << " = std::variant<";
-    for (int i = 0; i < stmt->variants.size(); i++) {
-        this->output << "Baz_" << stmt->name.lexeme << stmt->variants[i].name.lexeme;
-        if (i < stmt->variants.size() - 1)
-            this->output << ",";
-    }
-    this->output << ">;" << std::endl;
-
-    // TODO:
     for (auto &method : stmt->methods) {
         this->output << std::endl;
         method->accept(*this);

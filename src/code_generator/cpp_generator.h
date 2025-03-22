@@ -9,9 +9,10 @@ class CppGenerator : public ExprVisitor, public StmtVisitor {
   private:
     std::ostream &output;
     std::string this_keyword;
+    std::map<std::string, std::shared_ptr<Type>> type_env;
 
   public:
-    CppGenerator(std::ostream &file);
+    CppGenerator(std::ostream &file, std::map<std::string, std::shared_ptr<Type>> type_env);
 
     void generate(std::vector<std::unique_ptr<Stmt>> &stmts);
 

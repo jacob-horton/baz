@@ -177,7 +177,7 @@ void TypeChecker::visit_call_expr(CallExpr *expr) {
         }
 
         for (int i = 0; i < expr->args.size(); i++) {
-            if (expr->args[i]->type != std::get<1>(t->params[i])) {
+            if (expr->args[i]->type != this->type_env[std::get<1>(t->params[i]).lexeme]) {
                 this->error(expr->bracket, "Invalid type passed to function.");
             }
         }
@@ -250,8 +250,8 @@ void TypeChecker::visit_if_stmt(IfStmt *stmt) {
 }
 
 void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
+    // std::cerr << "Unimplemented" << std::endl;
+    // exit(3);
 }
 
 void TypeChecker::visit_while_stmt(WhileStmt *stmt) {

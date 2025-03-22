@@ -10,7 +10,8 @@ std::string baz_to_cpp_type(Token type) {
         return "std::string";
     }
 
-    return type.lexeme;
+    auto pointer = type.t == TokenType::IDENTIFIER ? "*" : "";
+    return type.lexeme + pointer;
 }
 
 CppGenerator::CppGenerator(std::ostream &output, std::map<std::string, std::shared_ptr<Type>> type_env) : output(output), this_keyword("this"), type_env(type_env) {}
@@ -44,6 +45,8 @@ void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
         }
     }
 
+    this->output << std::endl;
+
     for (auto &stmt : stmts) {
         stmt->accept(*this);
         this->output << std::endl;
@@ -60,7 +63,7 @@ void CppGenerator::visit_var_expr(VarExpr *expr) {
 }
 
 void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
-    this->output << "new " << expr->name.lexeme << "{";
+    this->output << "(new " << expr->name.lexeme << "{";
 
     if (auto t = std::dynamic_pointer_cast<StructType>(expr->type)) {
         if (expr->properties.size() != t->props.size()) {
@@ -92,7 +95,7 @@ void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
         exit(3);
     }
 
-    this->output << "}";
+    this->output << "})";
 }
 
 void CppGenerator::visit_binary_expr(BinaryExpr *expr) {
@@ -127,12 +130,12 @@ void CppGenerator::visit_get_expr(GetExpr *expr) {
 
 void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
     if (VarExpr *e = dynamic_cast<VarExpr *>(expr->enum_namespace.get())) {
-        this->output << "new " << e->name.lexeme << "(Baz_" << e->name.lexeme << expr->name.lexeme << "{";
+        this->output << "(new " << e->name.lexeme << "(Baz_" << e->name.lexeme << expr->name.lexeme << "{";
 
         if (expr->payload.has_value())
             expr->payload.value()->accept(*this);
 
-        this->output << "})";
+        this->output << "}))";
     } else {
         std::cerr << "[BUG] trying to initialise variant of non-enum." << std::endl;
         exit(3);
@@ -219,8 +222,7 @@ void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
 
 void CppGenerator::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     auto &stmt = enum_stmt->fun_definition;
-    auto pointer = stmt->return_type.t == TokenType::IDENTIFIER ? "*" : "";
-    this->output << baz_to_cpp_type(stmt->return_type) << pointer << " Baz_" << enum_stmt->enum_name.lexeme << "_" << stmt->name.lexeme << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
+    this->output << baz_to_cpp_type(stmt->return_type) << " Baz_" << enum_stmt->enum_name.lexeme << "_" << stmt->name.lexeme << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
 
     for (auto &param : stmt->params) {
         this->output << ", " << baz_to_cpp_type(param.type) << " " << param.name.lexeme;
@@ -246,7 +248,7 @@ void CppGenerator::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 
     this->output << "public:" << std::endl;
     for (auto &prop : stmt->properties) {
-        this->output << prop.type.lexeme << " " << prop.name.lexeme << ";" << std::endl;
+        this->output << baz_to_cpp_type(prop.type) << " " << prop.name.lexeme << ";" << std::endl;
     }
 
     for (auto &method : stmt->methods) {
@@ -274,9 +276,7 @@ void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
 
 void CppGenerator::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     // Pointer if user defined type
-    auto pointer = stmt->name.type.t == TokenType::IDENTIFIER ? "*" : "";
-
-    this->output << baz_to_cpp_type(stmt->name.type) << pointer << " " << stmt->name.name.lexeme << " = ";
+    this->output << baz_to_cpp_type(stmt->name.type) << " " << stmt->name.name.lexeme << " = ";
     stmt->initialiser->accept(*this);
     this->output << ";" << std::endl;
 }
@@ -337,10 +337,9 @@ void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
 
         for (auto &stmt : branch.body) {
             stmt->accept(*this);
-            this->output << std::endl;
         }
 
-        this->output << "}";
+        this->output << "}" << std::endl;
         first = false;
     }
 }
@@ -396,7 +395,14 @@ void CppGenerator::visit_return_stmt(ReturnStmt *stmt) {
 }
 
 void CppGenerator::visit_assign_stmt(AssignStmt *stmt) {
-    this->output << stmt->name.lexeme << " = ";
+    if (stmt->name.lexeme == "this") {
+        // TODO: is this what we want
+        // If we're reassigning "this", need to dereference
+        this->output << "*" << this->this_keyword << " = *";
+    } else {
+        this->output << stmt->name.lexeme << " = ";
+    }
+
     stmt->value->accept(*this);
 
     if (stmt->semicolon)

@@ -165,19 +165,27 @@ void Resolver::visit_get_expr(GetExpr *expr) {
     this->resolve(expr->value.get());
 
     if (auto t = std::dynamic_pointer_cast<StructType>(expr->value->type)) {
-        auto type = t->get_member_type(expr->name.lexeme);
-        if (type.has_value()) {
-            expr->type = type.value();
-        } else {
-            this->error(expr->name, "Could not find property on struct.");
+        auto method_type = t->get_method_type(expr->name.lexeme);
+        if (method_type.has_value()) {
+            expr->type = method_type.value();
+            return;
         }
+
+        auto prop_type = t->get_prop_type(expr->name.lexeme);
+        if (prop_type.has_value()) {
+            expr->type = this->type_env[prop_type.value().lexeme];
+            return;
+        }
+
+        this->error(expr->name, "Could not find member on struct.");
     } else if (auto t = std::dynamic_pointer_cast<EnumType>(expr->value->type)) {
         auto type = t->get_method_type(expr->name.lexeme);
         if (type.has_value()) {
             expr->type = type.value();
-        } else {
-            this->error(expr->name, "Could not find property on enum.");
+            return;
         }
+
+        this->error(expr->name, "Could not find property on enum.");
     } else {
         this->error(expr->name, "Cannot get property on a variable that is neither a struct nor enum.");
     }
@@ -201,7 +209,7 @@ void Resolver::visit_call_expr(CallExpr *expr) {
     this->resolve(expr->callee.get());
 
     if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->type)) {
-        expr->type = t->return_type;
+        expr->type = this->type_env[t->return_type.lexeme];
     } else {
         this->error(expr->bracket, "Cannot call non-function.");
     }
@@ -235,17 +243,15 @@ void Resolver::visit_literal_expr(LiteralExpr *expr) {
 
 // Statements
 void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
-    auto return_type = this->type_env[stmt->return_type.lexeme];
-
     // TODO: move this to FunDeclStmt? To match with StructDeclStmt
-    std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
+    std::vector<std::tuple<Token, Token>> params;
     std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
-        return std::make_tuple(param.name, this->type_env[param.type.lexeme]);
+        return std::make_tuple(param.name, param.type);
     });
     auto func_type = std::make_shared<FunctionType>(
         stmt->name,
         params,
-        return_type);
+        stmt->return_type);
     this->declare(stmt->name.lexeme, func_type);
     this->define(stmt->name.lexeme);
 
@@ -254,17 +260,16 @@ void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
 
 void Resolver::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     auto &stmt = enum_stmt->fun_definition;
-    auto return_type = this->type_env[stmt->return_type.lexeme];
 
     // TODO: move this to FunDeclStmt? To match with StructDeclStmt
-    std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
+    std::vector<std::tuple<Token, Token>> params;
     std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
-        return std::make_tuple(param.name, this->type_env[param.type.lexeme]);
+        return std::make_tuple(param.name, param.type);
     });
     auto func_type = std::make_shared<FunctionType>(
         stmt->name,
         params,
-        return_type);
+        stmt->return_type);
     this->declare(stmt->name.lexeme, func_type);
     this->define(stmt->name.lexeme);
 
@@ -317,8 +322,42 @@ void Resolver::visit_if_stmt(IfStmt *stmt) {
         this->resolve(stmt->false_block.value());
 }
 
-// TODO:
-void Resolver::visit_match_stmt(MatchStmt *stmt) {}
+void Resolver::visit_match_stmt(MatchStmt *stmt) {
+    this->resolve(stmt->target.get());
+
+    auto enum_type = std::dynamic_pointer_cast<EnumType>(stmt->target->type);
+    if (!enum_type) {
+        // TODO: get token from parser
+        this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Trying to pattern match on non-enum.");
+    }
+
+    for (auto &branch : stmt->branches) {
+        if (branch.pattern.bound_variable.has_value()) {
+            auto &var = branch.pattern.bound_variable.value();
+            auto name = branch.pattern.enum_variant.lexeme;
+
+            // TODO: use hashmap or lookup function
+            auto variant = std::find_if(enum_type->variants.begin(), enum_type->variants.end(), [name](const auto &t) {
+                return t.name.lexeme == name;
+            });
+
+            if (variant == enum_type->variants.end()) {
+                // TODO: get token from parser
+                this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Could not find variant on enum.");
+            }
+
+            if (!variant->payload_type.has_value()) {
+                // TODO: get token from parser
+                this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Enum variant has no payload - cannot bind a variable.");
+            }
+
+            this->declare(var->name.lexeme, this->type_env[variant->payload_type.value().lexeme]);
+            this->define(var->name.lexeme);
+        }
+
+        this->resolve(branch.body);
+    }
+}
 
 void Resolver::visit_while_stmt(WhileStmt *stmt) {
     this->resolve(stmt->condition.get());

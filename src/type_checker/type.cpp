@@ -15,7 +15,19 @@ std::string StructType::to_string() { return this->name.lexeme; }
 std::string FunctionType::to_string() { return this->name.lexeme; }
 std::string EnumType::to_string() { return this->name.lexeme; }
 
-std::optional<std::shared_ptr<Type>> StructType::get_member_type(std::string name) {
+std::optional<std::shared_ptr<Type>> StructType::get_method_type(std::string name) {
+    // TODO: should these be a hashmap?
+    auto m = std::find_if(this->methods.begin(), this->methods.end(), [name](const auto &t) {
+        return std::get<0>(t).lexeme == name;
+    });
+
+    if (m != this->methods.end())
+        return std::get<1>(*m);
+
+    return {};
+}
+
+std::optional<Token> StructType::get_prop_type(std::string name) {
     // TODO: should these be a hashmap?
     auto p = std::find_if(this->props.begin(), this->props.end(), [name](const auto &t) {
         return std::get<0>(t).lexeme == name;
@@ -23,13 +35,6 @@ std::optional<std::shared_ptr<Type>> StructType::get_member_type(std::string nam
 
     if (p != this->props.end())
         return std::get<1>(*p);
-
-    auto m = std::find_if(this->methods.begin(), this->methods.end(), [name](const auto &t) {
-        return std::get<0>(t).lexeme == name;
-    });
-
-    if (m != this->methods.end())
-        return std::get<1>(*m);
 
     return {};
 }

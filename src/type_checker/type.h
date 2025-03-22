@@ -70,10 +70,10 @@ struct VoidType : public Type {
 // TODO: store this on the function?
 struct FunctionType : public Type {
     Token name;
-    std::vector<std::tuple<Token, std::shared_ptr<Type>>> params;
-    std::shared_ptr<Type> return_type;
+    std::vector<std::tuple<Token, Token>> params;
+    Token return_type;
 
-    FunctionType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> params, std::shared_ptr<Type> return_type) : Type(TypeClass::FUNC), name(name), params(params), return_type(return_type) {}
+    FunctionType(Token name, std::vector<std::tuple<Token, Token>> params, Token return_type) : Type(TypeClass::FUNC), name(name), params(params), return_type(return_type) {}
 
     std::string to_string() override;
 };
@@ -81,12 +81,13 @@ struct FunctionType : public Type {
 struct StructType : public Type {
     Token name;
     // TODO: just store identifiers rather than types?
-    std::vector<std::tuple<Token, std::shared_ptr<Type>>> props;
+    std::vector<std::tuple<Token, Token>> props;
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
 
-    StructType(Token name, std::vector<std::tuple<Token, std::shared_ptr<Type>>> props, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::STRUCT_), name(name), props(props), methods(methods) {}
+    StructType(Token name, std::vector<std::tuple<Token, Token>> props, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::STRUCT_), name(name), props(props), methods(methods) {}
 
-    std::optional<std::shared_ptr<Type>> get_member_type(std::string name);
+    std::optional<std::shared_ptr<Type>> get_method_type(std::string name);
+    std::optional<Token> get_prop_type(std::string name);
 
     std::string to_string() override;
 };

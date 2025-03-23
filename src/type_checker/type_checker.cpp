@@ -74,7 +74,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             expr->right->accept(*this);
             auto right_t = this->result;
 
-            if (left_t != right_t)
+            if (!right_t->can_coerce_to(left_t))
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             return;
@@ -94,11 +94,25 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             expr->right->accept(*this);
             auto right_t = this->result;
 
-            // TODO: For now only supporting comparing same type, but need to extend to support float < int for example
-            if (left_t != right_t)
+            if (!right_t->can_coerce_to(left_t))
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = this->type_env["bool"];
+            return;
+        }
+        case TokenType::QUESTION_QUESTION: {
+            // TODO: handle null types - make sure it narrows to non-nullable type
+            // Check left and right are the same type
+            expr->left->accept(*this);
+            auto left_t = this->result;
+
+            expr->right->accept(*this);
+            auto right_t = this->result;
+
+            if (!right_t->can_coerce_to(left_t))
+                this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
+
+            this->result = left_t;
             return;
         }
         default:

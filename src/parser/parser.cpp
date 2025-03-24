@@ -88,6 +88,8 @@ std::unique_ptr<IfStmt> Parser::if_statement() {
 
 std::unique_ptr<MatchStmt> Parser::match_statement() {
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'match'.");
+    auto bracket = this->previous();
+
     std::unique_ptr<Expr> target = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after match target.");
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before match body.");
@@ -104,7 +106,7 @@ std::unique_ptr<MatchStmt> Parser::match_statement() {
     } while (this->match(TokenType::COMMA) && !this->check(TokenType::R_CURLY_BRACKET));
 
     this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after match branches");
-    return std::make_unique<MatchStmt>(std::move(target), std::move(branches));
+    return std::make_unique<MatchStmt>(std::move(target), std::move(branches), bracket);
 }
 
 MatchPattern Parser::match_pattern() {
@@ -460,7 +462,6 @@ std::unique_ptr<Expr> Parser::call() {
                     name,
                     std::move(e),
                     std::move(payload));
-
             } else {
                 std::cerr << "[BUG] tried to use variant on non-enum." << std::endl;
                 exit(3);

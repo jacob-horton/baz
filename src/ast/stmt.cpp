@@ -51,8 +51,8 @@ MatchPattern::MatchPattern(Token enum_type, Token enum_variant, std::optional<st
 
 MatchBranch::MatchBranch(MatchPattern pattern, std::vector<std::unique_ptr<Stmt>> body) : pattern(std::move(pattern)), body(std::move(body)) {}
 
-MatchStmt::MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches)
-    : target(std::move(target)), branches(std::move(branches)) {}
+MatchStmt::MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches, Token bracket)
+    : target(std::move(target)), branches(std::move(branches)), bracket(bracket) {}
 void MatchStmt::accept(StmtVisitor &visitor) {
     visitor.visit_match_stmt(this);
 }

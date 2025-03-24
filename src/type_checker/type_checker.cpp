@@ -266,14 +266,12 @@ void TypeChecker::visit_if_stmt(IfStmt *stmt) {
 void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
     auto t = std::dynamic_pointer_cast<EnumType>(stmt->target->type);
     if (!t) {
-        // TODO: get token from parser
-        this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Cannot match on non-enum.");
+        this->error(stmt->bracket, "Cannot match on non-enum.");
     }
 
     // TODO: when supporting concrete value matching, we may have more patterns than variants. This will need rethinking
     if (stmt->branches.size() != t->variants.size()) {
-        // TODO: get token from parser
-        this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Not all variants covered in pattern matching.");
+        this->error(stmt->bracket, "Not all variants covered in pattern matching.");
     }
 
     for (auto &branch : stmt->branches) {

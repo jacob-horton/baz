@@ -327,8 +327,7 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
 
     auto enum_type = std::dynamic_pointer_cast<EnumType>(stmt->target->type);
     if (!enum_type) {
-        // TODO: get token from parser
-        this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Trying to pattern match on non-enum.");
+        this->error(stmt->bracket, "Trying to pattern match on non-enum.");
     }
 
     for (auto &branch : stmt->branches) {
@@ -338,8 +337,7 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
 
             auto pattern_type = std::dynamic_pointer_cast<EnumType>(this->type_env[branch.pattern.enum_type.lexeme]);
             if (!pattern_type) {
-                // TODO: get token from parser
-                this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Pattern must be an enum variant.");
+                this->error(branch.pattern.enum_type, "Pattern must be an enum variant.");
             }
 
             // TODO: use hashmap or lookup function
@@ -348,13 +346,11 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
             });
 
             if (variant == pattern_type->variants.end()) {
-                // TODO: get token from parser
-                this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Could not find variant on enum.");
+                this->error(branch.pattern.enum_variant, "Could not find variant on enum.");
             }
 
             if (!variant->payload_type.has_value()) {
-                // TODO: get token from parser
-                this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Enum variant has no payload - cannot bind a variable.");
+                this->error(branch.pattern.bound_variable.value()->name, "Enum variant has no payload - cannot bind a variable.");
             }
 
             this->declare(var->name.lexeme, this->type_env[variant->payload_type.value().lexeme]);

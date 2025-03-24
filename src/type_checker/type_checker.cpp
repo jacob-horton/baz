@@ -264,6 +264,56 @@ void TypeChecker::visit_if_stmt(IfStmt *stmt) {
 }
 
 void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
+    auto t = std::dynamic_pointer_cast<EnumType>(stmt->target->type);
+    if (!t) {
+        // TODO: get token from parser
+        this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Cannot match on non-enum.");
+    }
+
+    // TODO: when supporting concrete value matching, we may have more patterns than variants. This will need rethinking
+    if (stmt->branches.size() != t->variants.size()) {
+        // TODO: get token from parser
+        this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Not all variants covered in pattern matching.");
+    }
+
+    for (auto &branch : stmt->branches) {
+        if (branch.pattern.enum_type.lexeme != t->name.lexeme) {
+            this->error(branch.pattern.enum_type, "Match pattern must be for the same enum type.");
+        }
+
+        auto variant_name = branch.pattern.enum_variant.lexeme;
+        auto v = std::find_if(t->variants.begin(), t->variants.end(), [variant_name](const auto &v) {
+            return v.name.lexeme == variant_name;
+        });
+
+        if (v == t->variants.end()) {
+            this->error(branch.pattern.enum_type, "Could not find variant on enum type.");
+        }
+
+        if (v->payload_type.has_value()) {
+            if (!branch.pattern.bound_variable.has_value()) {
+                this->error(branch.pattern.enum_variant, "Enum variant expects payload.");
+            }
+
+            // TODO: when supporting concrete values, check the type is correct - make sure resolver sets the type
+            //
+            // auto payload_type = this->type_env[v->payload_type.value().lexeme];
+            // auto provided_type = branch.pattern.bound_variable.value()->type;
+            // if (!provided_type->can_coerce_to(payload_type)) {
+            //     this->error(branch.pattern.enum_type, "Payload type must be equal to or coercible to the type in the enum definition.");
+            // }
+        } else {
+            if (branch.pattern.bound_variable.has_value()) {
+                this->error(branch.pattern.enum_type, "No payload available for this enum variant.");
+            }
+        }
+
+        for (auto &line : branch.body) {
+            line->accept(*this);
+        }
+    }
+
+    // TODO: finish this
     // std::cerr << "Unimplemented" << std::endl;
     // exit(3);
 }

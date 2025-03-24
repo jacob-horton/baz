@@ -336,12 +336,18 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
             auto &var = branch.pattern.bound_variable.value();
             auto name = branch.pattern.enum_variant.lexeme;
 
+            auto pattern_type = std::dynamic_pointer_cast<EnumType>(this->type_env[branch.pattern.enum_type.lexeme]);
+            if (!pattern_type) {
+                // TODO: get token from parser
+                this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Pattern must be an enum variant.");
+            }
+
             // TODO: use hashmap or lookup function
-            auto variant = std::find_if(enum_type->variants.begin(), enum_type->variants.end(), [name](const auto &t) {
+            auto variant = std::find_if(pattern_type->variants.begin(), pattern_type->variants.end(), [name](const auto &t) {
                 return t.name.lexeme == name;
             });
 
-            if (variant == enum_type->variants.end()) {
+            if (variant == pattern_type->variants.end()) {
                 // TODO: get token from parser
                 this->error(Token{TokenType::L_BRACKET, "PLACEHOLDER", 1}, "Could not find variant on enum.");
             }

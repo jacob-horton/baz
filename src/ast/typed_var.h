@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../scanner/token.h"
-#include "../type_checker/type.h"
 
 #include <memory>
 

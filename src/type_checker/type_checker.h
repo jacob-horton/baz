@@ -15,7 +15,7 @@ enum TypeCheckerError {
 
 class TypeChecker : public ExprVisitor, public StmtVisitor {
   private:
-    std::shared_ptr<Type> result;
+    TypeInfo result;
     std::map<std::string, std::shared_ptr<Type>> type_env;
 
   public:

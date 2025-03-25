@@ -1,12 +1,19 @@
 #pragma once
 
 #include "../ast/enum_variant.h"
+#include "../ast/typed_var.h"
 #include "../scanner/token.h"
 
 #include <memory>
 #include <optional>
 #include <tuple>
 #include <vector>
+
+// TODO: please remove
+struct Temp {
+    Token type;
+    bool optional;
+};
 
 enum TypeClass {
     INT,
@@ -70,10 +77,11 @@ struct VoidType : public Type {
 // TODO: store this on the function?
 struct FunctionType : public Type {
     Token name;
-    std::vector<std::tuple<Token, Token>> params;
+    std::vector<TypedVar> params;
     Token return_type;
+    bool return_type_optional;
 
-    FunctionType(Token name, std::vector<std::tuple<Token, Token>> params, Token return_type) : Type(TypeClass::FUNC), name(name), params(params), return_type(return_type) {}
+    FunctionType(Token name, std::vector<TypedVar> params, Token return_type, bool return_type_optional) : Type(TypeClass::FUNC), name(name), params(params), return_type(return_type), return_type_optional(return_type_optional) {}
 
     std::string to_string() override;
 };
@@ -81,13 +89,13 @@ struct FunctionType : public Type {
 struct StructType : public Type {
     Token name;
     // TODO: just store identifiers rather than types?
-    std::vector<std::tuple<Token, Token>> props;
+    std::vector<TypedVar> props;
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
 
-    StructType(Token name, std::vector<std::tuple<Token, Token>> props, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::STRUCT_), name(name), props(props), methods(methods) {}
+    StructType(Token name, std::vector<TypedVar> props, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::STRUCT_), name(name), props(props), methods(methods) {}
 
     std::optional<std::shared_ptr<Type>> get_method_type(std::string name);
-    std::optional<Token> get_prop_type(std::string name);
+    std::optional<Temp> get_prop_type(std::string name);
 
     std::string to_string() override;
 };
@@ -100,7 +108,7 @@ struct EnumType : public Type {
     EnumType(Token name, std::vector<EnumVariant> variants, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::ENUM_), name(name), variants(variants), methods(methods) {}
 
     std::optional<std::shared_ptr<Type>> get_method_type(std::string name);
-    std::optional<Token> get_variant_payload_type(std::string name);
+    std::optional<Temp> get_variant_payload_type(std::string name);
 
     std::string to_string() override;
 };

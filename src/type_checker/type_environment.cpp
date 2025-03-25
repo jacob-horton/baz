@@ -79,28 +79,19 @@ void TypeEnvironment::visit_fun_decl_stmt(FunDeclStmt *stmt) {}
 void TypeEnvironment::visit_enum_method_decl_stmt(EnumMethodDeclStmt *stmt) {}
 
 void TypeEnvironment::visit_struct_decl_stmt(StructDeclStmt *stmt) {
-    std::vector<std::tuple<Token, Token>> props;
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
-    this->type_env[stmt->name.lexeme] = std::make_unique<StructType>(stmt->name, props, methods);
+    this->type_env[stmt->name.lexeme] = std::make_unique<StructType>(stmt->name, stmt->properties, methods);
 
     auto t = std::dynamic_pointer_cast<StructType>(this->type_env[stmt->name.lexeme]);
     if (!t)
         std::cerr << "[BUG] Struct does not have struct type";
 
-    for (auto &prop : stmt->properties) {
-        t->props.push_back(std::make_tuple(prop.name, prop.type));
-    }
-
     for (auto &method : stmt->methods) {
-        std::vector<std::tuple<Token, Token>> params;
-        std::transform(method->params.begin(), method->params.end(), std::back_inserter(params), [this](TypedVar param) {
-            return std::make_tuple(param.name, param.type);
-        });
-
         std::shared_ptr<Type> func_type = std::make_unique<FunctionType>(
             stmt->name,
-            params,
-            method->return_type);
+            method->params,
+            method->return_type,
+            method->return_type_optional);
 
         t->methods.push_back(std::make_tuple(method->name, func_type));
     }
@@ -115,15 +106,11 @@ void TypeEnvironment::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
         std::cerr << "[BUG] Enum does not have enum type";
 
     for (auto &method : stmt->methods) {
-        std::vector<std::tuple<Token, Token>> params;
-        std::transform(method->fun_definition->params.begin(), method->fun_definition->params.end(), std::back_inserter(params), [this](TypedVar param) {
-            return std::make_tuple(param.name, param.type);
-        });
-
         std::shared_ptr<Type> func_type = std::make_unique<FunctionType>(
             stmt->name,
-            params,
-            method->fun_definition->return_type);
+            method->fun_definition->params,
+            method->fun_definition->return_type,
+            method->fun_definition->return_type_optional);
 
         t->methods.push_back(std::make_tuple(method->fun_definition->name, func_type));
     }

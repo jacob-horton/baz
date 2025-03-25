@@ -3,6 +3,8 @@
 
 #include <memory>
 
+TypeInfo::TypeInfo(std::shared_ptr<Type> type, bool optional) : type(type), optional(optional) {}
+
 VarExpr::VarExpr(Token name) : name(name) {}
 void VarExpr::accept(ExprVisitor &visitor) {
     visitor.visit_var_expr(this);

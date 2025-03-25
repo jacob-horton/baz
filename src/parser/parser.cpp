@@ -110,17 +110,26 @@ std::unique_ptr<MatchStmt> Parser::match_statement() {
 }
 
 MatchPattern Parser::match_pattern() {
-    if (!this->match(TokenType::IDENTIFIER))
+    if (this->match(TokenType::NULL_VAL)) {
+        return NullPattern();
+    }
+
+    if (!this->match(TokenType::IDENTIFIER)) {
         this->error(this->peek(), "Expected identifier.");
+        exit(2);
+    }
 
     auto enum_type = this->previous();
 
     if (!this->match(TokenType::COLON_COLON)) {
         this->error(this->peek(), "Expected '::' after enum name.");
+        exit(2);
     }
 
-    if (!this->match(TokenType::IDENTIFIER))
+    if (!this->match(TokenType::IDENTIFIER)) {
         this->error(this->peek(), "Expected variant.");
+        exit(2);
+    }
 
     auto enum_variant = this->previous();
 
@@ -128,6 +137,7 @@ MatchPattern Parser::match_pattern() {
     if (this->match(TokenType::L_BRACKET)) {
         if (!this->match(TokenType::IDENTIFIER)) {
             this->error(this->peek(), "Expected variable to bind to.");
+            exit(2);
         }
 
         auto identifier = this->previous();
@@ -135,7 +145,7 @@ MatchPattern Parser::match_pattern() {
         this->consume(TokenType::R_BRACKET, "Expected ')' after enum payload.");
     }
 
-    return MatchPattern(enum_type, enum_variant, std::move(payload));
+    return EnumPattern(enum_type, enum_variant, std::move(payload));
 }
 
 std::unique_ptr<ForStmt> Parser::for_statement() {
@@ -316,16 +326,19 @@ std::unique_ptr<FunDeclStmt> Parser::function_decl(FunType fun_type) {
 
     this->consume(TokenType::COLON, "Expected return type.");
     Token return_type = this->type();
+    bool return_type_optional = this->match(TokenType::QUESTION);
 
     if (fun_type == FunType::FUNCTION && name.lexeme == "main") {
-        if (return_type.lexeme != "void")
+        if (return_type.lexeme != "void") {
             this->error(return_type, "Main function must have return type of 'void'.");
+            exit(2);
+        }
     }
 
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before function body.");
     std::vector<std::unique_ptr<Stmt>> body = this->block();
 
-    return std::make_unique<FunDeclStmt>(name, params, return_type, std::move(body), fun_type);
+    return std::make_unique<FunDeclStmt>(name, params, return_type, return_type_optional, std::move(body), fun_type);
 }
 
 std::unique_ptr<VariableDeclStmt> Parser::variable_decl() {

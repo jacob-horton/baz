@@ -4,14 +4,16 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
+#include <variant>
 
-std::string baz_to_cpp_type(Token type) {
+std::string baz_to_cpp_type(Token type, bool optional) {
     if (type.t == TokenType::TYPE && type.lexeme == "str") {
-        return "std::string";
+        return optional ? "std::optional<std::string>" : "std::string";
     }
 
     auto pointer = type.t == TokenType::IDENTIFIER ? "*" : "";
-    return type.lexeme + pointer;
+    auto full_non_optional_type = type.lexeme + pointer;
+    return optional ? "std::optional<" + full_non_optional_type + ">" : full_non_optional_type;
 }
 
 std::string enum_variant_name(std::string enum_name, std::string variant_name) {
@@ -75,7 +77,7 @@ void CppGenerator::visit_var_expr(VarExpr *expr) {
 void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
     this->output << "(new " << expr->name.lexeme << "{";
 
-    if (auto t = std::dynamic_pointer_cast<StructType>(expr->type)) {
+    if (auto t = std::dynamic_pointer_cast<StructType>(expr->type_info.type)) {
         if (expr->properties.size() != t->props.size()) {
             // TODO: handle error properly, and report which are missing/extra
             std::cerr << "[BUG] Incorrect number of properties." << std::endl;
@@ -84,7 +86,7 @@ void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
 
         // Loop through in order of declared type props
         for (auto &prop : t->props) {
-            auto name = std::get<0>(prop).lexeme;
+            auto name = prop.name.lexeme;
 
             // Find corresponding property
             // TODO: use hashmap or lookup function
@@ -151,7 +153,7 @@ void CppGenerator::visit_get_expr(GetExpr *expr) {
         expr->object->accept(*this);
         // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
         this->output << "; temp.has_value() ? temp.value()->" << expr->name.lexeme;
-        this->output << ": std::nullopt; }";
+        this->output << " : std::nullopt; }";
     } else {
         expr->object->accept(*this);
         this->output << "->" << expr->name.lexeme;
@@ -179,20 +181,17 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
     // If we are doing x.y()
     if (auto *enum_get_expr = dynamic_cast<GetExpr *>(expr->callee.get())) {
         // And x is an enum type
-        if (auto t = std::dynamic_pointer_cast<EnumType>(enum_get_expr->object->type)) {
+        if (auto t = std::dynamic_pointer_cast<EnumType>(enum_get_expr->object->type_info.type)) {
             this->output << "(";
 
             // TODO: reduce duplication between branches
             // TODO: reduce duplication with get_expr?
             if (enum_get_expr->optional) {
-                // TODO: assert that type of enum_get_expr.object is optional
-
                 // If calling a function that returns void, handle differently - no return value
-                if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(enum_get_expr->type)) {
+                if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(enum_get_expr->type_info.type)) {
                     if (fun_t->return_type.lexeme == "void") {
                         this->output << "{ auto temp = ";
                         enum_get_expr->object->accept(*this);
-                        // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
                         this->output << "; if (temp.has_value()) { ";
 
                         // Use namespaced enum method
@@ -210,8 +209,7 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
 
                 this->output << "{ auto temp = ";
                 enum_get_expr->object->accept(*this);
-                // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
-                this->output << "; temp.has_value() ? ";
+                this->output << "; temp.has_value() ? std::optional{";
 
                 // Use namespaced enum method
                 this->output << enum_method_name(t->name.lexeme, enum_get_expr->name.lexeme) << "(temp.value()";
@@ -221,11 +219,9 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
                     arg->accept(*this);
                 }
 
-                this->output << ") : std::nullopt; })";
+                this->output << ")} : std::nullopt; })";
                 return;
             }
-
-            // TODO: assert that type of enum_get_expr.object is NOT optional
 
             // Use namespaced enum method
             this->output << enum_method_name(t->name.lexeme, enum_get_expr->name.lexeme) << "(";
@@ -292,7 +288,7 @@ void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
         if (!first)
             this->output << ", ";
 
-        this->output << baz_to_cpp_type(param.type) << " " << param.name.lexeme;
+        this->output << baz_to_cpp_type(param.type, param.is_optional) << " " << param.name.lexeme;
         first = false;
     }
 
@@ -307,10 +303,10 @@ void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
 
 void CppGenerator::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     auto &stmt = enum_stmt->fun_definition;
-    this->output << baz_to_cpp_type(stmt->return_type) << " " << enum_method_name(enum_stmt->enum_name.lexeme, stmt->name.lexeme) << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
+    this->output << baz_to_cpp_type(stmt->return_type, stmt->return_type_optional) << " " << enum_method_name(enum_stmt->enum_name.lexeme, stmt->name.lexeme) << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
 
     for (auto &param : stmt->params) {
-        this->output << ", " << baz_to_cpp_type(param.type) << " " << param.name.lexeme;
+        this->output << ", " << baz_to_cpp_type(param.type, param.is_optional) << " " << param.name.lexeme;
     }
 
     this->output << ") {" << std::endl;
@@ -333,7 +329,7 @@ void CppGenerator::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 
     this->output << "public:" << std::endl;
     for (auto &prop : stmt->properties) {
-        this->output << baz_to_cpp_type(prop.type) << " " << prop.name.lexeme << ";" << std::endl;
+        this->output << baz_to_cpp_type(prop.type, prop.is_optional) << " " << prop.name.lexeme << ";" << std::endl;
     }
 
     for (auto &method : stmt->methods) {
@@ -348,7 +344,7 @@ void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
     for (auto &variant : stmt->variants) {
         this->output << "struct " << enum_variant_name(stmt->name.lexeme, variant.name.lexeme) << "{ ";
         if (variant.payload_type.has_value())
-            this->output << baz_to_cpp_type(variant.payload_type.value()) << " value; ";
+            this->output << baz_to_cpp_type(variant.payload_type.value(), variant.is_optional) << " value; ";
 
         this->output << "};" << std::endl;
     }
@@ -361,7 +357,7 @@ void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
 
 void CppGenerator::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     // Pointer if user defined type
-    this->output << baz_to_cpp_type(stmt->name.type) << " " << stmt->name.name.lexeme << " = ";
+    this->output << baz_to_cpp_type(stmt->name.type, stmt->name.is_optional) << " " << stmt->name.name.lexeme << " = ";
     stmt->initialiser->accept(*this);
     this->output << ";" << std::endl;
 }
@@ -405,19 +401,48 @@ void CppGenerator::visit_if_stmt(IfStmt *stmt) {
 void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
     // TODO: make sure this is a unique name
     std::string target_var("baz_enum_target");
-    this->output << "auto " << target_var << " = *";
+    this->output << "auto " << target_var << " = ";
     stmt->target->accept(*this);
     this->output << ";" << std::endl;
 
     bool first = true;
+    auto optional_getter = "";
+
+    // Do null branch first
+    if (stmt->target->type_info.optional) {
+        first = false;
+        this->output << "if (!" << target_var << ".has_value()) {" << std::endl;
+        optional_getter = ".value()";
+
+        auto branch = std::find_if(stmt->branches.begin(), stmt->branches.end(), [](const auto &b) {
+            return std::holds_alternative<NullPattern>(b.pattern);
+        });
+
+        if (branch == stmt->branches.end()) {
+            std::cerr << "[BUG] Optional target does not have null pattern branch." << std::endl;
+            exit(3);
+        }
+
+        for (auto &stmt : branch->body) {
+            stmt->accept(*this);
+        }
+
+        this->output << "}";
+    }
+
     for (auto &branch : stmt->branches) {
-        auto pattern_variant = enum_variant_name(branch.pattern.enum_type.lexeme, branch.pattern.enum_variant.lexeme);
-
         auto if_keyword = first ? "if" : "else if";
-        this->output << if_keyword << "(std::holds_alternative<" << pattern_variant << ">(" << target_var << ")) {" << std::endl;
+        if (std::holds_alternative<EnumPattern>(branch.pattern)) {
+            auto &enum_pattern = std::get<EnumPattern>(branch.pattern);
+            auto pattern_variant = enum_variant_name(enum_pattern.enum_type.lexeme, enum_pattern.enum_variant.lexeme);
+            this->output << if_keyword << "(std::holds_alternative<" << pattern_variant << ">(*" << target_var << optional_getter << ")) {" << std::endl;
 
-        if (branch.pattern.bound_variable.has_value()) {
-            this->output << "auto " << branch.pattern.bound_variable.value()->name.lexeme << " = std::get<" << pattern_variant << ">(" << target_var << ").value;" << std::endl;
+            if (enum_pattern.bound_variable.has_value()) {
+                this->output << "auto " << enum_pattern.bound_variable.value()->name.lexeme << " = std::get<" << pattern_variant << ">(*" << target_var << optional_getter << ").value;" << std::endl;
+            }
+        } else if (std::holds_alternative<NullPattern>(branch.pattern)) {
+            // Already handled
+            continue;
         }
 
         for (auto &stmt : branch.body) {

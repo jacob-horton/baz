@@ -10,13 +10,21 @@
 // Forward declaration - actual implementation will import the visitor
 class ExprVisitor;
 
+struct TypeInfo {
+    std::shared_ptr<Type> type;
+    bool optional;
+
+    TypeInfo(std::shared_ptr<Type> type, bool optional);
+};
+
 struct Expr {
     // TODO: make this optional, and then have get_type which will error and quit if not set
     // NOTE: this gets set during resolving
-    std::shared_ptr<Type> type;
+    TypeInfo type_info;
 
     virtual void accept(ExprVisitor &visitor) = 0;
 
+    Expr() : type_info(TypeInfo(nullptr, false)) {}
     virtual ~Expr() = default;
 };
 

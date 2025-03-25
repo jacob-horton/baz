@@ -59,7 +59,7 @@ std::optional<ResolvedVariable> Resolver::resolve_local(Token name) {
 void Resolver::resolve_function(FunDeclStmt *fun) {
     this->begin_scope();
     for (auto param : fun->params) {
-        this->declare(param.name.lexeme, this->type_env[param.type.lexeme]);
+        this->declare(param.name.lexeme, this->type_env[param.type.lexeme], param.is_optional);
         this->define(param.name.lexeme);
     }
 
@@ -71,11 +71,11 @@ void Resolver::resolve_struct(StructDeclStmt *s) {
     this->begin_scope();
 
     std::string this_keyword("this");
-    this->declare(this_keyword, this->type_env[s->name.lexeme]);
+    this->declare(this_keyword, this->type_env[s->name.lexeme], false);
     this->define(this_keyword);
 
     for (auto &prop : s->properties) {
-        this->declare(prop.name.lexeme, this->type_env[prop.type.lexeme]);
+        this->declare(prop.name.lexeme, this->type_env[prop.type.lexeme], prop.is_optional);
         this->define(prop.name.lexeme);
     }
 
@@ -90,7 +90,7 @@ void Resolver::resolve_enum(EnumDeclStmt *e) {
     this->begin_scope();
 
     std::string this_keyword("this");
-    this->declare(this_keyword, this->type_env[e->name.lexeme]);
+    this->declare(this_keyword, this->type_env[e->name.lexeme], false);
     this->define(this_keyword);
 
     for (auto &method : e->methods) {
@@ -111,14 +111,14 @@ void Resolver::define(std::string &name) {
     scope[name].defined = true;
 }
 
-void Resolver::declare(std::string &name, std::shared_ptr<Type> type) {
+void Resolver::declare(std::string &name, std::shared_ptr<Type> type, bool optional) {
     auto &scope = this->scopes.back();
 
     scope[name] = ResolvedVariable{
         name,
         false,
         type,
-    };
+        optional};
 }
 
 // Expressions
@@ -131,7 +131,7 @@ void Resolver::visit_var_expr(VarExpr *expr) {
     if (!resolved.value().defined)
         this->error(expr->name, "Cannot read local variable in its own initialiser.");
 
-    expr->type = resolved.value().type;
+    expr->type_info = TypeInfo(resolved.value().type, resolved.value().optional);
 }
 
 void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
@@ -140,7 +140,8 @@ void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
     }
 
     if (auto t = std::dynamic_pointer_cast<StructType>(this->type_env[expr->name.lexeme])) {
-        expr->type = t;
+        // Since we are initialising it, it must be non-null
+        expr->type_info = TypeInfo(t, false);
         return;
     }
 
@@ -164,24 +165,27 @@ void Resolver::visit_unary_expr(UnaryExpr *expr) {
 void Resolver::visit_get_expr(GetExpr *expr) {
     this->resolve(expr->object.get());
 
-    if (auto t = std::dynamic_pointer_cast<StructType>(expr->object->type)) {
+    if (auto t = std::dynamic_pointer_cast<StructType>(expr->object->type_info.type)) {
         auto method_type = t->get_method_type(expr->name.lexeme);
         if (method_type.has_value()) {
-            expr->type = method_type.value();
+            // If the struct is optional, we are using optional chaining - the result is optional
+            expr->type_info = TypeInfo(method_type.value(), expr->object->type_info.optional);
             return;
         }
 
         auto prop_type = t->get_prop_type(expr->name.lexeme);
         if (prop_type.has_value()) {
-            expr->type = this->type_env[prop_type.value().lexeme];
+            // If the struct is optional, we are using optional chaining - the result is optional
+            expr->type_info = TypeInfo(this->type_env[prop_type.value().type.lexeme], expr->object->type_info.optional || prop_type.value().optional);
             return;
         }
 
         this->error(expr->name, "Could not find member on struct.");
-    } else if (auto t = std::dynamic_pointer_cast<EnumType>(expr->object->type)) {
+    } else if (auto t = std::dynamic_pointer_cast<EnumType>(expr->object->type_info.type)) {
         auto type = t->get_method_type(expr->name.lexeme);
         if (type.has_value()) {
-            expr->type = type.value();
+            // If the enum is optional, we are using optional chaining - the result is optional
+            expr->type_info = TypeInfo(type.value(), expr->object->type_info.optional);
             return;
         }
 
@@ -198,7 +202,8 @@ void Resolver::visit_enum_init_expr(EnumInitExpr *expr) {
 
     auto enum_name = expr->enum_namespace->name;
     if (auto t = std::dynamic_pointer_cast<EnumType>(this->type_env[enum_name.lexeme])) {
-        expr->type = t;
+        // Since we are initialising it, it must be non-null
+        expr->type_info = TypeInfo(t, false);
         return;
     }
 
@@ -208,8 +213,8 @@ void Resolver::visit_enum_init_expr(EnumInitExpr *expr) {
 void Resolver::visit_call_expr(CallExpr *expr) {
     this->resolve(expr->callee.get());
 
-    if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->type)) {
-        expr->type = this->type_env[t->return_type.lexeme];
+    if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->type_info.type)) {
+        expr->type_info = TypeInfo(this->type_env[t->return_type.lexeme], t->return_type_optional);
     } else {
         this->error(expr->bracket, "Cannot call non-function.");
     }
@@ -226,14 +231,14 @@ void Resolver::visit_grouping_expr(GroupingExpr *expr) {
 // NOTE: no variables to resolve here
 void Resolver::visit_literal_expr(LiteralExpr *expr) {
     switch (expr->literal.t) {
-        case TokenType::INT_VAL:   expr->type = this->type_env["int"]; break;
-        case TokenType::FLOAT_VAL: expr->type = this->type_env["float"]; break;
-        case TokenType::BOOL_VAL:  expr->type = this->type_env["bool"]; break;
-        case TokenType::NULL_VAL:  expr->type = this->type_env["null"]; break;
-        case TokenType::STR_VAL:   expr->type = this->type_env["str"]; break;
+        case TokenType::INT_VAL:   expr->type_info = TypeInfo(this->type_env["int"], false); break;
+        case TokenType::FLOAT_VAL: expr->type_info = TypeInfo(this->type_env["float"], false); break;
+        case TokenType::BOOL_VAL:  expr->type_info = TypeInfo(this->type_env["bool"], false); break;
+        case TokenType::NULL_VAL:  expr->type_info = TypeInfo(this->type_env["null"], true); break;
+        case TokenType::STR_VAL:   expr->type_info = TypeInfo(this->type_env["str"], false); break;
         case TokenType::TRUE:
         case TokenType::FALSE:
-            expr->type = this->type_env["bool"];
+            expr->type_info = TypeInfo(this->type_env["bool"], false);
             break;
         default:
             std::cout << "[BUG] Literal type unknown" << std::endl;
@@ -244,15 +249,14 @@ void Resolver::visit_literal_expr(LiteralExpr *expr) {
 // Statements
 void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
     // TODO: move this to FunDeclStmt? To match with StructDeclStmt
-    std::vector<std::tuple<Token, Token>> params;
-    std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
-        return std::make_tuple(param.name, param.type);
-    });
     auto func_type = std::make_shared<FunctionType>(
         stmt->name,
-        params,
-        stmt->return_type);
-    this->declare(stmt->name.lexeme, func_type);
+        stmt->params,
+        stmt->return_type,
+        stmt->return_type_optional);
+
+    // Functions can never be optional
+    this->declare(stmt->name.lexeme, func_type, false);
     this->define(stmt->name.lexeme);
 
     this->resolve_function(stmt);
@@ -262,21 +266,19 @@ void Resolver::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     auto &stmt = enum_stmt->fun_definition;
 
     // TODO: move this to FunDeclStmt? To match with StructDeclStmt
-    std::vector<std::tuple<Token, Token>> params;
-    std::transform(stmt->params.begin(), stmt->params.end(), std::back_inserter(params), [this](TypedVar param) {
-        return std::make_tuple(param.name, param.type);
-    });
     auto func_type = std::make_shared<FunctionType>(
         stmt->name,
-        params,
-        stmt->return_type);
-    this->declare(stmt->name.lexeme, func_type);
+        stmt->params,
+        stmt->return_type,
+        stmt->return_type_optional);
+
+    this->declare(stmt->name.lexeme, func_type, false);
     this->define(stmt->name.lexeme);
 
     // TODO: put this in method
     this->begin_scope();
     for (auto param : stmt->params) {
-        this->declare(param.name.lexeme, this->type_env[param.type.lexeme]);
+        this->declare(param.name.lexeme, this->type_env[param.type.lexeme], false);
         this->define(param.name.lexeme);
     }
 
@@ -285,21 +287,21 @@ void Resolver::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
 }
 
 void Resolver::visit_struct_decl_stmt(StructDeclStmt *stmt) {
-    this->declare(stmt->name.lexeme, this->type_env[stmt->name.lexeme]);
+    this->declare(stmt->name.lexeme, this->type_env[stmt->name.lexeme], false);
     this->define(stmt->name.lexeme);
 
     this->resolve_struct(stmt);
 }
 
 void Resolver::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
-    this->declare(stmt->name.lexeme, this->type_env[stmt->name.lexeme]);
+    this->declare(stmt->name.lexeme, this->type_env[stmt->name.lexeme], false);
     this->define(stmt->name.lexeme);
 
     this->resolve_enum(stmt);
 }
 
 void Resolver::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
-    this->declare(stmt->name.name.lexeme, this->type_env[stmt->name.type.lexeme]);
+    this->declare(stmt->name.name.lexeme, this->type_env[stmt->name.type.lexeme], stmt->name.is_optional);
     this->resolve(stmt->initialiser.get());
     this->define(stmt->name.name.lexeme);
 }
@@ -325,36 +327,40 @@ void Resolver::visit_if_stmt(IfStmt *stmt) {
 void Resolver::visit_match_stmt(MatchStmt *stmt) {
     this->resolve(stmt->target.get());
 
-    auto enum_type = std::dynamic_pointer_cast<EnumType>(stmt->target->type);
+    auto enum_type = std::dynamic_pointer_cast<EnumType>(stmt->target->type_info.type);
     if (!enum_type) {
         this->error(stmt->bracket, "Trying to pattern match on non-enum.");
     }
 
     for (auto &branch : stmt->branches) {
-        if (branch.pattern.bound_variable.has_value()) {
-            auto &var = branch.pattern.bound_variable.value();
-            auto name = branch.pattern.enum_variant.lexeme;
+        if (std::holds_alternative<EnumPattern>(branch.pattern)) {
+            auto &enum_pattern = std::get<EnumPattern>(branch.pattern);
 
-            auto pattern_type = std::dynamic_pointer_cast<EnumType>(this->type_env[branch.pattern.enum_type.lexeme]);
-            if (!pattern_type) {
-                this->error(branch.pattern.enum_type, "Pattern must be an enum variant.");
+            if (enum_pattern.bound_variable.has_value()) {
+                auto &var = enum_pattern.bound_variable.value();
+                auto name = enum_pattern.enum_variant.lexeme;
+
+                auto pattern_type = std::dynamic_pointer_cast<EnumType>(this->type_env[enum_pattern.enum_type.lexeme]);
+                if (!pattern_type) {
+                    this->error(enum_pattern.enum_type, "Pattern must be an enum variant.");
+                }
+
+                // TODO: use hashmap or lookup function
+                auto variant = std::find_if(pattern_type->variants.begin(), pattern_type->variants.end(), [name](const auto &t) {
+                    return t.name.lexeme == name;
+                });
+
+                if (variant == pattern_type->variants.end()) {
+                    this->error(enum_pattern.enum_variant, "Could not find variant on enum.");
+                }
+
+                if (!variant->payload_type.has_value()) {
+                    this->error(enum_pattern.bound_variable.value()->name, "Enum variant has no payload - cannot bind a variable.");
+                }
+
+                this->declare(var->name.lexeme, this->type_env[variant->payload_type.value().lexeme], variant->is_optional);
+                this->define(var->name.lexeme);
             }
-
-            // TODO: use hashmap or lookup function
-            auto variant = std::find_if(pattern_type->variants.begin(), pattern_type->variants.end(), [name](const auto &t) {
-                return t.name.lexeme == name;
-            });
-
-            if (variant == pattern_type->variants.end()) {
-                this->error(branch.pattern.enum_variant, "Could not find variant on enum.");
-            }
-
-            if (!variant->payload_type.has_value()) {
-                this->error(branch.pattern.bound_variable.value()->name, "Enum variant has no payload - cannot bind a variable.");
-            }
-
-            this->declare(var->name.lexeme, this->type_env[variant->payload_type.value().lexeme]);
-            this->define(var->name.lexeme);
         }
 
         this->resolve(branch.body);

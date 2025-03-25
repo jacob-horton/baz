@@ -12,6 +12,7 @@ struct ResolvedVariable {
     std::string name;
     bool defined;
     std::shared_ptr<Type> type;
+    bool optional;
 };
 
 class Resolver : public ExprVisitor, public StmtVisitor {
@@ -36,7 +37,7 @@ class Resolver : public ExprVisitor, public StmtVisitor {
 
     std::optional<ResolvedVariable> resolve_local(Token name);
 
-    void declare(std::string &name, std::shared_ptr<Type> type);
+    void declare(std::string &name, std::shared_ptr<Type> type, bool optional);
     void define(std::string &name);
 
     void visit_var_expr(VarExpr *expr);

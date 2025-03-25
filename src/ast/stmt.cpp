@@ -2,8 +2,8 @@
 #include "stmt_visitor.h"
 #include <memory>
 
-FunDeclStmt::FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type)
-    : name(name), params(params), return_type(return_type), body(std::move(body)), fun_type(fun_type) {}
+FunDeclStmt::FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, bool return_type_optional, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type)
+    : name(name), params(params), return_type(return_type), return_type_optional(return_type_optional), body(std::move(body)), fun_type(fun_type) {}
 void FunDeclStmt::accept(StmtVisitor &visitor) {
     visitor.visit_fun_decl_stmt(this);
 }
@@ -47,7 +47,7 @@ void IfStmt::accept(StmtVisitor &visitor) {
     visitor.visit_if_stmt(this);
 }
 
-MatchPattern::MatchPattern(Token enum_type, Token enum_variant, std::optional<std::unique_ptr<VarExpr>> bound_variable) : enum_type(enum_type), enum_variant(enum_variant), bound_variable(std::move(bound_variable)) {}
+EnumPattern::EnumPattern(Token enum_type, Token enum_variant, std::optional<std::unique_ptr<VarExpr>> bound_variable) : enum_type(enum_type), enum_variant(enum_variant), bound_variable(std::move(bound_variable)) {}
 
 MatchBranch::MatchBranch(MatchPattern pattern, std::vector<std::unique_ptr<Stmt>> body) : pattern(std::move(pattern)), body(std::move(body)) {}
 

@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <ostream>
+#include <variant>
 #include <vector>
 
 // Forward declaration - actual implementation will import the visitor
@@ -27,11 +28,12 @@ enum FunType {
 struct FunDeclStmt : public Stmt {
     Token name;
     Token return_type;
+    bool return_type_optional;
     std::vector<TypedVar> params;
     std::vector<std::unique_ptr<Stmt>> body;
     FunType fun_type;
 
-    FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type);
+    FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, bool return_type_optional, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type);
 
     void accept(StmtVisitor &visitor) override;
 };
@@ -102,15 +104,19 @@ struct IfStmt : public Stmt {
     void accept(StmtVisitor &visitor) override;
 };
 
-struct MatchPattern {
+struct EnumPattern {
     Token enum_type;
     Token enum_variant;
 
     // NOTE: if the enum variant has a payload, this is required
     std::optional<std::unique_ptr<VarExpr>> bound_variable;
 
-    MatchPattern(Token enum_type, Token enum_variant, std::optional<std::unique_ptr<VarExpr>> bound_variable);
+    EnumPattern(Token enum_type, Token enum_variant, std::optional<std::unique_ptr<VarExpr>> bound_variable);
 };
+
+struct NullPattern {};
+
+using MatchPattern = std::variant<EnumPattern, NullPattern>;
 
 struct MatchBranch {
     MatchPattern pattern;

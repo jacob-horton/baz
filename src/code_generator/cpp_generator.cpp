@@ -27,6 +27,7 @@ CppGenerator::CppGenerator(std::ostream &output, std::map<std::string, std::shar
 void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
     this->output << "#include <iostream>" << std::endl
                  << "#include <variant>" << std::endl
+                 << "#include <optional>" << std::endl
                  << std::endl;
 
     // Declare all struct names (including enum variants)
@@ -67,6 +68,7 @@ void CppGenerator::visit_var_expr(VarExpr *expr) {
         this->output << this->this_keyword;
         return;
     }
+
     this->output << expr->name.lexeme;
 }
 
@@ -108,9 +110,20 @@ void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
 
 void CppGenerator::visit_binary_expr(BinaryExpr *expr) {
     this->output << "(";
-    expr->left->accept(*this);
-    this->output << " " << expr->op.lexeme << " ";
-    expr->right->accept(*this);
+
+    if (expr->op.t == TokenType::QUESTION_QUESTION) {
+        // If `??` operator, use `a.value_or(b)`
+        expr->left->accept(*this);
+        this->output << ".value_or(";
+        expr->right->accept(*this);
+        this->output << ")";
+    } else {
+        // Otherwise use `a <op> b`
+        expr->left->accept(*this);
+        this->output << " " << expr->op.lexeme << " ";
+        expr->right->accept(*this);
+    }
+
     this->output << ")";
 }
 
@@ -132,8 +145,19 @@ void CppGenerator::visit_unary_expr(UnaryExpr *expr) {
 
 void CppGenerator::visit_get_expr(GetExpr *expr) {
     this->output << "(";
-    expr->object->accept(*this);
-    this->output << "->" << expr->name.lexeme << ")";
+
+    if (expr->optional) {
+        this->output << "{ auto temp = ";
+        expr->object->accept(*this);
+        // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
+        this->output << "; temp.has_value() ? temp.value()->" << expr->name.lexeme;
+        this->output << ": std::nullopt; }";
+    } else {
+        expr->object->accept(*this);
+        this->output << "->" << expr->name.lexeme;
+    }
+
+    this->output << ")";
 }
 
 void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
@@ -151,12 +175,61 @@ void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
 }
 
 void CppGenerator::visit_call_expr(CallExpr *expr) {
+    // TODO: handle optional
     // If we are doing x.y()
-    if (auto *enum_method = dynamic_cast<GetExpr *>(expr->callee.get())) {
+    if (auto *enum_get_expr = dynamic_cast<GetExpr *>(expr->callee.get())) {
         // And x is an enum type
-        if (auto t = std::dynamic_pointer_cast<EnumType>(enum_method->object->type)) {
-            this->output << "(" << enum_method_name(t->name.lexeme, enum_method->name.lexeme) << "(";
-            enum_method->object->accept(*this);
+        if (auto t = std::dynamic_pointer_cast<EnumType>(enum_get_expr->object->type)) {
+            this->output << "(";
+
+            // TODO: reduce duplication between branches
+            // TODO: reduce duplication with get_expr?
+            if (enum_get_expr->optional) {
+                // TODO: assert that type of enum_get_expr.object is optional
+
+                // If calling a function that returns void, handle differently - no return value
+                if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(enum_get_expr->type)) {
+                    if (fun_t->return_type.lexeme == "void") {
+                        this->output << "{ auto temp = ";
+                        enum_get_expr->object->accept(*this);
+                        // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
+                        this->output << "; if (temp.has_value()) { ";
+
+                        // Use namespaced enum method
+                        this->output << enum_method_name(t->name.lexeme, enum_get_expr->name.lexeme) << "(temp.value()";
+
+                        for (auto &arg : expr->args) {
+                            this->output << ", ";
+                            arg->accept(*this);
+                        }
+
+                        this->output << "); }})";
+                        return;
+                    }
+                }
+
+                this->output << "{ auto temp = ";
+                enum_get_expr->object->accept(*this);
+                // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
+                this->output << "; temp.has_value() ? ";
+
+                // Use namespaced enum method
+                this->output << enum_method_name(t->name.lexeme, enum_get_expr->name.lexeme) << "(temp.value()";
+
+                for (auto &arg : expr->args) {
+                    this->output << ", ";
+                    arg->accept(*this);
+                }
+
+                this->output << ") : std::nullopt; })";
+                return;
+            }
+
+            // TODO: assert that type of enum_get_expr.object is NOT optional
+
+            // Use namespaced enum method
+            this->output << enum_method_name(t->name.lexeme, enum_get_expr->name.lexeme) << "(";
+            enum_get_expr->object->accept(*this);
 
             for (auto &arg : expr->args) {
                 this->output << ", ";
@@ -193,6 +266,11 @@ void CppGenerator::visit_grouping_expr(GroupingExpr *expr) {
 void CppGenerator::visit_literal_expr(LiteralExpr *expr) {
     if (expr->literal.t == TokenType::STR_VAL) {
         this->output << "std::string(" << expr->literal.lexeme << ")";
+        return;
+    }
+
+    if (expr->literal.t == TokenType::NULL_VAL) {
+        this->output << "std::nullopt";
         return;
     }
 

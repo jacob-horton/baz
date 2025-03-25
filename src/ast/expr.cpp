@@ -35,7 +35,7 @@ void UnaryExpr::accept(ExprVisitor &visitor) {
     visitor.visit_unary_expr(this);
 }
 
-GetExpr::GetExpr(std::unique_ptr<Expr> value, Token name) : object(std::move(value)), name(name) {}
+GetExpr::GetExpr(std::unique_ptr<Expr> value, Token name, bool optional) : object(std::move(value)), name(name), optional(optional) {}
 void GetExpr::accept(ExprVisitor &visitor) {
     visitor.visit_get_expr(this);
 }

@@ -469,13 +469,12 @@ std::unique_ptr<Expr> Parser::call() {
         } else if (this->match(TokenType::DOT)) {
             // Property access
             Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
-            expr = std::make_unique<GetExpr>(std::move(expr), name);
-            // TODO: do we need to handle this better - if we have `call()?;` what will happen
-            // TODO: remove duplication
+            expr = std::make_unique<GetExpr>(std::move(expr), name, false);
+            // TODO: use a QUESTION_DOT token?
         } else if (this->match(TokenType::QUESTION) && this->match(TokenType::DOT)) {
             // Optional property access
             Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
-            expr = std::make_unique<GetExpr>(std::move(expr), name);
+            expr = std::make_unique<GetExpr>(std::move(expr), name, true);
         } else {
             break;
         }

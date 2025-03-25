@@ -156,6 +156,7 @@ void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
 }
 
 void TypeChecker::visit_get_expr(GetExpr *expr) {
+    // TODO: optionals
     expr->object->accept(*this);
 }
 

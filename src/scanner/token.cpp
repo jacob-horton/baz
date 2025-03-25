@@ -1,6 +1,7 @@
 #include "token.h"
 
 const std::string get_token_type_str(TokenType t) {
+    // TODO: Finish
     switch (t) {
         case L_CURLY_BRACKET:   return "L_CURLY_BRACKET";
         case R_CURLY_BRACKET:   return "R_CURLY_BRACKET";

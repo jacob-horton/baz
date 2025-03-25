@@ -70,8 +70,9 @@ struct UnaryExpr : public Expr {
 struct GetExpr : public Expr {
     std::unique_ptr<Expr> object;
     Token name;
+    bool optional;
 
-    GetExpr(std::unique_ptr<Expr> value, Token name);
+    GetExpr(std::unique_ptr<Expr> value, Token name, bool optional);
 
     void accept(ExprVisitor &visitor) override;
 };

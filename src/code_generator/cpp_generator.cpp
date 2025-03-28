@@ -484,10 +484,19 @@ void CppGenerator::visit_for_stmt(ForStmt *stmt) {
 }
 
 void CppGenerator::visit_print_stmt(PrintStmt *stmt) {
-    this->output << "std::cout << ";
+    this->output << "std::cout";
 
-    if (stmt->expr.has_value())
-        stmt->expr.value()->accept(*this);
+    if (stmt->expr.has_value()) {
+        this->output << " << ";
+
+        if (stmt->expr.value()->type_info.optional) {
+            this->output << "({ auto temp = ";
+            stmt->expr.value()->accept(*this);
+            this->output << "; temp.has_value() ? std::to_string(temp.value()) : \"null\"; })";
+        } else {
+            stmt->expr.value()->accept(*this);
+        }
+    }
 
     if (stmt->newline)
         this->output << " << std::endl";

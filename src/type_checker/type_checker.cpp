@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <iterator>
 #include <memory>
 
 bool can_coerce_to(std::shared_ptr<Type> from, bool from_optional, std::shared_ptr<Type> to, bool to_optional) {
@@ -18,6 +17,10 @@ bool can_coerce_to(std::shared_ptr<Type> from, bool from_optional, std::shared_p
 }
 
 TypeChecker::TypeChecker(std::map<std::string, std::shared_ptr<Type>> type_env) : type_env(type_env), result(TypeInfo(nullptr, false)) {}
+
+bool TypeChecker::is_numeric(Type *t) {
+    return t->can_coerce_to(this->type_env["int"]) || t->can_coerce_to(this->type_env["float"]);
+}
 
 void TypeChecker::check(std::vector<std::unique_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) {
@@ -38,6 +41,7 @@ void TypeChecker::error(Token error_token, std::string message) {
 // Expressions
 void TypeChecker::visit_var_expr(VarExpr *expr) {
     this->result = expr->type_info;
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
@@ -69,10 +73,7 @@ void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
     }
 
     this->result = expr->type_info;
-}
-
-bool TypeChecker::is_numeric(Type *t) {
-    return t->can_coerce_to(this->type_env["int"]) || t->can_coerce_to(this->type_env["float"]);
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
@@ -95,6 +96,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             if (!can_coerce_to(right_t.type, right_t.optional, left_t.type, left_t.optional))
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
+            this->always_returns = false;
             return;
         }
         case TokenType::LESS:
@@ -116,6 +118,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = TypeInfo(this->type_env["bool"], false);
+            this->always_returns = false;
             return;
         }
         case TokenType::QUESTION_QUESTION: {
@@ -136,6 +139,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             // Always go to non-optional form of left type
             this->result = left_t;
             this->result.optional = false;
+            this->always_returns = false;
             return;
         }
         default:
@@ -158,6 +162,8 @@ void TypeChecker::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
 
     if (left_t.type != right_t.type)
         this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
+
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
@@ -182,6 +188,8 @@ void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
             std::cerr << "[BUG] Unary operator type '" << get_token_type_str(expr->op.t) << "' not handled." << std::endl;
             exit(3);
     }
+
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_get_expr(GetExpr *expr) {
@@ -195,6 +203,7 @@ void TypeChecker::visit_get_expr(GetExpr *expr) {
     }
 
     this->result = expr->type_info;
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
@@ -222,6 +231,7 @@ void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
     }
 
     this->result = expr->type_info;
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_call_expr(CallExpr *expr) {
@@ -249,14 +259,17 @@ void TypeChecker::visit_call_expr(CallExpr *expr) {
 
     // If we are optional chaining, carry forwards optional type
     this->result.optional |= expr->callee->type_info.optional;
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_grouping_expr(GroupingExpr *expr) {
     expr->expr->accept(*this);
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_literal_expr(LiteralExpr *expr) {
     this->result = expr->type_info;
+    this->always_returns = false;
 }
 
 // Statements
@@ -267,25 +280,41 @@ void TypeChecker::visit_fun_decl_stmt(FunDeclStmt *fun) {
         fun->return_type_optional,
     };
 
-    this->check(fun->body);
+    bool returns = false;
+    for (auto &s : fun->body) {
+        s->accept(*this);
+        returns = returns || this->always_returns;
+    }
 
     this->surrounding_fn_return_type = prev_fn_ret_type;
+
+    if (fun->return_type.lexeme != "void" && !returns) {
+        this->error(fun->name, "Not all code paths return.");
+    }
+
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_enum_method_decl_stmt(EnumMethodDeclStmt *fun) {
     fun->fun_definition->accept(*this);
+
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     for (auto &method : stmt->methods) {
         method->accept(*this);
     }
+
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
     for (auto &method : stmt->methods) {
         method->accept(*this);
     }
+
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
@@ -296,36 +325,57 @@ void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     if (!can_coerce_to(from.type, from.optional, to, stmt->name.is_optional)) {
         this->error(stmt->name.name, "Cannot assign a type '" + from.type->to_string() + (from.optional && from.type->type_class != TypeClass::NULL_ ? "?" : "") + "' to variable of type '" + to->to_string() + (stmt->name.is_optional ? "?" : "") + "'.");
     }
+
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_expr_stmt(ExprStmt *stmt) {
     stmt->expr->accept(*this);
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_block_stmt(BlockStmt *stmt) {
-    this->check(stmt->stmts);
+    bool returns = false;
+
+    for (auto &s : stmt->stmts) {
+        s->accept(*this);
+
+        // If any statement always returns, the block always returns
+        returns = returns || this->always_returns;
+    }
+
+    this->always_returns = returns;
 }
 
 void TypeChecker::visit_if_stmt(IfStmt *stmt) {
     stmt->condition->accept(*this);
+
     auto from = this->result;
     auto to = this->type_env["bool"];
     if (!can_coerce_to(from.type, from.optional, to, false)) {
         this->error(stmt->keyword, "If condition must be a boolean value.");
     }
 
+    bool true_block_returns = false;
     for (auto &line : stmt->true_block) {
         line->accept(*this);
+        true_block_returns = true_block_returns || this->always_returns;
     }
 
+    bool false_block_returns = false;
     if (stmt->false_block.has_value()) {
         for (auto &line : stmt->false_block.value()) {
             line->accept(*this);
+            false_block_returns = false_block_returns || this->always_returns;
         }
     }
+
+    this->always_returns = true_block_returns && false_block_returns;
 }
 
 void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
+    bool all_branches_return = true;
+
     // TODO: handle optionals (i.e. non-enum types)
     auto t = std::dynamic_pointer_cast<EnumType>(stmt->target->type_info.type);
     if (!t) {
@@ -375,14 +425,21 @@ void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
             has_null_branch = true;
         }
 
+        bool returns = false;
         for (auto &line : branch.body) {
             line->accept(*this);
+            returns = returns || this->always_returns;
         }
+
+        if (!returns)
+            all_branches_return = false;
     }
 
     if (stmt->target->type_info.optional && !has_null_branch) {
         this->error(stmt->keyword, "Null variant not provided.");
     }
+
+    this->always_returns = all_branches_return;
 }
 
 void TypeChecker::visit_while_stmt(WhileStmt *stmt) {
@@ -394,10 +451,18 @@ void TypeChecker::visit_while_stmt(WhileStmt *stmt) {
         this->error(stmt->keyword, "While condition must be a boolean value.");
     }
 
-    this->check(stmt->stmts);
+    bool returns = false;
+    for (auto &s : stmt->stmts) {
+        s->accept(*this);
+        returns = returns || this->always_returns;
+    }
+
+    this->always_returns = returns;
 }
 
 void TypeChecker::visit_for_stmt(ForStmt *stmt) {
+    this->always_returns = false;
+
     std::cerr << "Unimplemented" << std::endl;
     exit(3);
 }
@@ -405,6 +470,8 @@ void TypeChecker::visit_for_stmt(ForStmt *stmt) {
 void TypeChecker::visit_print_stmt(PrintStmt *stmt) {
     if (stmt->expr.has_value())
         stmt->expr.value()->accept(*this);
+
+    this->always_returns = false;
 }
 
 void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {
@@ -412,12 +479,19 @@ void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {
         this->error(stmt->keyword, "Cannot return from outside of a function.");
     }
 
-    if (stmt->expr.has_value())
+    if (stmt->expr.has_value()) {
         stmt->expr.value()->accept(*this);
 
-    if (!can_coerce_to(this->result.type, this->result.optional, this->type_env[this->surrounding_fn_return_type->type.lexeme], this->surrounding_fn_return_type->optional)) {
-        this->error(stmt->keyword, "Must return a type that equals or can coerce to the return type of the function.");
+        if (!can_coerce_to(this->result.type, this->result.optional, this->type_env[this->surrounding_fn_return_type->type.lexeme], this->surrounding_fn_return_type->optional)) {
+            this->error(stmt->keyword, "Must return a type that equals or can coerce to the return type of the function.");
+        }
+    } else {
+        if (this->surrounding_fn_return_type->type.lexeme != "void") {
+            this->error(stmt->keyword, "Must return a value from a non-void function.");
+        }
     }
+
+    this->always_returns = true;
 }
 
 void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
@@ -429,4 +503,6 @@ void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     if (!can_coerce_to(from.type, from.optional, to, false)) {
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }
+
+    this->always_returns = false;
 }

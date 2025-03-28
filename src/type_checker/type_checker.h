@@ -19,6 +19,8 @@ class TypeChecker : public ExprVisitor, public StmtVisitor {
     std::map<std::string, std::shared_ptr<Type>> type_env;
     std::optional<Temp> surrounding_fn_return_type;
 
+    bool always_returns;
+
   public:
     TypeChecker(std::map<std::string, std::shared_ptr<Type>> type_env);
 

@@ -132,6 +132,9 @@ void StringScanner::skip_whitespace() {
                         this->advance();
                 } else if (this->peek_next() == '*') {
                     while ((this->peek() != '*' || this->peek_next() != '/') && !this->is_at_end()) {
+                        if (this->peek() == '\n')
+                            this->line++;
+
                         this->advance();
                     }
 

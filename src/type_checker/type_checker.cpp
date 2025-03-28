@@ -317,15 +317,15 @@ void TypeChecker::visit_if_stmt(IfStmt *stmt) {
 }
 
 void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
-    // TODO: handle optionals
+    // TODO: handle optionals (i.e. non-enum types)
     auto t = std::dynamic_pointer_cast<EnumType>(stmt->target->type_info.type);
     if (!t) {
-        this->error(stmt->bracket, "Cannot match on non-enum.");
+        this->error(stmt->keyword, "Cannot match on non-enum.");
     }
 
     // TODO: when supporting concrete value matching, we may have more patterns than variants. This will need rethinking
     if (stmt->branches.size() != (t->variants.size() + (stmt->target->type_info.optional ? 1 : 0))) {
-        this->error(stmt->bracket, "Not all variants covered in pattern matching.");
+        this->error(stmt->keyword, "Not all variants covered in pattern matching.");
     }
 
     bool has_null_branch = false;
@@ -372,7 +372,7 @@ void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
     }
 
     if (stmt->target->type_info.optional && !has_null_branch) {
-        this->error(stmt->bracket, "Null variant not provided.");
+        this->error(stmt->keyword, "Null variant not provided.");
     }
 }
 

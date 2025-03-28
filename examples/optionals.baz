@@ -4,6 +4,16 @@ struct S {
 	fn get_value(): int? {
 		return this.value;
 	}
+
+	fn do_nothing(): void {}
+}
+
+enum E {
+	Variant1(int);
+
+	fn get_something(): int? {
+		return 5;
+	}
 }
 
 fn main(): void {
@@ -11,5 +21,14 @@ fn main(): void {
 		value: 12,
 	};
 
-	let b: int? = s?.get_value();
+	let b: int? = s?.value;
+	s?.do_nothing();
+
+	let e: E? = E::Variant1(5);
+	let val: int? = e?.get_something();
+
+	match (e) {
+		E::Variant1(value): {println(value);},
+		null: {println("null!!!!!");},
+	}
 }

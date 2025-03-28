@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <iostream>
 #include <memory>
-#include <tuple>
 
 Resolver::Resolver(std::map<std::string, std::shared_ptr<Type>> type_env) : type_env(type_env) {
     // Global scope
@@ -330,7 +329,7 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
 
     auto enum_type = std::dynamic_pointer_cast<EnumType>(stmt->target->type_info.type);
     if (!enum_type) {
-        this->error(stmt->bracket, "Trying to pattern match on non-enum.");
+        this->error(stmt->keyword, "Trying to pattern match on non-enum.");
     }
 
     for (auto &branch : stmt->branches) {

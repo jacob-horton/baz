@@ -87,8 +87,8 @@ std::unique_ptr<IfStmt> Parser::if_statement() {
 }
 
 std::unique_ptr<MatchStmt> Parser::match_statement() {
+    auto keyword = this->previous();
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'match'.");
-    auto bracket = this->previous();
 
     std::unique_ptr<Expr> target = this->expression();
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after match target.");
@@ -106,7 +106,7 @@ std::unique_ptr<MatchStmt> Parser::match_statement() {
     } while (this->match(TokenType::COMMA) && !this->check(TokenType::R_CURLY_BRACKET));
 
     this->consume(TokenType::R_CURLY_BRACKET, "Expected '}' after match branches");
-    return std::make_unique<MatchStmt>(std::move(target), std::move(branches), bracket);
+    return std::make_unique<MatchStmt>(std::move(target), std::move(branches), keyword);
 }
 
 MatchPattern Parser::match_pattern() {
@@ -497,6 +497,7 @@ std::unique_ptr<Expr> Parser::call() {
 }
 
 std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
+    auto bracket = this->previous();
     std::vector<std::unique_ptr<Expr>> args;
 
     if (!this->check(TokenType::R_BRACKET)) {
@@ -507,7 +508,7 @@ std::unique_ptr<Expr> Parser::finish_call(std::unique_ptr<Expr> callee) {
         } while (this->match(TokenType::COMMA) && !this->check(TokenType::R_BRACKET));
     }
 
-    auto bracket = this->consume(TokenType::R_BRACKET, "Expected ')' after arguments.");
+    this->consume(TokenType::R_BRACKET, "Expected ')' after arguments.");
 
     return std::make_unique<CallExpr>(std::move(callee), std::move(args), bracket);
 }

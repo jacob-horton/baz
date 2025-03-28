@@ -128,9 +128,9 @@ struct MatchBranch {
 struct MatchStmt : public Stmt {
     std::unique_ptr<Expr> target;
     std::vector<MatchBranch> branches;
-    Token bracket;
+    Token keyword;
 
-    MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches, Token bracket);
+    MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches, Token keyword);
 
     void accept(StmtVisitor &visitor) override;
 };

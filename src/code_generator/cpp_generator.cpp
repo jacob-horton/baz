@@ -152,9 +152,8 @@ void CppGenerator::visit_get_expr(GetExpr *expr) {
     if (expr->optional) {
         this->output << "{ auto temp = ";
         expr->object->accept(*this);
-        // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
-        this->output << "; temp.has_value() ? temp.value()->" << expr->name.lexeme;
-        this->output << " : std::nullopt; }";
+        this->output << "; temp.has_value() ? std::optional{temp.value()->" << expr->name.lexeme;
+        this->output << "} : std::nullopt; }";
     } else {
         expr->object->accept(*this);
         this->output << "->" << expr->name.lexeme;
@@ -178,25 +177,24 @@ void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
 }
 
 void CppGenerator::visit_call_expr(CallExpr *expr) {
-    // TODO: handle optional
+    // TODO: so much duplication - reduce (also reduce with get_expr)
+
     // If we are doing x.y()
-    if (auto *enum_get_expr = dynamic_cast<GetExpr *>(expr->callee.get())) {
+    if (auto *get_expr = dynamic_cast<GetExpr *>(expr->callee.get())) {
         // And x is an enum type
-        if (auto t = std::dynamic_pointer_cast<EnumType>(enum_get_expr->object->type_info.type)) {
+        if (auto t = std::dynamic_pointer_cast<EnumType>(get_expr->object->type_info.type)) {
             this->output << "(";
 
-            // TODO: reduce duplication between branches
-            // TODO: reduce duplication with get_expr?
-            if (enum_get_expr->optional) {
+            if (get_expr->optional) {
                 // If calling a function that returns void, handle differently - no return value
-                if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(enum_get_expr->type_info.type)) {
+                if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(get_expr->type_info.type)) {
                     if (fun_t->return_type.lexeme == "void") {
                         this->output << "{ auto temp = ";
-                        enum_get_expr->object->accept(*this);
+                        get_expr->object->accept(*this);
                         this->output << "; if (temp.has_value()) { ";
 
                         // Use namespaced enum method
-                        this->output << enum_method_name(t->name.lexeme, enum_get_expr->name.lexeme) << "(temp.value()";
+                        this->output << enum_method_name(t->name.lexeme, get_expr->name.lexeme) << "(temp.value()";
 
                         for (auto &arg : expr->args) {
                             this->output << ", ";
@@ -209,11 +207,11 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
                 }
 
                 this->output << "{ auto temp = ";
-                enum_get_expr->object->accept(*this);
+                get_expr->object->accept(*this);
                 this->output << "; temp.has_value() ? std::optional{";
 
                 // Use namespaced enum method
-                this->output << enum_method_name(t->name.lexeme, enum_get_expr->name.lexeme) << "(temp.value()";
+                this->output << enum_method_name(t->name.lexeme, get_expr->name.lexeme) << "(temp.value()";
 
                 for (auto &arg : expr->args) {
                     this->output << ", ";
@@ -225,8 +223,8 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
             }
 
             // Use namespaced enum method
-            this->output << enum_method_name(t->name.lexeme, enum_get_expr->name.lexeme) << "(";
-            enum_get_expr->object->accept(*this);
+            this->output << enum_method_name(t->name.lexeme, get_expr->name.lexeme) << "(";
+            get_expr->object->accept(*this);
 
             for (auto &arg : expr->args) {
                 this->output << ", ";
@@ -234,6 +232,40 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
             }
 
             this->output << "))";
+            return;
+        } else if (auto t = std::dynamic_pointer_cast<StructType>(get_expr->object->type_info.type) && get_expr->type_info.optional) {
+            this->output << "(";
+            if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(get_expr->type_info.type)) {
+                if (fun_t->return_type.lexeme == "void") {
+                    this->output << "{ auto temp = ";
+                    get_expr->object->accept(*this);
+                    this->output << "; if (temp.has_value()) { temp.value()->" << get_expr->name.lexeme << "(";
+
+                    for (auto &arg : expr->args) {
+                        this->output << ", ";
+                        arg->accept(*this);
+                    }
+
+                    this->output << "); }})";
+                    return;
+                }
+            }
+
+            this->output << "{ auto temp = ";
+            get_expr->object->accept(*this);
+            // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
+            this->output << "; temp.has_value() ? std::optional{temp.value()->" << get_expr->name.lexeme << "(";
+
+            bool first = true;
+            for (auto &arg : expr->args) {
+                if (!first)
+                    this->output << ", ";
+
+                arg->accept(*this);
+                first = false;
+            }
+
+            this->output << ")} : std::nullopt; })";
             return;
         }
     }
@@ -276,7 +308,7 @@ void CppGenerator::visit_literal_expr(LiteralExpr *expr) {
 
 // Statements
 void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
-    std::string return_type = stmt->return_type.lexeme;
+    std::string return_type = baz_to_cpp_type(stmt->return_type, stmt->return_type_optional);
 
     // Convert main to use "int" instead of "void" for main
     if (stmt->fun_type == FunType::FUNCTION && stmt->name.lexeme == "main")

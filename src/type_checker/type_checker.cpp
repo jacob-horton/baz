@@ -265,7 +265,9 @@ void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
 
 void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     stmt->initialiser->accept(*this);
-    if (!this->result.type->can_coerce_to(this->type_env[stmt->name.type.lexeme])) {
+
+    bool can_coerce = this->result.type->can_coerce_to(this->type_env[stmt->name.type.lexeme]) || (stmt->name.is_optional && this->result.type->type_class == TypeClass::NULL_);
+    if (!can_coerce) {
         this->error(stmt->name.name, "Cannot assign a type '" + this->result.type->to_string() + "' to variable of type '" + this->type_env[stmt->name.type.lexeme]->to_string() + "'.");
     }
 

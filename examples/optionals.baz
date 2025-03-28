@@ -1,0 +1,15 @@
+struct S {
+	value: int;
+
+	fn get_value(): int? {
+		return this.value;
+	}
+}
+
+fn main(): void {
+	let s: S? = S {
+		value: 12,
+	};
+
+	let b: int? = s?.get_value();
+}

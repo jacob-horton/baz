@@ -5,6 +5,17 @@
 #include <iostream>
 #include <memory>
 
+bool can_coerce_to(std::shared_ptr<Type> from, bool from_optional, std::shared_ptr<Type> to, bool to_optional) {
+    if (from_optional && !to_optional) {
+        return false;
+    }
+
+    if (to_optional && from->type_class == TypeClass::NULL_)
+        return true;
+
+    return from->can_coerce_to(to);
+}
+
 TypeChecker::TypeChecker(std::map<std::string, std::shared_ptr<Type>> type_env) : type_env(type_env), result(TypeInfo(nullptr, false)) {}
 
 void TypeChecker::check(std::vector<std::unique_ptr<Stmt>> &stmts) {
@@ -39,12 +50,18 @@ void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
 
             // Find corresponding property
             // TODO: use hashmap or lookup function
-            auto p = std::find_if(expr->properties.begin(), expr->properties.end(), [name](const auto &t) {
-                return std::get<0>(t).lexeme == name;
+            auto p = std::find_if(expr->properties.begin(), expr->properties.end(), [name](const auto &p) {
+                return std::get<0>(p).lexeme == name;
             });
 
             if (p == expr->properties.end())
                 this->error(expr->name, "Missing property " + name + " from constructor.");
+
+            auto from = std::get<1>(*p)->type_info;
+            auto to = this->type_env[prop.type.lexeme];
+            if (!can_coerce_to(from.type, from.optional, to, prop.is_optional)) {
+                this->error(std::get<0>(*p), "Cannot assign a type '" + from.type->to_string() + (from.optional && from.type->type_class != TypeClass::NULL_ ? "?" : "") + "' to variable of type '" + to->to_string() + (prop.is_optional ? "?" : "") + "'.");
+            }
         }
     } else {
         this->error(expr->name, "Cannot initialise non-struct.");
@@ -67,16 +84,14 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             expr->left->accept(*this);
             auto left_t = this->result;
 
-            // TODO: handle optionals
-
             // If not numeric or string, we can't operate
-            if (!(is_numeric(left_t.type.get()) || left_t.type.get()->type_class == TypeClass::STR))
+            if (left_t.optional || !(is_numeric(left_t.type.get()) || left_t.type.get()->type_class == TypeClass::STR))
                 this->error(expr->op, "Operator can only be used on numeric or string types.");
 
             expr->right->accept(*this);
             auto right_t = this->result;
 
-            if (!right_t.type->can_coerce_to(left_t.type))
+            if (!can_coerce_to(right_t.type, right_t.optional, left_t.type, left_t.optional))
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             return;
@@ -89,16 +104,14 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             expr->left->accept(*this);
             auto left_t = this->result;
 
-            // TODO: handle optionals
-
             // If not numeric, we can't compare
-            if (!is_numeric(left_t.type.get()))
+            if (left_t.optional || !is_numeric(left_t.type.get()))
                 this->error(expr->op, "Operator can only be used on numeric types.");
 
             expr->right->accept(*this);
             auto right_t = this->result;
 
-            if (!right_t.type->can_coerce_to(left_t.type))
+            if (!can_coerce_to(right_t.type, right_t.optional, left_t.type, left_t.optional))
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = TypeInfo(this->type_env["bool"], false);
@@ -115,13 +128,13 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             if (!left_t.optional)
                 this->error(expr->op, "Cannot use '\?\?' operator on a non-nullable type.");
 
-            if (!right_t.type->can_coerce_to(left_t.type))
+            // Has to coerce to non-nullable version of left type
+            if (!can_coerce_to(right_t.type, right_t.optional, left_t.type, false))
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
+            // Always go to non-optional form of left type
             this->result = left_t;
-
-            // If our fallback value is optional, we are still optional
-            this->result.optional = right_t.optional;
+            this->result.optional = false;
             return;
         }
         default:
@@ -131,11 +144,12 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
 }
 
 void TypeChecker::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
-    // TODO: handle optionals
     expr->left->accept(*this);
     auto left_t = this->result;
 
-    if (!left_t.type->can_coerce_to(this->type_env["bool"]))
+    auto from = this->result;
+    auto to = this->type_env["bool"];
+    if (!can_coerce_to(from.type, from.optional, to, false))
         this->error(expr->op, "Operator can only be used on boolean types.");
 
     expr->right->accept(*this);
@@ -146,18 +160,21 @@ void TypeChecker::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
 }
 
 void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
-    // TODO: handle optionals
     expr->right->accept(*this);
 
     switch (expr->op.t) {
-        case TokenType::BANG:
+        case TokenType::BANG: {
             // If not boolean, we can't invert
-            if (!this->result.type->can_coerce_to(this->type_env["bool"]))
+            auto from = this->result;
+            auto to = this->type_env["bool"];
+            if (!can_coerce_to(from.type, from.optional, to, false))
                 this->error(expr->op, "Operator can only be used on a boolean type.");
+
             break;
+        }
         case TokenType::MINUS:
             // If not numeric, we can't invert
-            if (!is_numeric(this->result.type.get()))
+            if (this->result.optional || !is_numeric(this->result.type.get()))
                 this->error(expr->op, "Operator can only be used on numeric types.");
             break;
         default:
@@ -167,7 +184,6 @@ void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
 }
 
 void TypeChecker::visit_get_expr(GetExpr *expr) {
-    // TODO: handle optionals
     expr->object->accept(*this);
     if (expr->optional && !this->result.optional) {
         this->error(expr->name, "Cannot use optional chaining on non-optional type.");
@@ -191,7 +207,7 @@ void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
             auto payload_type_info = t->get_variant_payload_type(expr->variant.lexeme);
             auto payload_type = this->type_env[payload_type_info->type.lexeme];
 
-            if (!this->result.type->can_coerce_to(payload_type)) {
+            if (!can_coerce_to(this->result.type, this->result.optional, payload_type, payload_type_info->optional)) {
                 this->error(expr->variant, "Payload of enum cannot be coerced to a valid type.");
             }
 
@@ -266,13 +282,10 @@ void TypeChecker::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
 void TypeChecker::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     stmt->initialiser->accept(*this);
 
-    bool can_coerce = this->result.type->can_coerce_to(this->type_env[stmt->name.type.lexeme]) || (stmt->name.is_optional && this->result.type->type_class == TypeClass::NULL_);
-    if (!can_coerce) {
-        this->error(stmt->name.name, "Cannot assign a type '" + this->result.type->to_string() + "' to variable of type '" + this->type_env[stmt->name.type.lexeme]->to_string() + "'.");
-    }
-
-    if (this->result.optional && !stmt->name.is_optional) {
-        this->error(stmt->name.name, "Cannot assign an optional type to a non-optional type.");
+    auto from = this->result;
+    auto to = this->type_env[stmt->name.type.lexeme];
+    if (!can_coerce_to(from.type, from.optional, to, stmt->name.is_optional)) {
+        this->error(stmt->name.name, "Cannot assign a type '" + from.type->to_string() + (from.optional && from.type->type_class != TypeClass::NULL_ ? "?" : "") + "' to variable of type '" + to->to_string() + (stmt->name.is_optional ? "?" : "") + "'.");
     }
 }
 
@@ -285,9 +298,10 @@ void TypeChecker::visit_block_stmt(BlockStmt *stmt) {
 }
 
 void TypeChecker::visit_if_stmt(IfStmt *stmt) {
-    // TODO: handle optionals
     stmt->condition->accept(*this);
-    if (!this->result.type->can_coerce_to(this->type_env["bool"])) {
+    auto from = this->result;
+    auto to = this->type_env["bool"];
+    if (!can_coerce_to(from.type, from.optional, to, false)) {
         this->error(stmt->keyword, "If condition must be a boolean value.");
     }
 
@@ -339,9 +353,9 @@ void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
                 // TODO: when supporting concrete values, check the type is correct - make sure resolver sets the type
                 //
                 // auto payload_type = this->type_env[v->payload_type.value().lexeme];
-                // auto provided_type = branch.pattern.bound_variable.value()->type;
-                // if (!provided_type->can_coerce_to(payload_type)) {
-                //     this->error(branch.pattern.enum_type, "Payload type must be equal to or coercible to the type in the enum definition.");
+                // auto &provided_type_info = enum_pattern.bound_variable.value()->type_info;
+                // if (!can_coerce_to(provided_type_info.type, provided_type_info.optional, payload_type, /* TODO: payload optional */)) {
+                //     this->error(enum_pattern.enum_type, "Payload type must be equal to or coercible to the type in the enum definition.");
                 // }
             } else {
                 if (enum_pattern.bound_variable.has_value()) {
@@ -363,9 +377,11 @@ void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
 }
 
 void TypeChecker::visit_while_stmt(WhileStmt *stmt) {
-    // TODO: handle optionals
     stmt->condition->accept(*this);
-    if (!this->result.type->can_coerce_to(this->type_env["bool"])) {
+
+    auto from = this->result;
+    auto to = this->type_env["bool"];
+    if (!can_coerce_to(from.type, from.optional, to, false)) {
         this->error(stmt->keyword, "While condition must be a boolean value.");
     }
 
@@ -390,12 +406,10 @@ void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {
 void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
-    if (!this->result.type->can_coerce_to(stmt->target_type)) {
+    // TODO: Check if existing variable is nullable
+    auto from = this->result;
+    auto to = stmt->target_type;
+    if (!can_coerce_to(from.type, from.optional, to, false)) {
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }
-
-    // TODO: check nullables
-    // if (this->result.optional && !stmt->target_type) {
-    //     this->error(stmt->name.name, "Cannot assign an optional type to a non-optional type.");
-    // }
 }

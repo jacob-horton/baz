@@ -176,6 +176,7 @@ void Resolver::visit_get_expr(GetExpr *expr) {
         auto prop_type = t->get_prop_type(expr->name.lexeme);
         if (prop_type.has_value()) {
             // If the struct is optional, we are using optional chaining - the result is optional
+            // Otherwise, check if the property is optional
             expr->type_info = TypeInfo(this->type_env[prop_type.value().type.lexeme], expr->object->type_info.optional || prop_type.value().optional);
             return;
         }

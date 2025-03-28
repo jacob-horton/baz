@@ -29,6 +29,7 @@ CppGenerator::CppGenerator(std::ostream &output, std::map<std::string, std::shar
 void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
     this->output << "#include <iostream>" << std::endl
                  << "#include <variant>" << std::endl
+                 << "#include <string>" << std::endl
                  << "#include <optional>" << std::endl
                  << std::endl;
 

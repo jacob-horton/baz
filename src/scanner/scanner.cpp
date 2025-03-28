@@ -114,7 +114,6 @@ Token StringScanner::symbol(char start) {
 }
 
 void StringScanner::skip_whitespace() {
-    // TODO: comments
     while (true) {
         switch (this->peek()) {
             case '\n':
@@ -149,6 +148,8 @@ void StringScanner::skip_whitespace() {
                     }
 
                     this->advance();
+                } else {
+                    return;
                 }
 
                 break;

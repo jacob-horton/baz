@@ -73,7 +73,7 @@ void PrintStmt::accept(StmtVisitor &visitor) {
     visitor.visit_print_stmt(this);
 }
 
-ReturnStmt::ReturnStmt(std::optional<std::unique_ptr<Expr>> expr) : expr(std::move(expr)) {}
+ReturnStmt::ReturnStmt(std::optional<std::unique_ptr<Expr>> expr, Token keyword) : expr(std::move(expr)), keyword(keyword) {}
 void ReturnStmt::accept(StmtVisitor &visitor) {
     visitor.visit_return_stmt(this);
 }

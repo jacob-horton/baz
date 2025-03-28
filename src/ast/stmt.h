@@ -29,6 +29,7 @@ struct FunDeclStmt : public Stmt {
     Token name;
     Token return_type;
     bool return_type_optional;
+
     std::vector<TypedVar> params;
     std::vector<std::unique_ptr<Stmt>> body;
     FunType fun_type;
@@ -181,8 +182,9 @@ struct PrintStmt : public Stmt {
 
 struct ReturnStmt : public Stmt {
     std::optional<std::unique_ptr<Expr>> expr;
+    Token keyword;
 
-    ReturnStmt(std::optional<std::unique_ptr<Expr>> expr);
+    ReturnStmt(std::optional<std::unique_ptr<Expr>> expr, Token keyword);
 
     void accept(StmtVisitor &visitor) override;
 };

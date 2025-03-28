@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <memory>
 
 bool can_coerce_to(std::shared_ptr<Type> from, bool from_optional, std::shared_ptr<Type> to, bool to_optional) {
@@ -260,7 +261,15 @@ void TypeChecker::visit_literal_expr(LiteralExpr *expr) {
 
 // Statements
 void TypeChecker::visit_fun_decl_stmt(FunDeclStmt *fun) {
+    auto prev_fn_ret_type = this->surrounding_fn_return_type;
+    this->surrounding_fn_return_type = Temp{
+        fun->return_type,
+        fun->return_type_optional,
+    };
+
     this->check(fun->body);
+
+    this->surrounding_fn_return_type = prev_fn_ret_type;
 }
 
 void TypeChecker::visit_enum_method_decl_stmt(EnumMethodDeclStmt *fun) {
@@ -399,8 +408,16 @@ void TypeChecker::visit_print_stmt(PrintStmt *stmt) {
 }
 
 void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {
+    if (!this->surrounding_fn_return_type.has_value()) {
+        this->error(stmt->keyword, "Cannot return from outside of a function.");
+    }
+
     if (stmt->expr.has_value())
         stmt->expr.value()->accept(*this);
+
+    if (!can_coerce_to(this->result.type, this->result.optional, this->type_env[this->surrounding_fn_return_type->type.lexeme], this->surrounding_fn_return_type->optional)) {
+        this->error(stmt->keyword, "Must return a type that equals or can coerce to the return type of the function.");
+    }
 }
 
 void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {

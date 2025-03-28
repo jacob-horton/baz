@@ -198,14 +198,16 @@ std::unique_ptr<PrintStmt> Parser::print_statement() {
 }
 
 std::unique_ptr<ReturnStmt> Parser::return_statement() {
+    auto keyword = this->previous();
+
     if (this->match(TokenType::SEMI_COLON)) {
-        return std::make_unique<ReturnStmt>(std::optional<std::unique_ptr<Expr>>{});
+        return std::make_unique<ReturnStmt>(std::optional<std::unique_ptr<Expr>>{}, keyword);
     }
 
     std::unique_ptr<Expr> value = this->expression();
     this->consume(TokenType::SEMI_COLON, "Expected ';' after return statement.");
 
-    return std::make_unique<ReturnStmt>(std::move(value));
+    return std::make_unique<ReturnStmt>(std::move(value), keyword);
 }
 
 std::unique_ptr<AssignStmt> Parser::assignment(Expr &lhs) {

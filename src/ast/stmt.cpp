@@ -82,3 +82,8 @@ AssignStmt::AssignStmt(Token name, std::unique_ptr<Expr> value) : name(name), va
 void AssignStmt::accept(StmtVisitor &visitor) {
     visitor.visit_assign_stmt(this);
 }
+
+SetStmt::SetStmt(std::unique_ptr<Expr> object, Token name, std::unique_ptr<Expr> value) : object(std::move(object)), name(name), value(std::move(value)) {}
+void SetStmt::accept(StmtVisitor &visitor) {
+    visitor.visit_set_stmt(this);
+}

@@ -55,4 +55,5 @@ class TypeChecker : public ExprVisitor, public StmtVisitor {
     void visit_print_stmt(PrintStmt *stmt);
     void visit_return_stmt(ReturnStmt *stmt);
     void visit_assign_stmt(AssignStmt *stmt);
+    void visit_set_stmt(SetStmt *stmt);
 };

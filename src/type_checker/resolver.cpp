@@ -398,3 +398,9 @@ void Resolver::visit_assign_stmt(AssignStmt *stmt) {
 
     stmt->target_type = var.value().type;
 }
+
+void Resolver::visit_set_stmt(SetStmt *stmt) {
+    // TODO: types
+    this->resolve(stmt->value.get());
+    this->resolve(stmt->object.get());
+}

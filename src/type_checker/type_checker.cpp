@@ -142,6 +142,12 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             this->always_returns = false;
             return;
         }
+        case TokenType::EQUAL_EQUAL: {
+            // TODO: type check these are the same type
+            this->result = TypeInfo(this->type_env["bool"], false);
+            this->always_returns = false;
+            return;
+        }
         default:
             std::cerr << "[BUG] Binary operator type '" << get_token_type_str(expr->op.t) << "' not handled." << std::endl;
             exit(3);
@@ -505,4 +511,9 @@ void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     }
 
     this->always_returns = false;
+}
+
+void TypeChecker::visit_set_stmt(SetStmt *stmt) {
+    // TODO:
+    stmt->value->accept(*this);
 }

@@ -149,6 +149,8 @@ MatchPattern Parser::match_pattern() {
 }
 
 std::unique_ptr<ForStmt> Parser::for_statement() {
+    auto keyword = this->previous();
+
     this->consume(TokenType::L_BRACKET, "Expected '(' after 'for'.");
     this->consume(TokenType::LET, "Expected variable declaration.");
     auto var = this->variable_decl();
@@ -159,13 +161,19 @@ std::unique_ptr<ForStmt> Parser::for_statement() {
 
     auto expr = this->expression();
     this->consume(TokenType::EQUAL, "Expected '=' after assignment target.");
-    auto increment = this->assignment(*expr);
+    auto stmt = this->assignment(*expr);
+
+    auto increment = dynamic_cast<AssignStmt *>(stmt.release());
+    if (!stmt) {
+        this->error(keyword, "Assign statement not valid.");
+    }
+
     increment->semicolon = false;
 
     this->consume(TokenType::R_BRACKET, "Expected closing ')' after for condition.");
     this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before loop body.");
     auto body = this->block();
-    return std::make_unique<ForStmt>(std::move(var), std::move(condition_stmt), std::move(increment), std::move(body));
+    return std::make_unique<ForStmt>(std::move(var), std::move(condition_stmt), std::unique_ptr<AssignStmt>(increment), std::move(body));
 }
 
 std::unique_ptr<WhileStmt> Parser::while_statement() {
@@ -210,13 +218,15 @@ std::unique_ptr<ReturnStmt> Parser::return_statement() {
     return std::make_unique<ReturnStmt>(std::move(value), keyword);
 }
 
-std::unique_ptr<AssignStmt> Parser::assignment(Expr &lhs) {
+std::unique_ptr<Stmt> Parser::assignment(Expr &lhs) {
     Token equals_token = this->previous();
     std::unique_ptr<Expr> value = this->expression();
 
     if (VarExpr *var = dynamic_cast<VarExpr *>(&lhs)) {
         Token name = var->name;
         return std::make_unique<AssignStmt>(name, std::move(value));
+    } else if (GetExpr *get = dynamic_cast<GetExpr *>(&lhs)) {
+        return std::make_unique<SetStmt>(std::move(get->object), get->name, std::move(value));
     }
 
     this->error(equals_token, "Invalid assignment target.");

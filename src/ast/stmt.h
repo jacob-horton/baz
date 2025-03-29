@@ -188,3 +188,14 @@ struct ReturnStmt : public Stmt {
 
     void accept(StmtVisitor &visitor) override;
 };
+
+struct SetStmt : public Stmt {
+    std::unique_ptr<Expr> object;
+    Token name;
+
+    std::unique_ptr<Expr> value;
+
+    SetStmt(std::unique_ptr<Expr> object, Token name, std::unique_ptr<Expr> value);
+
+    void accept(StmtVisitor &visitor) override;
+};

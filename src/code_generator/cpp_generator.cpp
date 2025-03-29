@@ -31,6 +31,26 @@ void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
                  << "#include <variant>" << std::endl
                  << "#include <string>" << std::endl
                  << "#include <optional>" << std::endl
+                 << "#include <sstream>" << std::endl
+                 << std::endl;
+
+    // To-string function
+    this->output << R"END(
+// Baz_to_string code from https://medium.com/@ryan_forrester_/how-to-convert-c-boolean-to-string-b4b2b3c36d68
+template<typename T>
+std::string Baz_to_string(const T& value) {
+    // Normal converting element to string
+    std::ostringstream oss;
+    oss << value;
+    return oss.str();
+}
+
+// Specialization for bool
+template<>
+std::string Baz_to_string<bool>(const bool& value) {
+    // Bool -> "true" or "false" instead of "1" and "0"
+    return value ? "true" : "false";
+})END" << std::endl
                  << std::endl;
 
     // Declare all struct names (including enum variants)
@@ -241,8 +261,11 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
                     get_expr->object->accept(*this);
                     this->output << "; if (temp.has_value()) { temp.value()->" << get_expr->name.lexeme << "(";
 
+                    bool first = true;
                     for (auto &arg : expr->args) {
-                        this->output << ", ";
+                        if (!first)
+                            this->output << ", ";
+
                         arg->accept(*this);
                     }
 
@@ -525,9 +548,11 @@ void CppGenerator::visit_print_stmt(PrintStmt *stmt) {
         if (stmt->expr.value()->type_info.optional) {
             this->output << "({ auto temp = ";
             stmt->expr.value()->accept(*this);
-            this->output << "; temp.has_value() ? std::to_string(temp.value()) : \"null\"; })";
+            this->output << "; temp.has_value() ? Baz_to_string(temp.value()) : \"null\"; })";
         } else {
+            this->output << "Baz_to_string(";
             stmt->expr.value()->accept(*this);
+            this->output << ")";
         }
     }
 
@@ -559,4 +584,14 @@ void CppGenerator::visit_assign_stmt(AssignStmt *stmt) {
 
     if (stmt->semicolon)
         this->output << ";" << std::endl;
+}
+
+void CppGenerator::visit_set_stmt(SetStmt *stmt) {
+    // TODO: handle optional set stmt
+
+    stmt->object->accept(*this);
+    this->output << "->" << stmt->name.lexeme << " = ";
+
+    stmt->value->accept(*this);
+    this->output << ";" << std::endl;
 }

@@ -18,4 +18,5 @@ class StmtVisitor {
     virtual void visit_print_stmt(PrintStmt *stmt) = 0;
     virtual void visit_return_stmt(ReturnStmt *stmt) = 0;
     virtual void visit_assign_stmt(AssignStmt *stmt) = 0;
+    virtual void visit_set_stmt(SetStmt *stmt) = 0;
 };

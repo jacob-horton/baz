@@ -165,3 +165,8 @@ void TypeEnvironment::visit_assign_stmt(AssignStmt *stmt) {
     std::cerr << "Unimplemented" << std::endl;
     exit(3);
 }
+
+void TypeEnvironment::visit_set_stmt(SetStmt *stmt) {
+    std::cerr << "Unimplemented" << std::endl;
+    exit(3);
+}

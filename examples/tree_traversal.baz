@@ -1,49 +1,93 @@
 struct TreeNode {
-	left: Tree?;
-	right: Tree?;
-}
+	value: int;
 
-enum Tree {
-	Leaf(int);
-	Node(TreeNode);
+	left: TreeNode?;
+	right: TreeNode?;
 
 	fn sum(): int {
-		match (this) {
-			Tree::Leaf(value): { return value; },
-			Tree::Node(tree_node): {
-				return tree_node.left?.sum() ?? 0 + tree_node.right?.sum() ?? 0;
+		return this.value + this.left?.sum() ?? 0 + this.right?.sum() ?? 0;
+	}
+
+	fn increment_nodes(): void {
+		this.value = this.value + 1;
+		this.left?.increment_nodes();
+		this.right?.increment_nodes();
+	}
+
+	fn in_order(): void {
+		this.left?.in_order();
+		println(this.value);
+		this.right?.in_order();
+	}
+
+	fn pre_order(): void {
+		println(this.value);
+		this.left?.pre_order();
+		this.right?.pre_order();
+	}
+
+	fn post_order(): void {
+		this.left?.post_order();
+		this.right?.post_order();
+		println(this.value);
+	}
+
+	fn insert(num: int): void {
+		if (num < this.value) {
+			if (this.left == null) {
+				this.left = TreeNode { value: num, left: null, right: null };
+			} else {
+				this.left?.insert(num);
+			}
+		} else {
+			if (this.right == null) {
+				this.right = TreeNode { value: num, left: null, right: null };
+			} else {
+				this.right?.insert(num);
 			}
 		}
 	}
 
-	fn increment_leaves(): void {
-		match (this) {
-			Tree::Leaf(value): {
-				this = Tree::Leaf(value + 1);
-			},
-			Tree::Node(tree_node): {
-				tree_node.left?.increment_leaves();
-				tree_node.right?.increment_leaves();
-			}
-		}
+	fn contains(num: int): bool {
+		if (num == this.value) {
+			return true;
+		} else { if (num < this.value) {
+			return this.left?.contains(num) ?? false;
+		} else {
+			return this.right?.contains(num) ?? false;
+		}}
 	}
 }
 
 fn main(): void {
-	let tree: Tree = Tree::Node(
-		TreeNode {
-			left: Tree::Leaf(1),
-			right: Tree::Node(
-				TreeNode {
-					left: Tree::Leaf(2),
-					right: null,
-				}
-			),
-		}
-	);
+	let tree: TreeNode = TreeNode {
+		value: 5,
+		left: null,
+		right: null,
+	};
 
+	tree.insert(4);
+	tree.insert(8);
+	tree.insert(7);
+
+	println("==== IN-ORDER TRAVERSAL ====");
+	tree.in_order();
+
+	println("\n==== NUMBERS IN TREE ====");
+	let i: int = 0;
+	while (i < 10) {
+		print(i);
+		print(": ");
+		println(tree.contains(i));
+
+		i = i + 1;
+	}
+
+	println("\n==== SUM OF VALUES ====");
+	print("Before increment: ");
 	println(tree.sum());
 
-	tree.increment_leaves();
+	tree.increment_nodes();
+	print("After increment:  ");
 	println(tree.sum());
 }

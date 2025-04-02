@@ -276,7 +276,6 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
 
             this->output << "{ auto temp = ";
             get_expr->object->accept(*this);
-            // TODO: if type of this is not already optional, wrap temp.value()->whatever in std::optional{}
             this->output << "; temp.has_value() ? std::optional{temp.value()->" << get_expr->name.lexeme << "(";
 
             bool first = true;

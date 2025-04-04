@@ -149,8 +149,8 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             expr->right->accept(*this);
             auto right_t = this->result;
 
-            // Has to coerce to left type (nullable doesn't matter)
-            if (!right_t.type->can_coerce_to(left_t.type))
+            // Left can coerce to right or right to left
+            if (!(can_coerce_to(right_t.type, right_t.optional, left_t.type, left_t.optional) || can_coerce_to(left_t.type, left_t.optional, right_t.type, right_t.optional)))
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = TypeInfo(this->type_env["bool"], false);
@@ -521,10 +521,9 @@ void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {
 void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
     stmt->value->accept(*this);
 
-    // TODO: Check if existing variable is nullable
     auto from = this->result;
-    auto to = stmt->target_type;
-    if (!can_coerce_to(from.type, from.optional, to, false)) {
+    auto to = stmt->get_target_type_info();
+    if (!can_coerce_to(from.type, from.optional, to.type, to.optional)) {
         this->error(stmt->name, "Cannot assign a different type to this variable.");
     }
 
@@ -532,6 +531,13 @@ void TypeChecker::visit_assign_stmt(AssignStmt *stmt) {
 }
 
 void TypeChecker::visit_set_stmt(SetStmt *stmt) {
-    // TODO:
     stmt->value->accept(*this);
+
+    auto from = this->result;
+    auto to = stmt->get_target_type_info();
+    if (!can_coerce_to(from.type, from.optional, to.type, to.optional)) {
+        this->error(stmt->name, "Cannot assign a different type to this variable.");
+    }
+
+    this->always_returns = false;
 }

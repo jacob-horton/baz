@@ -146,12 +146,17 @@ struct WhileStmt : public Stmt {
 };
 
 struct AssignStmt : public Stmt {
+  private:
+    // NOTE: this gets set when resolving
+    std::optional<TypeInfo> target_type_info;
+
+  public:
     Token name;
     std::unique_ptr<Expr> value;
     bool semicolon;
 
-    // NOTE: this gets set when resolving
-    std::shared_ptr<Type> target_type;
+    TypeInfo get_target_type_info();
+    void set_target_type_info(TypeInfo type_info);
 
     AssignStmt(Token name, std::unique_ptr<Expr> value);
 
@@ -188,10 +193,18 @@ struct ReturnStmt : public Stmt {
 };
 
 struct SetStmt : public Stmt {
+  private:
+    // NOTE: this gets set when resolving
+    std::optional<TypeInfo> target_type_info;
+
+  public:
     std::unique_ptr<Expr> object;
     Token name;
 
     std::unique_ptr<Expr> value;
+
+    TypeInfo get_target_type_info();
+    void set_target_type_info(TypeInfo type_info);
 
     SetStmt(std::unique_ptr<Expr> object, Token name, std::unique_ptr<Expr> value);
 

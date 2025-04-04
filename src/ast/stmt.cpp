@@ -1,6 +1,8 @@
 #include "stmt.h"
 #include "stmt_visitor.h"
+#include <iostream>
 #include <memory>
+#include <optional>
 
 FunDeclStmt::FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, bool return_type_optional, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type)
     : name(name), params(params), return_type(return_type), return_type_optional(return_type_optional), body(std::move(body)), fun_type(fun_type) {}
@@ -78,12 +80,38 @@ void ReturnStmt::accept(StmtVisitor &visitor) {
     visitor.visit_return_stmt(this);
 }
 
-AssignStmt::AssignStmt(Token name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)), semicolon(true) {}
+AssignStmt::AssignStmt(Token name, std::unique_ptr<Expr> value) : name(name), value(std::move(value)), semicolon(true), target_type_info(std::nullopt) {}
 void AssignStmt::accept(StmtVisitor &visitor) {
     visitor.visit_assign_stmt(this);
 }
 
-SetStmt::SetStmt(std::unique_ptr<Expr> object, Token name, std::unique_ptr<Expr> value) : object(std::move(object)), name(name), value(std::move(value)) {}
+TypeInfo AssignStmt::get_target_type_info() {
+    if (!this->target_type_info.has_value()) {
+        std::cerr << "[BUG] type info not set" << std::endl;
+        exit(3);
+    }
+
+    return this->target_type_info.value();
+}
+
+void AssignStmt::set_target_type_info(TypeInfo type_info) {
+    this->target_type_info = type_info;
+}
+
+SetStmt::SetStmt(std::unique_ptr<Expr> object, Token name, std::unique_ptr<Expr> value) : object(std::move(object)), name(name), value(std::move(value)), target_type_info(std::nullopt) {}
 void SetStmt::accept(StmtVisitor &visitor) {
     visitor.visit_set_stmt(this);
+}
+
+TypeInfo SetStmt::get_target_type_info() {
+    if (!this->target_type_info.has_value()) {
+        std::cerr << "[BUG] type info not set" << std::endl;
+        exit(3);
+    }
+
+    return this->target_type_info.value();
+}
+
+void SetStmt::set_target_type_info(TypeInfo type_info) {
+    this->target_type_info = type_info;
 }

@@ -389,11 +389,25 @@ void Resolver::visit_assign_stmt(AssignStmt *stmt) {
     if (!var.has_value())
         this->error(stmt->name, "Cannot assign to a variable that hasn't been declared.");
 
-    stmt->target_type = var.value().type;
+    stmt->set_target_type_info(TypeInfo(var.value().type, var.value().optional));
 }
 
 void Resolver::visit_set_stmt(SetStmt *stmt) {
-    // TODO: types
     this->resolve(stmt->value.get());
     this->resolve(stmt->object.get());
+
+    if (stmt->object->get_type_info().optional) {
+        this->error(stmt->name, "Assigning to a property of an optional struct is not currently supported.");
+    }
+
+    if (auto t = std::dynamic_pointer_cast<StructType>(stmt->object->get_type_info().type)) {
+        auto prop_type = t->get_prop_type(stmt->name.lexeme);
+        if (!prop_type.has_value()) {
+            this->error(stmt->name, "Could not find property on struct.");
+        }
+
+        stmt->set_target_type_info(TypeInfo(this->type_env[prop_type.value().type.lexeme], prop_type.value().optional));
+    } else {
+        this->error(stmt->name, "Cannot get property on a variable that is not a struct.");
+    }
 }

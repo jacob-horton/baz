@@ -10,7 +10,6 @@ std::string NullType::to_string() { return "null"; }
 std::string StrType::to_string() { return "str"; }
 std::string VoidType::to_string() { return "void"; }
 
-// TODO: can_coerce_to for these
 std::string StructType::to_string() { return this->name.lexeme; }
 std::string FunctionType::to_string() { return this->name.lexeme; }
 std::string EnumType::to_string() { return this->name.lexeme; }

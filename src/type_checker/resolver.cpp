@@ -16,9 +16,7 @@ void Resolver::error(Token error_token, std::string message) {
         where = "'" + error_token.lexeme + "'";
 
     std::cerr << "[line " << error_token.line << "] Resolving error at " << where << ": " << message << std::endl;
-
-    // TODO: handle this
-    exit(3);
+    exit(5);
 }
 
 void Resolver::begin_scope() {
@@ -130,7 +128,7 @@ void Resolver::visit_var_expr(VarExpr *expr) {
     if (!resolved.value().defined)
         this->error(expr->name, "Cannot read local variable in its own initialiser.");
 
-    expr->type_info = TypeInfo(resolved.value().type, resolved.value().optional);
+    expr->set_type_info(TypeInfo(resolved.value().type, resolved.value().optional));
 }
 
 void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
@@ -140,7 +138,7 @@ void Resolver::visit_struct_init_expr(StructInitExpr *expr) {
 
     if (auto t = std::dynamic_pointer_cast<StructType>(this->type_env[expr->name.lexeme])) {
         // Since we are initialising it, it must be non-null
-        expr->type_info = TypeInfo(t, false);
+        expr->set_type_info(TypeInfo(t, false));
         return;
     }
 
@@ -152,11 +150,6 @@ void Resolver::visit_binary_expr(BinaryExpr *expr) {
     this->resolve(expr->right.get());
 }
 
-void Resolver::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
-    this->resolve(expr->left.get());
-    this->resolve(expr->right.get());
-}
-
 void Resolver::visit_unary_expr(UnaryExpr *expr) {
     this->resolve(expr->right.get());
 }
@@ -164,11 +157,11 @@ void Resolver::visit_unary_expr(UnaryExpr *expr) {
 void Resolver::visit_get_expr(GetExpr *expr) {
     this->resolve(expr->object.get());
 
-    if (auto t = std::dynamic_pointer_cast<StructType>(expr->object->type_info.type)) {
+    if (auto t = std::dynamic_pointer_cast<StructType>(expr->object->get_type_info().type)) {
         auto method_type = t->get_method_type(expr->name.lexeme);
         if (method_type.has_value()) {
             // If the struct is optional, we are using optional chaining - the result is optional
-            expr->type_info = TypeInfo(method_type.value(), expr->object->type_info.optional);
+            expr->set_type_info(TypeInfo(method_type.value(), expr->object->get_type_info().optional));
             return;
         }
 
@@ -176,16 +169,16 @@ void Resolver::visit_get_expr(GetExpr *expr) {
         if (prop_type.has_value()) {
             // If the struct is optional, we are using optional chaining - the result is optional
             // Otherwise, check if the property is optional
-            expr->type_info = TypeInfo(this->type_env[prop_type.value().type.lexeme], expr->object->type_info.optional || prop_type.value().optional);
+            expr->set_type_info(TypeInfo(this->type_env[prop_type.value().type.lexeme], expr->object->get_type_info().optional || prop_type.value().optional));
             return;
         }
 
         this->error(expr->name, "Could not find member on struct.");
-    } else if (auto t = std::dynamic_pointer_cast<EnumType>(expr->object->type_info.type)) {
+    } else if (auto t = std::dynamic_pointer_cast<EnumType>(expr->object->get_type_info().type)) {
         auto type = t->get_method_type(expr->name.lexeme);
         if (type.has_value()) {
             // If the enum is optional, we are using optional chaining - the result is optional
-            expr->type_info = TypeInfo(type.value(), expr->object->type_info.optional);
+            expr->set_type_info(TypeInfo(type.value(), expr->object->get_type_info().optional));
             return;
         }
 
@@ -203,7 +196,7 @@ void Resolver::visit_enum_init_expr(EnumInitExpr *expr) {
     auto enum_name = expr->enum_namespace->name;
     if (auto t = std::dynamic_pointer_cast<EnumType>(this->type_env[enum_name.lexeme])) {
         // Since we are initialising it, it must be non-null
-        expr->type_info = TypeInfo(t, false);
+        expr->set_type_info(TypeInfo(t, false));
         return;
     }
 
@@ -213,8 +206,8 @@ void Resolver::visit_enum_init_expr(EnumInitExpr *expr) {
 void Resolver::visit_call_expr(CallExpr *expr) {
     this->resolve(expr->callee.get());
 
-    if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->type_info.type)) {
-        expr->type_info = TypeInfo(this->type_env[t->return_type.lexeme], t->return_type_optional);
+    if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->get_type_info().type)) {
+        expr->set_type_info(TypeInfo(this->type_env[t->return_type.lexeme], t->return_type_optional));
     } else {
         this->error(expr->bracket, "Cannot call non-function.");
     }
@@ -231,14 +224,14 @@ void Resolver::visit_grouping_expr(GroupingExpr *expr) {
 // NOTE: no variables to resolve here
 void Resolver::visit_literal_expr(LiteralExpr *expr) {
     switch (expr->literal.t) {
-        case TokenType::INT_VAL:   expr->type_info = TypeInfo(this->type_env["int"], false); break;
-        case TokenType::FLOAT_VAL: expr->type_info = TypeInfo(this->type_env["float"], false); break;
-        case TokenType::BOOL_VAL:  expr->type_info = TypeInfo(this->type_env["bool"], false); break;
-        case TokenType::NULL_VAL:  expr->type_info = TypeInfo(this->type_env["null"], true); break;
-        case TokenType::STR_VAL:   expr->type_info = TypeInfo(this->type_env["str"], false); break;
+        case TokenType::INT_VAL:   expr->set_type_info(TypeInfo(this->type_env["int"], false)); break;
+        case TokenType::FLOAT_VAL: expr->set_type_info(TypeInfo(this->type_env["float"], false)); break;
+        case TokenType::BOOL_VAL:  expr->set_type_info(TypeInfo(this->type_env["bool"], false)); break;
+        case TokenType::NULL_VAL:  expr->set_type_info(TypeInfo(this->type_env["null"], true)); break;
+        case TokenType::STR_VAL:   expr->set_type_info(TypeInfo(this->type_env["str"], false)); break;
         case TokenType::TRUE:
         case TokenType::FALSE:
-            expr->type_info = TypeInfo(this->type_env["bool"], false);
+            expr->set_type_info(TypeInfo(this->type_env["bool"], false));
             break;
         default:
             std::cout << "[BUG] Literal type unknown" << std::endl;
@@ -327,7 +320,7 @@ void Resolver::visit_if_stmt(IfStmt *stmt) {
 void Resolver::visit_match_stmt(MatchStmt *stmt) {
     this->resolve(stmt->target.get());
 
-    auto enum_type = std::dynamic_pointer_cast<EnumType>(stmt->target->type_info.type);
+    auto enum_type = std::dynamic_pointer_cast<EnumType>(stmt->target->get_type_info().type);
     if (!enum_type) {
         this->error(stmt->keyword, "Trying to pattern match on non-enum.");
     }

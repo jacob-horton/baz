@@ -1,6 +1,5 @@
 #include "type_environment.h"
 
-#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -34,11 +33,6 @@ void TypeEnvironment::visit_struct_init_expr(StructInitExpr *expr) {
 }
 
 void TypeEnvironment::visit_binary_expr(BinaryExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-void TypeEnvironment::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
     std::cerr << "Unimplemented" << std::endl;
     exit(3);
 }

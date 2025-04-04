@@ -33,7 +33,6 @@ class TypeChecker : public ExprVisitor, public StmtVisitor {
     void visit_var_expr(VarExpr *expr);
     void visit_struct_init_expr(StructInitExpr *expr);
     void visit_binary_expr(BinaryExpr *expr);
-    void visit_logical_binary_expr(LogicalBinaryExpr *expr);
     void visit_unary_expr(UnaryExpr *expr);
     void visit_get_expr(GetExpr *expr);
     void visit_enum_init_expr(EnumInitExpr *expr);

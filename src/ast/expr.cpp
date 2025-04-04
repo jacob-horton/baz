@@ -1,9 +1,24 @@
 #include "expr.h"
 #include "expr_visitor.h"
 
+#include <iostream>
 #include <memory>
+#include <ostream>
 
 TypeInfo::TypeInfo(std::shared_ptr<Type> type, bool optional) : type(type), optional(optional) {}
+
+TypeInfo Expr::get_type_info() {
+    if (!this->type_info.has_value()) {
+        std::cerr << "[BUG] type info not set" << std::endl;
+        exit(3);
+    }
+
+    return this->type_info.value();
+}
+
+void Expr::set_type_info(TypeInfo type_info) {
+    this->type_info = type_info;
+}
 
 VarExpr::VarExpr(Token name) : name(name) {}
 void VarExpr::accept(ExprVisitor &visitor) {
@@ -24,12 +39,6 @@ BinaryExpr::BinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Exp
     : left(std::move(left)), op(op), right(std::move(right)) {}
 void BinaryExpr::accept(ExprVisitor &visitor) {
     visitor.visit_binary_expr(this);
-}
-
-LogicalBinaryExpr::LogicalBinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
-    : left(std::move(left)), op(op), right(std::move(right)) {}
-void LogicalBinaryExpr::accept(ExprVisitor &visitor) {
-    visitor.visit_logical_binary_expr(this);
 }
 
 UnaryExpr::UnaryExpr(Token op, std::unique_ptr<Expr> right) : op(op), right(std::move(right)) {}

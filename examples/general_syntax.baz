@@ -10,25 +10,31 @@ struct Name {
 }
 
 fn main(): void {
-	let variable: bool = true;
+	let name: Name = Name {
+		prop1: null,
+		prop2: false,
+	};
+
 	let other: bool = false;
 
 	for (let i: int = 0; i < 100; i = i + 1) {
-		1 + 3 * 4 / (-variable && !other.something.that(1,2,3,4));
+		if (!other && name.method1(12.0) > 1) {
+			1 + 3 * 4 / -(name.prop1 ?? 0);
+		}
 	}
 
 	let num: int = 1234;
-	num.increment_leaves();
-
-	while (true) {
+	while (num < 1240) {
 		if (num > 0) {
 			print("yay I got here\n");
 		} else {
 			print("nu uh\n");
 		}
 
-		for (let i: int = 0; i < 500; i = i + 1) {
+		for (let i: int = 0; i < 5; i = i + 1) {
 			println(i);
 		}
+
+		num = num + 1;
 	}
 }

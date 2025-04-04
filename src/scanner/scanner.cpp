@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "token.h"
 
 #include <cstring>
 #include <iostream>
@@ -108,6 +109,11 @@ Token StringScanner::symbol(char start) {
     if (token_type == SYMBOLS.end()) {
         std::cerr << "Unrecognised symbol: '" << start << "'" << std::endl;
         exit(1);
+    }
+
+    // `?.` syntax
+    if (token_type->second == TokenType::QUESTION && this->match('.')) {
+        return this->make_token(TokenType::QUESTION_DOT);
     }
 
     return this->make_token(token_type->second);

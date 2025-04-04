@@ -5,6 +5,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
 // Forward declaration - actual implementation will import the visitor
@@ -18,13 +19,16 @@ struct TypeInfo {
 };
 
 struct Expr {
-    // TODO: make this optional, and then have get_type which will error and quit if not set
+  protected:
     // NOTE: this gets set during resolving
-    TypeInfo type_info;
+    std::optional<TypeInfo> type_info;
 
+  public:
     virtual void accept(ExprVisitor &visitor) = 0;
+    TypeInfo get_type_info();
+    void set_type_info(TypeInfo type_info);
 
-    Expr() : type_info(TypeInfo(nullptr, false)) {}
+    Expr() : type_info(std::nullopt) {}
     virtual ~Expr() = default;
 };
 
@@ -51,17 +55,6 @@ struct BinaryExpr : public Expr {
     std::unique_ptr<Expr> right;
 
     BinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right);
-
-    void accept(ExprVisitor &visitor) override;
-};
-
-// Smae as BinaryExpr, but short-circuits
-struct LogicalBinaryExpr : public Expr {
-    std::unique_ptr<Expr> left;
-    Token op;
-    std::unique_ptr<Expr> right;
-
-    LogicalBinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right);
 
     void accept(ExprVisitor &visitor) override;
 };

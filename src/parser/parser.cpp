@@ -164,7 +164,7 @@ std::unique_ptr<ForStmt> Parser::for_statement() {
     auto stmt = this->assignment(*expr);
 
     auto increment = dynamic_cast<AssignStmt *>(stmt.release());
-    if (!stmt) {
+    if (!increment) {
         this->error(keyword, "Assign statement not valid.");
     }
 
@@ -373,7 +373,7 @@ std::unique_ptr<Expr> Parser::logical_or() {
     while (this->match(TokenType::OR)) {
         Token op = this->previous();
         std::unique_ptr<Expr> rhs = this->logical_and();
-        expr = std::make_unique<LogicalBinaryExpr>(std::move(expr), op, std::move(rhs));
+        expr = std::make_unique<BinaryExpr>(std::move(expr), op, std::move(rhs));
     }
 
     return expr;
@@ -385,7 +385,7 @@ std::unique_ptr<Expr> Parser::logical_and() {
     while (this->match(TokenType::AND)) {
         Token op = this->previous();
         std::unique_ptr<Expr> rhs = this->equality();
-        expr = std::make_unique<LogicalBinaryExpr>(std::move(expr), op, std::move(rhs));
+        expr = std::make_unique<BinaryExpr>(std::move(expr), op, std::move(rhs));
     }
 
     return expr;
@@ -495,8 +495,7 @@ std::unique_ptr<Expr> Parser::call() {
             // Property access
             Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
             expr = std::make_unique<GetExpr>(std::move(expr), name, false);
-            // TODO: use a QUESTION_DOT token?
-        } else if (this->match(TokenType::QUESTION) && this->match(TokenType::DOT)) {
+        } else if (this->match(TokenType::QUESTION_DOT)) {
             // Optional property access
             Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
             expr = std::make_unique<GetExpr>(std::move(expr), name, true);

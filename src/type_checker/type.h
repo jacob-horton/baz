@@ -88,8 +88,8 @@ struct FunctionType : public Type {
 
 struct StructType : public Type {
     Token name;
-    // TODO: just store identifiers rather than types?
     std::vector<TypedVar> props;
+    // TODO: just store identifiers rather than types?
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
 
     StructType(Token name, std::vector<TypedVar> props, std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods) : Type(TypeClass::STRUCT_), name(name), props(props), methods(methods) {}

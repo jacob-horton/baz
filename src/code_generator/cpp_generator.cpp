@@ -98,10 +98,9 @@ void CppGenerator::visit_var_expr(VarExpr *expr) {
 void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
     this->output << "(new " << expr->name.lexeme << "{";
 
-    if (auto t = std::dynamic_pointer_cast<StructType>(expr->type_info.type)) {
+    if (auto t = std::dynamic_pointer_cast<StructType>(expr->get_type_info().type)) {
         if (expr->properties.size() != t->props.size()) {
-            // TODO: handle error properly, and report which are missing/extra
-            std::cerr << "[BUG] Incorrect number of properties." << std::endl;
+            std::cerr << "[BUG] Incorrect number of properties. Should be checked by type checker." << std::endl;
             exit(3);
         }
 
@@ -150,15 +149,6 @@ void CppGenerator::visit_binary_expr(BinaryExpr *expr) {
     this->output << ")";
 }
 
-// TODO: is logical binary needed if we're just generating C++?
-void CppGenerator::visit_logical_binary_expr(LogicalBinaryExpr *expr) {
-    this->output << "(";
-    expr->left->accept(*this);
-    this->output << " " << expr->op.lexeme << " ";
-    expr->right->accept(*this);
-    this->output << ")";
-}
-
 void CppGenerator::visit_unary_expr(UnaryExpr *expr) {
     this->output << "(";
     this->output << expr->op.lexeme;
@@ -202,12 +192,12 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
     // If we are doing x.y()
     if (auto *get_expr = dynamic_cast<GetExpr *>(expr->callee.get())) {
         // And x is an enum type
-        if (auto t = std::dynamic_pointer_cast<EnumType>(get_expr->object->type_info.type)) {
+        if (auto t = std::dynamic_pointer_cast<EnumType>(get_expr->object->get_type_info().type)) {
             this->output << "(";
 
             if (get_expr->optional) {
                 // If calling a function that returns void, handle differently - no return value
-                if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(get_expr->type_info.type)) {
+                if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(get_expr->get_type_info().type)) {
                     if (fun_t->return_type.lexeme == "void") {
                         this->output << "{ auto temp = ";
                         get_expr->object->accept(*this);
@@ -253,9 +243,9 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
 
             this->output << "))";
             return;
-        } else if (auto t = std::dynamic_pointer_cast<StructType>(get_expr->object->type_info.type) && get_expr->type_info.optional) {
+        } else if (auto t = std::dynamic_pointer_cast<StructType>(get_expr->object->get_type_info().type) && get_expr->get_type_info().optional) {
             this->output << "(";
-            if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(get_expr->type_info.type)) {
+            if (auto fun_t = std::dynamic_pointer_cast<FunctionType>(get_expr->get_type_info().type)) {
                 if (fun_t->return_type.lexeme == "void") {
                     this->output << "{ auto temp = ";
                     get_expr->object->accept(*this);
@@ -464,7 +454,7 @@ void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
     auto optional_getter = "";
 
     // Do null branch first
-    if (stmt->target->type_info.optional) {
+    if (stmt->target->get_type_info().optional) {
         first = false;
         this->output << "if (!" << target_var << ".has_value()) {" << std::endl;
         optional_getter = ".value()";
@@ -526,7 +516,6 @@ void CppGenerator::visit_for_stmt(ForStmt *stmt) {
 
     stmt->var->accept(*this);
     stmt->condition->accept(*this);
-    // TODO: don't include semicolon at end
     stmt->increment->accept(*this);
 
     this->output << ") {" << std::endl;
@@ -544,7 +533,7 @@ void CppGenerator::visit_print_stmt(PrintStmt *stmt) {
     if (stmt->expr.has_value()) {
         this->output << " << ";
 
-        if (stmt->expr.value()->type_info.optional) {
+        if (stmt->expr.value()->get_type_info().optional) {
             this->output << "({ auto temp = ";
             stmt->expr.value()->accept(*this);
             this->output << "; temp.has_value() ? Baz_to_string(temp.value()) : \"null\"; })";

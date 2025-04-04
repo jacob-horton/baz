@@ -17,6 +17,7 @@ enum TokenType {
     COMMA,
     DOT,
     QUESTION,
+    QUESTION_DOT,
     LET,
     MATCH,
     FN,

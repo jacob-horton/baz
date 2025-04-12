@@ -41,6 +41,7 @@ void TypeChecker::error(Token error_token, std::string message) {
 // Expressions
 void TypeChecker::visit_var_expr(VarExpr *expr) {
     this->result = expr->get_type_info();
+    expr->set_type_info(this->result);
     this->always_returns = false;
 }
 
@@ -73,6 +74,7 @@ void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
     }
 
     this->result = expr->get_type_info();
+    expr->set_type_info(this->result);
     this->always_returns = false;
 }
 
@@ -96,6 +98,8 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             if (!can_coerce_to(right_t.type, right_t.optional, left_t.type, left_t.optional))
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
+            this->result = left_t;
+            expr->set_type_info(this->result);
             this->always_returns = false;
             return;
         }
@@ -118,6 +122,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = TypeInfo(this->type_env["bool"], false);
+            expr->set_type_info(this->result);
             this->always_returns = false;
             return;
         }
@@ -139,6 +144,8 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             // Always go to non-optional form of left type
             this->result = left_t;
             this->result.optional = false;
+            expr->set_type_info(this->result);
+
             this->always_returns = false;
             return;
         }
@@ -154,6 +161,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = TypeInfo(this->type_env["bool"], false);
+            expr->set_type_info(this->result);
             this->always_returns = false;
             return;
         }
@@ -174,6 +182,7 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
                 this->error(expr->op, "Operands must be the same type, or coercible to the same type.");
 
             this->result = TypeInfo(this->type_env["bool"], false);
+            expr->set_type_info(this->result);
             this->always_returns = false;
             return;
         }
@@ -206,6 +215,7 @@ void TypeChecker::visit_unary_expr(UnaryExpr *expr) {
             exit(3);
     }
 
+    expr->set_type_info(this->result);
     this->always_returns = false;
 }
 
@@ -220,6 +230,7 @@ void TypeChecker::visit_get_expr(GetExpr *expr) {
     }
 
     this->result = expr->get_type_info();
+    expr->set_type_info(this->result);
     this->always_returns = false;
 }
 
@@ -248,6 +259,7 @@ void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
     }
 
     this->result = expr->get_type_info();
+    expr->set_type_info(this->result);
     this->always_returns = false;
 }
 
@@ -273,6 +285,7 @@ void TypeChecker::visit_call_expr(CallExpr *expr) {
     }
 
     this->result = expr->get_type_info();
+    expr->set_type_info(this->result);
 
     // If we are optional chaining, carry forwards optional type
     this->result.optional |= expr->callee->get_type_info().optional;
@@ -281,11 +294,13 @@ void TypeChecker::visit_call_expr(CallExpr *expr) {
 
 void TypeChecker::visit_grouping_expr(GroupingExpr *expr) {
     expr->expr->accept(*this);
+    expr->set_type_info(this->result);
     this->always_returns = false;
 }
 
 void TypeChecker::visit_literal_expr(LiteralExpr *expr) {
     this->result = expr->get_type_info();
+    expr->set_type_info(this->result);
     this->always_returns = false;
 }
 

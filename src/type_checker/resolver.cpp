@@ -72,6 +72,10 @@ void Resolver::resolve_struct(StructDeclStmt *s) {
     this->define(this_keyword);
 
     for (auto &prop : s->properties) {
+        auto type = this->type_env.find(prop.type.lexeme);
+        if (type == this->type_env.end())
+            this->error(prop.type, "Unknown type for struct prop.");
+
         this->declare(prop.name.lexeme, this->type_env[prop.type.lexeme], prop.is_optional);
         this->define(prop.name.lexeme);
     }

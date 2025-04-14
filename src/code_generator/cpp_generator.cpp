@@ -6,6 +6,8 @@
 #include <ostream>
 #include <variant>
 
+inline const std::string BAZ_NAMESPACE = "Baz";
+
 std::string baz_to_cpp_type(Token type, bool optional) {
     if (type.t == TokenType::TYPE && type.lexeme == "str") {
         return optional ? "std::optional<std::string>" : "std::string";
@@ -16,12 +18,12 @@ std::string baz_to_cpp_type(Token type, bool optional) {
     return optional ? "std::optional<" + full_non_optional_type + ">" : full_non_optional_type;
 }
 
-std::string enum_variant_name(std::string enum_name, std::string variant_name) {
-    return "Baz_" + enum_name + variant_name;
+std::string enum_variant_name(std::string enum_name, std::string variant_name, bool namespaced = true) {
+    return (namespaced ? BAZ_NAMESPACE + "::" : "") + enum_name + "_" + variant_name;
 }
 
-std::string enum_method_name(std::string enum_name, std::string method_name) {
-    return "Baz_" + enum_name + "_" + method_name;
+std::string enum_method_name(std::string enum_name, std::string method_name, bool namespaced = true) {
+    return (namespaced ? BAZ_NAMESPACE + "::" : "") + enum_name + "_" + method_name;
 }
 
 CppGenerator::CppGenerator(std::ostream &output, std::map<std::string, std::shared_ptr<Type>> type_env) : output(output), this_keyword("this"), type_env(type_env) {}
@@ -35,21 +37,22 @@ void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
                  << std::endl;
 
     // To-string function
-    this->output << R"END(
-// Baz_to_string code from https://medium.com/@ryan_forrester_/how-to-convert-c-boolean-to-string-b4b2b3c36d68
-template<typename T>
-std::string Baz_to_string(const T& value) {
-    // Normal converting element to string
-    std::ostringstream oss;
-    oss << value;
-    return oss.str();
-}
+    this->output << "namespace " << BAZ_NAMESPACE << " {" << std::endl;
+    this->output << R"END(// to_string code from https://medium.com/@ryan_forrester_/how-to-convert-c-boolean-to-string-b4b2b3c36d68
+    template<typename T>
+    std::string to_string(const T& value) {
+        // Normal converting element to string
+        std::ostringstream oss;
+        oss << value;
+        return oss.str();
+    }
 
-// Specialization for bool
-template<>
-std::string Baz_to_string<bool>(const bool& value) {
-    // Bool -> "true" or "false" instead of "1" and "0"
-    return value ? "true" : "false";
+    // Specialization for bool
+    template<>
+    std::string to_string<bool>(const bool& value) {
+        // Bool -> "true" or "false" instead of "1" and "0"
+        return value ? "true" : "false";
+    }
 })END" << std::endl
                  << std::endl;
 
@@ -58,9 +61,11 @@ std::string Baz_to_string<bool>(const bool& value) {
         if (auto t = std::dynamic_pointer_cast<StructType>(std::get<1>(type))) {
             this->output << "struct " << std::get<0>(type) << ";" << std::endl;
         } else if (auto t = std::dynamic_pointer_cast<EnumType>(std::get<1>(type))) {
+            this->output << "namespace " << BAZ_NAMESPACE << " {" << std::endl;
             for (auto variant : t->variants) {
-                this->output << "struct " << enum_variant_name(std::get<0>(type), variant.name.lexeme) << ";" << std::endl;
+                this->output << "struct " << enum_variant_name(std::get<0>(type), variant.name.lexeme, false) << ";" << std::endl;
             }
+            this->output << "}" << std::endl;
         }
     }
 
@@ -76,8 +81,6 @@ std::string Baz_to_string<bool>(const bool& value) {
             this->output << ">;" << std::endl;
         }
     }
-
-    this->output << std::endl;
 
     for (auto &stmt : stmts) {
         stmt->accept(*this);
@@ -348,7 +351,8 @@ void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
 
 void CppGenerator::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     auto &stmt = enum_stmt->fun_definition;
-    this->output << baz_to_cpp_type(stmt->return_type, stmt->return_type_optional) << " " << enum_method_name(enum_stmt->enum_name.lexeme, stmt->name.lexeme) << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
+    this->output << "namespace " << BAZ_NAMESPACE << " {" << std::endl;
+    this->output << baz_to_cpp_type(stmt->return_type, stmt->return_type_optional) << " " << enum_method_name(enum_stmt->enum_name.lexeme, stmt->name.lexeme, false) << "(" << enum_stmt->enum_name.lexeme << " *baz_this";
 
     for (auto &param : stmt->params) {
         this->output << ", " << baz_to_cpp_type(param.type, param.is_optional) << " " << param.name.lexeme;
@@ -366,6 +370,7 @@ void CppGenerator::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
         this->this_keyword = prev_this_keyword;
     }
 
+    this->output << "}" << std::endl;
     this->output << "}" << std::endl;
 }
 
@@ -387,11 +392,13 @@ void CppGenerator::visit_struct_decl_stmt(StructDeclStmt *stmt) {
 
 void CppGenerator::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
     for (auto &variant : stmt->variants) {
-        this->output << "struct " << enum_variant_name(stmt->name.lexeme, variant.name.lexeme) << "{ ";
+        this->output << "namespace " << BAZ_NAMESPACE << " {" << std::endl;
+        this->output << "struct " << enum_variant_name(stmt->name.lexeme, variant.name.lexeme, false) << "{ ";
         if (variant.payload_type.has_value())
             this->output << baz_to_cpp_type(variant.payload_type.value(), variant.is_optional) << " value; ";
 
         this->output << "};" << std::endl;
+        this->output << "}" << std::endl;
     }
 
     for (auto &method : stmt->methods) {
@@ -536,9 +543,9 @@ void CppGenerator::visit_print_stmt(PrintStmt *stmt) {
         if (stmt->expr.value()->get_type_info().optional) {
             this->output << "({ auto temp = ";
             stmt->expr.value()->accept(*this);
-            this->output << "; temp.has_value() ? Baz_to_string(temp.value()) : \"null\"; })";
+            this->output << "; temp.has_value() ? " << BAZ_NAMESPACE << "::to_string(temp.value()) : \"null\"; })";
         } else {
-            this->output << "Baz_to_string(";
+            this->output << BAZ_NAMESPACE << "::to_string(";
             stmt->expr.value()->accept(*this);
             this->output << ")";
         }

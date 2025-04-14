@@ -1,0 +1,4 @@
+fn main(): void {
+	let optional: int? = 5;
+	let non_optional: int = optional;
+}

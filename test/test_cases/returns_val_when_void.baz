@@ -1,0 +1,3 @@
+fn return_val_when_void(): void {
+	return 5;
+}

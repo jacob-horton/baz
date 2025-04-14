@@ -1,0 +1,3 @@
+fn return_wrong_type(): int {
+	return "hi";
+}

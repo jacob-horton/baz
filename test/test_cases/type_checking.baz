@@ -1,0 +1,40 @@
+struct SomeObject {
+	prop1: int?;
+	prop2: bool;
+
+	fn method1(arg1: float): int {
+		return 5;
+	}
+
+	fn method2(): void {}
+}
+
+fn main(): void {
+	let obj: SomeObject = SomeObject {
+		prop1: null,
+		prop2: false,
+	};
+
+	let boolean_value: bool = false;
+
+	for (let i: int = 0; i < 100; i = i + 1) {
+		if (!boolean_value && obj.method1(12.0) > 1) {
+			1 + 3 * 4 / -(obj.prop1 ?? 0);
+		}
+	}
+
+	let num: int = 1234;
+	while (num < 1240) {
+		if (num > 0) {
+			print("yay I got here\n");
+		} else {
+			print("nu uh\n");
+		}
+
+		for (let i: int = 0; i < 5; i = i + 1) {
+			println(i);
+		}
+
+		num = num + 1;
+	}
+}

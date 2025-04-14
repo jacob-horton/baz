@@ -1,0 +1,13 @@
+enum Enum {
+	Var1(int);
+	Var2;
+}
+
+fn match_stmt(): int {
+	let e: Enum = Enum::Var2;
+
+	match (e) {
+		Enum::Var1(val): { return val; },
+		Enum::Var2: {},
+	}
+}

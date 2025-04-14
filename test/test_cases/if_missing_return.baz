@@ -1,0 +1,7 @@
+fn if_stmt(): int {
+	println("hi");
+
+	if (true) {
+		return 5;
+	} else {}
+}

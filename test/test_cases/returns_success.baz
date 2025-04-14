@@ -1,0 +1,88 @@
+enum Enum {
+	Var1(int);
+	Var2;
+}
+
+fn no_return(): void {
+}
+
+fn simple_void(): void {
+	return;
+}
+
+fn simple_value(): int {
+	return 5;
+}
+
+fn long_value(): int {
+	println("hi");
+	return 5;
+}
+
+fn inner_block(): int {
+	println("hi");
+	{
+		return 5;
+	}
+}
+
+fn if_stmt(): int {
+	println("hi");
+
+	if (true) {
+		return 5;
+	} else {
+		return 3;
+	}
+}
+
+fn match_stmt(): int {
+	let e: Enum = Enum::Var2;
+
+	match (e) {
+		Enum::Var1(val): { return val; },
+		Enum::Var2: { return -1; },
+	}
+}
+
+fn match_stmt_and_final_return(): int {
+	let e: Enum = Enum::Var2;
+
+	match (e) {
+		Enum::Var1(val): { return val; },
+		Enum::Var2: { println("hi"); },
+	}
+
+	return 6;
+}
+
+fn while_stmt(): int {
+	while (true) {
+		return 5;
+	}
+}
+
+fn for_stmt(): int {
+	for (let i: int = 0; i < 10; i = i + 1) {
+		return 5;
+	}
+}
+
+fn nested(): int {
+	let e: Enum = Enum::Var2;
+
+	while (true) {
+		match (e) {
+			Enum::Var1(val): {
+				if (false) {
+					return val;
+				} else {
+					return val + 10;
+				}
+			},
+			Enum::Var2: { return -1; },
+		}
+	}
+}
+
+fn main(): void {}

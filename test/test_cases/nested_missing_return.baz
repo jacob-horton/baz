@@ -1,0 +1,19 @@
+enum Enum {
+	Var1(int);
+	Var2;
+}
+
+fn nested(): int {
+	let e: Enum = Enum::Var2;
+
+	while (true) {
+		match (e) {
+			Enum::Var1(val): {
+				if (false) {
+					return val;
+				} else {}
+			},
+			Enum::Var2: { return -1; },
+		}
+	}
+}

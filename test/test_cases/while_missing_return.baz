@@ -1,0 +1,3 @@
+fn while_stmt(): int {
+	while (true) {}
+}

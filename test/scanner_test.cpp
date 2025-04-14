@@ -1,21 +1,21 @@
-#include "../src/scanner.h"
+#include "../src/scanner/scanner.h"
 
 #include <gtest/gtest.h>
 
 TEST(ScannerTest, Keyword) {
     std::string source = "if";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     std::optional<Token> next = scan.scan_token();
     EXPECT_EQ(next->t, TokenType::IF);
 
     next = scan.scan_token();
-    EXPECT_FALSE(next.has_value());
+    EXPECT_EQ(next->t, TokenType::EOF_);
 }
 
 TEST(ScannerTest, Identifier) {
     std::string source = "some_identifier1";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     std::optional<Token> next = scan.scan_token();
     EXPECT_EQ(next->t, TokenType::IDENTIFIER);
@@ -24,7 +24,7 @@ TEST(ScannerTest, Identifier) {
 
 TEST(ScannerTest, MultipleLines) {
     std::string source = "a\nb c\n d\n \"multi\nline\nstring\" e";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     auto expected = {1, 2, 2, 3, 4, 6};
 
@@ -36,7 +36,7 @@ TEST(ScannerTest, MultipleLines) {
 
 TEST(ScannerTest, EqualTokens) {
     std::string source = "<= >= == != < > = !";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     auto expected = {
         TokenType::LESS_EQUAL,
@@ -57,11 +57,11 @@ TEST(ScannerTest, EqualTokens) {
 
 TEST(ScannerTest, SkipWhitespace) {
     std::string source = "token1      token2\t\n token3    token4 \n token5";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     int token_count = 0;
     std::optional<Token> next = scan.scan_token();
-    while (next.has_value()) {
+    while (next.has_value() && next->t != TokenType::EOF_) {
         token_count++;
         next = scan.scan_token();
     }
@@ -71,7 +71,7 @@ TEST(ScannerTest, SkipWhitespace) {
 
 TEST(ScannerTest, Numbers) {
     std::string source = "1 2.345 0.6 789";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     auto expected = {
         std::make_tuple(TokenType::INT_VAL, "1"),
@@ -89,7 +89,7 @@ TEST(ScannerTest, Numbers) {
 
 TEST(ScannerTest, RawTokenContents) {
     std::string source = "if\t identifier  1234 >   <=";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     auto expected = {"if", "identifier", "1234", ">", "<="};
 
@@ -101,7 +101,7 @@ TEST(ScannerTest, RawTokenContents) {
 
 TEST(ScannerTest, NoWhitespace) {
     std::string source = "token.other_token<5.1>3";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     auto expected = {
         TokenType::IDENTIFIER,
@@ -119,21 +119,21 @@ TEST(ScannerTest, NoWhitespace) {
 
 TEST(ScannerTest, InvalidNumber) {
     std::string source = "1token";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     EXPECT_DEATH({ scan.scan_token(); }, "Unexpected character in number: '1t'");
 }
 
 TEST(ScannerTest, InvalidSymbol) {
     std::string source = "^";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     EXPECT_DEATH({ scan.scan_token(); }, "Unrecognised symbol: '\\^'");
 }
 
 TEST(ScannerTest, DoubleTokens) {
     std::string source = "&& || ?? ? & |";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     auto expected = {
         TokenType::AND,
@@ -153,7 +153,7 @@ TEST(ScannerTest, DoubleTokens) {
 
 TEST(ScannerTest, Types) {
     std::string source = "int str float void bool string boolean";
-    TextScanner scan = TextScanner(source);
+    StringScanner scan = StringScanner(source);
 
     auto expected = {
         std::make_tuple(TokenType::TYPE, "int"),

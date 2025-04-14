@@ -1,4 +1,4 @@
-#include "../src/parser.h"
+#include "../src/parser/parser.h"
 #include "./scanner_mock.h"
 
 #include "gmock/gmock.h"

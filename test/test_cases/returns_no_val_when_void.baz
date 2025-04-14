@@ -1,0 +1,3 @@
+fn return_no_val_when_not_void(): int {
+	return;
+}

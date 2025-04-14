@@ -1,0 +1,4 @@
+fn main(): void {
+	let integer: int = 5;
+	integer = 5.0;
+}

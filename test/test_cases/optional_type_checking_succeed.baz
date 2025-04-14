@@ -1,0 +1,6 @@
+fn main(): void {
+	let non_optional: int = 5;
+	let optional: int? = non_optional;
+
+	let value: int = optional ?? 4;
+}

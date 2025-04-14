@@ -51,6 +51,8 @@ void IfStmt::accept(StmtVisitor &visitor) {
 
 EnumPattern::EnumPattern(Token enum_type, Token enum_variant, std::optional<std::unique_ptr<VarExpr>> bound_variable) : enum_type(enum_type), enum_variant(enum_variant), bound_variable(std::move(bound_variable)) {}
 
+CatchAllPattern::CatchAllPattern(std::unique_ptr<VarExpr> bound_variable) : bound_variable(std::move(bound_variable)) {}
+
 MatchBranch::MatchBranch(MatchPattern pattern, std::vector<std::unique_ptr<Stmt>> body) : pattern(std::move(pattern)), body(std::move(body)) {}
 
 MatchStmt::MatchStmt(std::unique_ptr<Expr> target, std::vector<MatchBranch> branches, Token keyword)
@@ -73,6 +75,11 @@ void ForStmt::accept(StmtVisitor &visitor) {
 PrintStmt::PrintStmt(std::optional<std::unique_ptr<Expr>> expr, bool newline) : expr(std::move(expr)), newline(newline) {}
 void PrintStmt::accept(StmtVisitor &visitor) {
     visitor.visit_print_stmt(this);
+}
+
+PanicStmt::PanicStmt(std::optional<std::unique_ptr<Expr>> expr) : expr(std::move(expr)) {}
+void PanicStmt::accept(StmtVisitor &visitor) {
+    visitor.visit_panic_stmt(this);
 }
 
 ReturnStmt::ReturnStmt(std::optional<std::unique_ptr<Expr>> expr, Token keyword) : expr(std::move(expr)), keyword(keyword) {}

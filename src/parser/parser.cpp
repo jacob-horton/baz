@@ -49,6 +49,8 @@ std::unique_ptr<Stmt> Parser::statement() {
         return this->while_statement();
     if (this->match(TokenType::PRINT))
         return this->print_statement();
+    if (this->match(TokenType::PANIC))
+        return this->panic_statement();
     if (this->match(TokenType::RETURN))
         return this->return_statement();
     if (this->match(TokenType::L_CURLY_BRACKET))
@@ -119,11 +121,11 @@ MatchPattern Parser::match_pattern() {
         exit(2);
     }
 
-    auto enum_type = this->previous();
+    auto identifier = this->previous();
 
     if (!this->match(TokenType::COLON_COLON)) {
-        this->error(this->peek(), "Expected '::' after enum name.");
-        exit(2);
+        auto payload = std::make_unique<VarExpr>(identifier);
+        return CatchAllPattern(std::move(payload));
     }
 
     if (!this->match(TokenType::IDENTIFIER)) {
@@ -145,7 +147,7 @@ MatchPattern Parser::match_pattern() {
         this->consume(TokenType::R_BRACKET, "Expected ')' after enum payload.");
     }
 
-    return EnumPattern(enum_type, enum_variant, std::move(payload));
+    return EnumPattern(identifier, enum_variant, std::move(payload));
 }
 
 std::unique_ptr<ForStmt> Parser::for_statement() {
@@ -203,6 +205,22 @@ std::unique_ptr<PrintStmt> Parser::print_statement() {
     this->consume(TokenType::SEMI_COLON, "Expected ';' after print statement.");
 
     return std::make_unique<PrintStmt>(std::move(value), print.lexeme == "println");
+}
+
+std::unique_ptr<PanicStmt> Parser::panic_statement() {
+    Token print = this->previous();
+
+    this->consume(TokenType::L_BRACKET, "Expected '(' after 'panic'.");
+    if (this->match(TokenType::R_BRACKET)) {
+        this->consume(TokenType::SEMI_COLON, "Expected ';' after panic statement.");
+        return std::make_unique<PanicStmt>(std::optional<std::unique_ptr<Expr>>{});
+    }
+
+    std::unique_ptr<Expr> value = this->expression();
+    this->consume(TokenType::R_BRACKET, "Expected closing ')' after panic value.");
+    this->consume(TokenType::SEMI_COLON, "Expected ';' after panic statement.");
+
+    return std::make_unique<PanicStmt>(std::move(value));
 }
 
 std::unique_ptr<ReturnStmt> Parser::return_statement() {

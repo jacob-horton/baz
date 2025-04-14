@@ -38,6 +38,7 @@ class CppGenerator : public ExprVisitor, public StmtVisitor {
     void visit_while_stmt(WhileStmt *stmt);
     void visit_for_stmt(ForStmt *stmt);
     void visit_print_stmt(PrintStmt *stmt);
+    void visit_panic_stmt(PanicStmt *stmt);
     void visit_return_stmt(ReturnStmt *stmt);
     void visit_assign_stmt(AssignStmt *stmt);
     void visit_set_stmt(SetStmt *stmt);

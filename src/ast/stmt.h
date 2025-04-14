@@ -113,9 +113,15 @@ struct EnumPattern {
     EnumPattern(Token enum_type, Token enum_variant, std::optional<std::unique_ptr<VarExpr>> bound_variable);
 };
 
+struct CatchAllPattern {
+    std::unique_ptr<VarExpr> bound_variable;
+
+    CatchAllPattern(std::unique_ptr<VarExpr> bound_variable);
+};
+
 struct NullPattern {};
 
-using MatchPattern = std::variant<EnumPattern, NullPattern>;
+using MatchPattern = std::variant<EnumPattern, NullPattern, CatchAllPattern>;
 
 struct MatchBranch {
     MatchPattern pattern;
@@ -179,6 +185,14 @@ struct PrintStmt : public Stmt {
     bool newline;
 
     PrintStmt(std::optional<std::unique_ptr<Expr>> expr, bool newline);
+
+    void accept(StmtVisitor &visitor) override;
+};
+
+struct PanicStmt : public Stmt {
+    std::optional<std::unique_ptr<Expr>> expr;
+
+    PanicStmt(std::optional<std::unique_ptr<Expr>> expr);
 
     void accept(StmtVisitor &visitor) override;
 };

@@ -150,6 +150,11 @@ void TypeEnvironment::visit_print_stmt(PrintStmt *stmt) {
     exit(3);
 }
 
+void TypeEnvironment::visit_panic_stmt(PanicStmt *stmt) {
+    std::cerr << "Unimplemented" << std::endl;
+    exit(3);
+}
+
 void TypeEnvironment::visit_return_stmt(ReturnStmt *stmt) {
     std::cerr << "Unimplemented" << std::endl;
     exit(3);

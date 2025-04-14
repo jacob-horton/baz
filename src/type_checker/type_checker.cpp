@@ -272,11 +272,12 @@ void TypeChecker::visit_call_expr(CallExpr *expr) {
         }
 
         for (int i = 0; i < expr->args.size(); i++) {
-            if (!expr->args[i]->get_type_info().type->can_coerce_to(this->type_env[t->params[i].type.lexeme])) {
+            expr->args[i]->accept(*this);
+            if (!this->result.type->can_coerce_to(this->type_env[t->params[i].type.lexeme])) {
                 this->error(expr->bracket, "Invalid type passed to function.");
             }
 
-            if (expr->args[i]->get_type_info().optional && !t->params[i].is_optional) {
+            if (this->result.optional && !t->params[i].is_optional) {
                 this->error(expr->bracket, "Expected non-optional type. Received optional type.");
             }
         }
@@ -408,70 +409,106 @@ void TypeChecker::visit_if_stmt(IfStmt *stmt) {
 void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
     bool all_branches_return = true;
 
-    // TODO: handle optionals (i.e. non-enum types)
     auto t = std::dynamic_pointer_cast<EnumType>(stmt->target->get_type_info().type);
-    if (!t) {
-        this->error(stmt->keyword, "Cannot match on non-enum.");
+    if (!(t || stmt->target->get_type_info().optional)) {
+        this->error(stmt->keyword, "Can only match on enum or optional.");
     }
 
-    // TODO: when supporting concrete value matching, we may have more patterns than variants. This will need rethinking
-    if (stmt->branches.size() != (t->variants.size() + (stmt->target->get_type_info().optional ? 1 : 0))) {
-        this->error(stmt->keyword, "Not all variants covered in pattern matching.");
-    }
+    if (t) {
+        // Enum
+        // TODO: when supporting concrete value matching, we may have more patterns than variants. This will need rethinking
+        if (stmt->branches.size() != (t->variants.size() + (stmt->target->get_type_info().optional ? 1 : 0))) {
+            this->error(stmt->keyword, "Not all variants covered in pattern matching.");
+        }
 
-    bool has_null_branch = false;
-    for (auto &branch : stmt->branches) {
-        if (std::holds_alternative<EnumPattern>(branch.pattern)) {
-            auto &enum_pattern = std::get<EnumPattern>(branch.pattern);
-            if (enum_pattern.enum_type.lexeme != t->name.lexeme) {
-                this->error(enum_pattern.enum_type, "Match pattern must be for the same enum type.");
-            }
-
-            auto variant_name = enum_pattern.enum_variant.lexeme;
-            auto v = std::find_if(t->variants.begin(), t->variants.end(), [variant_name](const auto &v) {
-                return v.name.lexeme == variant_name;
-            });
-
-            if (v == t->variants.end()) {
-                this->error(enum_pattern.enum_type, "Could not find variant on enum type.");
-            }
-
-            if (v->payload_type.has_value()) {
-                if (!enum_pattern.bound_variable.has_value()) {
-                    this->error(enum_pattern.enum_variant, "Enum variant expects payload.");
+        bool has_null_branch = false;
+        for (auto &branch : stmt->branches) {
+            if (std::holds_alternative<EnumPattern>(branch.pattern)) {
+                auto &enum_pattern = std::get<EnumPattern>(branch.pattern);
+                if (enum_pattern.enum_type.lexeme != t->name.lexeme) {
+                    this->error(enum_pattern.enum_type, "Match pattern must be for the same enum type.");
                 }
 
-                // TODO: when supporting concrete values, check the type is correct - make sure resolver sets the type
-                //
-                // auto payload_type = this->type_env[v->payload_type.value().lexeme];
-                // auto &provided_type_info = enum_pattern.bound_variable.value()->get_type_info();
-                // if (!can_coerce_to(provided_type_info.type, provided_type_info.optional, payload_type, /* TODO: payload optional */)) {
-                //     this->error(enum_pattern.enum_type, "Payload type must be equal to or coercible to the type in the enum definition.");
-                // }
+                auto variant_name = enum_pattern.enum_variant.lexeme;
+                auto v = std::find_if(t->variants.begin(), t->variants.end(), [variant_name](const auto &v) {
+                    return v.name.lexeme == variant_name;
+                });
+
+                if (v == t->variants.end()) {
+                    this->error(enum_pattern.enum_type, "Could not find variant on enum type.");
+                }
+
+                if (v->payload_type.has_value()) {
+                    if (!enum_pattern.bound_variable.has_value()) {
+                        this->error(enum_pattern.enum_variant, "Enum variant expects payload.");
+                    }
+
+                    // TODO: when supporting concrete values, check the type is correct - make sure resolver sets the type
+                    //
+                    // auto payload_type = this->type_env[v->payload_type.value().lexeme];
+                    // auto &provided_type_info = enum_pattern.bound_variable.value()->get_type_info();
+                    // if (!can_coerce_to(provided_type_info.type, provided_type_info.optional, payload_type, /* TODO: payload optional */)) {
+                    //     this->error(enum_pattern.enum_type, "Payload type must be equal to or coercible to the type in the enum definition.");
+                    // }
+                } else {
+                    if (enum_pattern.bound_variable.has_value()) {
+                        this->error(enum_pattern.enum_type, "No payload available for this enum variant.");
+                    }
+                }
+            } else if (std::holds_alternative<NullPattern>(branch.pattern)) {
+                has_null_branch = true;
             } else {
-                if (enum_pattern.bound_variable.has_value()) {
-                    this->error(enum_pattern.enum_type, "No payload available for this enum variant.");
-                }
+                this->error(stmt->keyword, "Can only match enum variant or null on enum.");
             }
-        } else if (std::holds_alternative<NullPattern>(branch.pattern)) {
-            has_null_branch = true;
+
+            bool returns = false;
+            for (auto &line : branch.body) {
+                line->accept(*this);
+                returns = returns || this->always_returns;
+            }
+
+            if (!returns)
+                all_branches_return = false;
         }
 
-        bool returns = false;
-        for (auto &line : branch.body) {
-            line->accept(*this);
-            returns = returns || this->always_returns;
+        if (stmt->target->get_type_info().optional && !has_null_branch) {
+            this->error(stmt->keyword, "Null variant not provided.");
         }
 
-        if (!returns)
-            all_branches_return = false;
-    }
+        this->always_returns = all_branches_return;
+    } else {
+        // Either null or bound variable
+        if (stmt->branches.size() != 2) {
+            this->error(stmt->keyword, "Not all variants covered in pattern matching.");
+        }
 
-    if (stmt->target->get_type_info().optional && !has_null_branch) {
-        this->error(stmt->keyword, "Null variant not provided.");
-    }
+        bool has_null_branch = false;
+        bool has_catch_all_branch = false;
+        for (auto &branch : stmt->branches) {
+            if (std::holds_alternative<CatchAllPattern>(branch.pattern)) {
+                has_catch_all_branch = true;
+            } else if (std::holds_alternative<NullPattern>(branch.pattern)) {
+                has_null_branch = true;
+            } else {
+                this->error(stmt->keyword, "Can only match existing or null on enum.");
+            }
 
-    this->always_returns = all_branches_return;
+            bool returns = false;
+            for (auto &line : branch.body) {
+                line->accept(*this);
+                returns = returns || this->always_returns;
+            }
+
+            if (!returns)
+                all_branches_return = false;
+        }
+
+        if (!has_null_branch || !has_catch_all_branch) {
+            this->error(stmt->keyword, "Not all variants covered in pattern matching.");
+        }
+
+        this->always_returns = all_branches_return;
+    }
 }
 
 void TypeChecker::visit_while_stmt(WhileStmt *stmt) {
@@ -511,6 +548,13 @@ void TypeChecker::visit_print_stmt(PrintStmt *stmt) {
         stmt->expr.value()->accept(*this);
 
     this->always_returns = false;
+}
+
+void TypeChecker::visit_panic_stmt(PanicStmt *stmt) {
+    if (stmt->expr.has_value())
+        stmt->expr.value()->accept(*this);
+
+    this->always_returns = true;
 }
 
 void TypeChecker::visit_return_stmt(ReturnStmt *stmt) {

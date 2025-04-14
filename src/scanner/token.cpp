@@ -34,6 +34,7 @@ const std::string get_token_type_str(TokenType t) {
         case MINUS:             return "MINUS";
         case NULL_VAL:          return "NULL";
         case OR:                return "OR";
+        case PANIC:             return "PANIC";
         case PLUS:              return "PLUS";
         case PRINT:             return "PRINT";
         case QUESTION:          return "QUESTION";

@@ -325,8 +325,8 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
     this->resolve(stmt->target.get());
 
     auto enum_type = std::dynamic_pointer_cast<EnumType>(stmt->target->get_type_info().type);
-    if (!enum_type) {
-        this->error(stmt->keyword, "Trying to pattern match on non-enum.");
+    if (!(enum_type || stmt->target->get_type_info().optional)) {
+        this->error(stmt->keyword, "Can only match on enum or optional.");
     }
 
     for (auto &branch : stmt->branches) {
@@ -358,6 +358,13 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
                 this->declare(var->name.lexeme, this->type_env[variant->payload_type.value().lexeme], variant->is_optional);
                 this->define(var->name.lexeme);
             }
+        } else if (std::holds_alternative<CatchAllPattern>(branch.pattern)) {
+            auto &catch_all_pattern = std::get<CatchAllPattern>(branch.pattern);
+            auto &var = catch_all_pattern.bound_variable;
+
+            // TODO: this only works if we know null has been checked - can't always assume type narrowed
+            this->declare(var->name.lexeme, stmt->target->get_type_info().type, false);
+            this->define(var->name.lexeme);
         }
 
         this->resolve(branch.body);
@@ -377,6 +384,11 @@ void Resolver::visit_for_stmt(ForStmt *stmt) {
 }
 
 void Resolver::visit_print_stmt(PrintStmt *stmt) {
+    if (stmt->expr.has_value())
+        this->resolve(stmt->expr.value().get());
+}
+
+void Resolver::visit_panic_stmt(PanicStmt *stmt) {
     if (stmt->expr.has_value())
         this->resolve(stmt->expr.value().get());
 }

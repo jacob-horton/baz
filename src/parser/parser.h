@@ -31,6 +31,7 @@ class Parser {
     std::unique_ptr<ForStmt> for_statement();
     std::unique_ptr<WhileStmt> while_statement();
     std::unique_ptr<PrintStmt> print_statement();
+    std::unique_ptr<PanicStmt> panic_statement();
     std::unique_ptr<ReturnStmt> return_statement();
 
     std::unique_ptr<Expr> expression();

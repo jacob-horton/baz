@@ -20,6 +20,8 @@ const std::map<std::string, TokenType> KEYWORDS = {
     {"print", TokenType::PRINT},
     {"println", TokenType::PRINT},
 
+    {"panic", TokenType::PANIC},
+
     {"let", TokenType::LET},
     {"match", TokenType::MATCH},
     {"if", TokenType::IF},

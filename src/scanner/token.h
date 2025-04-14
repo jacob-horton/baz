@@ -61,6 +61,7 @@ enum TokenType {
 
     RETURN,
     PRINT,
+    PANIC,
 
     IDENTIFIER,
 

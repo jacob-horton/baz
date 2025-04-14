@@ -495,6 +495,9 @@ void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
         } else if (std::holds_alternative<NullPattern>(branch.pattern)) {
             // Already handled
             continue;
+        } else if (std::holds_alternative<CatchAllPattern>(branch.pattern)) {
+            // Handled at end
+            continue;
         }
 
         for (auto &stmt : branch.body) {
@@ -503,6 +506,20 @@ void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
 
         this->output << "}" << std::endl;
         first = false;
+    }
+
+    auto catch_all_branch = std::find_if(stmt->branches.begin(), stmt->branches.end(), [](const auto &b) {
+        return std::holds_alternative<CatchAllPattern>(b.pattern);
+    });
+    if (catch_all_branch != stmt->branches.end()) {
+        auto &catch_all_pattern = std::get<CatchAllPattern>(catch_all_branch->pattern);
+        this->output << "else {" << std::endl;
+        this->output << "auto " << catch_all_pattern.bound_variable->name.lexeme << " = " << target_var << ".value();" << std::endl;
+        for (auto &stmt : catch_all_branch->body) {
+            stmt->accept(*this);
+        }
+
+        this->output << "}" << std::endl;
     }
 }
 
@@ -555,6 +572,27 @@ void CppGenerator::visit_print_stmt(PrintStmt *stmt) {
         this->output << " << std::endl";
 
     this->output << ";" << std::endl;
+}
+
+void CppGenerator::visit_panic_stmt(PanicStmt *stmt) {
+    this->output << "std::cerr";
+
+    if (stmt->expr.has_value()) {
+        this->output << " << ";
+
+        if (stmt->expr.value()->get_type_info().optional) {
+            this->output << "({ auto temp = ";
+            stmt->expr.value()->accept(*this);
+            this->output << "; temp.has_value() ? " << BAZ_NAMESPACE << "::to_string(temp.value()) : \"null\"; })";
+        } else {
+            this->output << BAZ_NAMESPACE << "::to_string(";
+            stmt->expr.value()->accept(*this);
+            this->output << ")";
+        }
+    }
+
+    this->output << " << std::endl;" << std::endl;
+    this->output << "exit(1);" << std::endl;
 }
 
 void CppGenerator::visit_return_stmt(ReturnStmt *stmt) {

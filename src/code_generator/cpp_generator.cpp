@@ -260,6 +260,7 @@ void CppGenerator::visit_call_expr(CallExpr *expr) {
                             this->output << ", ";
 
                         arg->accept(*this);
+                        first = false;
                     }
 
                     this->output << "); }})";

@@ -28,7 +28,7 @@ fn main(): void {
 		if (num > 0) {
 			print("yay I got here\n");
 		} else {
-			print("nu uh\n");
+			print("didn't get there\n");
 		}
 
 		for (let i: int = 0; i < 5; i = i + 1) {

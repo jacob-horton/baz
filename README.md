@@ -11,7 +11,7 @@ I have decided to output to C++ so that I can focus on making a good language an
 
 # Building
 
-To build the baz compiler/transpiler on a Unix like system:
+To build the Baz transpiler on a Unix like system:
 ```bash
 mkdir ./build
 cd ./build
@@ -23,12 +23,17 @@ chmod +x baz
 
 # Running
 
-To compile a specific file, use the following
+To compile a specific file, use the following:
 ```bash
 ./baz <input_file>
 ```
 
-Otherwise, by default it will compile `./examples/type_checking.baz`
+The outputted C++ file can then be compiled with:
 ```bash
-./baz
+g++ output.cpp -o main
+```
+
+Then executed with:
+```bash
+./main
 ```

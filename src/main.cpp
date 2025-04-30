@@ -23,18 +23,18 @@ std::string read_file(std::string path) {
 
 int main(int argc, char *argv[]) {
     auto begin = std::chrono::high_resolution_clock::now();
-    auto source = read_file("./examples/turing_machine.baz");
-    if (argc == 2) {
-        auto arg = argv[1];
-        if (strcmp(arg, "--help") == 0) {
-            std::cout << "Usage:" << std::endl
-                      << "- './baz'                compile a default example piece of code" << std::endl
-                      << "- './baz <source_code>'  compile the specified source code file" << std::endl;
-            exit(0);
-        }
-
-        source = read_file(argv[1]);
+    if (argc != 2) {
+        std::cerr << "Expected path to source code" << std::endl;
+        exit(1);
     }
+
+    auto arg = argv[1];
+    if (strcmp(arg, "--help") == 0) {
+        std::cout << "Usage: './baz <source_code_path>'  compile the specified source code file" << std::endl;
+        exit(0);
+    }
+
+    auto source = read_file(argv[1]);
 
     auto scan = std::make_unique<StringScanner>(source);
     Parser parser = Parser(std::move(scan));

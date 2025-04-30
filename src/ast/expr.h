@@ -21,7 +21,7 @@ struct TypeInfo {
 
 struct Expr {
   protected:
-    // NOTE: this gets set during resolving
+    // NOTE: this gets set during resolving/type checking
     std::optional<TypeInfo> type_info;
 
   public:

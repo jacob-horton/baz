@@ -155,7 +155,7 @@ struct WhileStmt : public Stmt {
 
 struct AssignStmt : public Stmt {
   private:
-    // NOTE: this gets set when resolving
+    // NOTE: this gets set when resolving/type checking
     std::optional<TypeInfo> target_type_info;
 
   public:
@@ -210,7 +210,7 @@ struct ReturnStmt : public Stmt {
 
 struct SetStmt : public Stmt {
   private:
-    // NOTE: this gets set when resolving
+    // NOTE: this gets set when resolving/type checking
     std::optional<TypeInfo> target_type_info;
 
   public:

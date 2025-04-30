@@ -10,6 +10,7 @@ struct EqualSymbol {
     TokenType with_equal;
 };
 
+// All keywords and associated token type
 const std::map<std::string, TokenType> KEYWORDS = {
     {"interface", TokenType::INTERFACE},
     {"struct", TokenType::STRUCT},
@@ -57,6 +58,7 @@ const std::map<char, TokenType> DOUBLE_SYMBOLS = {
     {':', TokenType::COLON_COLON},
 };
 
+// All symbols that are only singular
 const std::map<char, TokenType> SYMBOLS = {
     {'{', TokenType::L_CURLY_BRACKET},
     {'}', TokenType::R_CURLY_BRACKET},
@@ -102,6 +104,7 @@ class StringScanner : public Scanner {
     Token symbol(char start);
     void skip_whitespace();
 
+    // Utility functions
     bool match(char c);
     char advance();
     char peek();

@@ -21,57 +21,15 @@ void TypeEnvironment::generate_type_env(std::vector<std::unique_ptr<Stmt>> &stmt
     }
 }
 
-// Expressions
-void TypeEnvironment::visit_var_expr(VarExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
+//// Statements
 
-void TypeEnvironment::visit_struct_init_expr(StructInitExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-void TypeEnvironment::visit_binary_expr(BinaryExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-void TypeEnvironment::visit_unary_expr(UnaryExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-void TypeEnvironment::visit_get_expr(GetExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-void TypeEnvironment::visit_enum_init_expr(EnumInitExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-void TypeEnvironment::visit_call_expr(CallExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-void TypeEnvironment::visit_grouping_expr(GroupingExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-void TypeEnvironment::visit_literal_expr(LiteralExpr *expr) {
-    std::cerr << "Unimplemented" << std::endl;
-    exit(3);
-}
-
-// Statements
+// Do nothing - no new type
 void TypeEnvironment::visit_fun_decl_stmt(FunDeclStmt *stmt) {}
 
+// Do nothing - no new type
 void TypeEnvironment::visit_enum_method_decl_stmt(EnumMethodDeclStmt *stmt) {}
 
+// User defined struct type
 void TypeEnvironment::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
     this->type_env[stmt->name.lexeme] = std::make_unique<StructType>(stmt->name, stmt->properties, methods);
@@ -91,6 +49,7 @@ void TypeEnvironment::visit_struct_decl_stmt(StructDeclStmt *stmt) {
     }
 }
 
+// User defined email
 void TypeEnvironment::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
     std::vector<std::tuple<Token, std::shared_ptr<Type>>> methods;
     this->type_env[stmt->name.lexeme] = std::make_unique<EnumType>(stmt->name, stmt->variants, methods);
@@ -109,6 +68,8 @@ void TypeEnvironment::visit_enum_decl_stmt(EnumDeclStmt *stmt) {
         t->methods.push_back(std::make_tuple(method->fun_definition->name, func_type));
     }
 }
+
+//// These are "unimplemented" as the type environment only checks top level, so should never reach these
 
 void TypeEnvironment::visit_variable_decl_stmt(VariableDeclStmt *stmt) {
     std::cerr << "Unimplemented" << std::endl;

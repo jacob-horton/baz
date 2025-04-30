@@ -8,6 +8,7 @@
 TypeInfo::TypeInfo(std::shared_ptr<Type> type, bool optional) : type(type), optional(optional) {}
 
 TypeInfo Expr::get_type_info() {
+    // Fail if type info not set (i.e. if missed by resolver/type checker)
     if (!this->type_info.has_value()) {
         std::cerr << "[BUG] type info not set" << std::endl;
         exit(3);
@@ -19,6 +20,8 @@ TypeInfo Expr::get_type_info() {
 void Expr::set_type_info(TypeInfo type_info) {
     this->type_info = type_info;
 }
+
+//// Visitor pattern boilerplate code
 
 VarExpr::VarExpr(Token name) : name(name) {}
 void VarExpr::accept(ExprVisitor &visitor) {

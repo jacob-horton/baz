@@ -11,6 +11,7 @@
 // Forward declaration - actual implementation will import the visitor
 class ExprVisitor;
 
+// Type + whether it is optional
 struct TypeInfo {
     std::shared_ptr<Type> type;
     bool optional;
@@ -31,6 +32,8 @@ struct Expr {
     Expr() : type_info(std::nullopt) {}
     virtual ~Expr() = default;
 };
+
+//// Types of expressions
 
 struct VarExpr : public Expr {
     Token name;

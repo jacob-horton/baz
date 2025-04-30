@@ -7,6 +7,7 @@
 #include <vector>
 
 Parser::Parser(std::unique_ptr<Scanner> scanner) : scanner(std::move(scanner)) {
+    // Set up first token
     this->advance();
 }
 
@@ -16,8 +17,9 @@ std::optional<std::unique_ptr<Stmt>> Parser::parse_stmt() {
 
 std::optional<std::unique_ptr<Stmt>> Parser::top_level_decl() {
     if (this->peek().t == TokenType::EOF_)
-        return {};
+        return std::nullopt;
 
+    // Can only declare structs, enums, and functions at top level
     if (this->match(TokenType::STRUCT))
         return this->struct_decl();
 
@@ -31,6 +33,7 @@ std::optional<std::unique_ptr<Stmt>> Parser::top_level_decl() {
     exit(2);
 }
 
+// Declarations that can only be done nested inside a function
 std::unique_ptr<Stmt> Parser::nested_decl() {
     if (this->match(TokenType::LET))
         return this->variable_decl();
@@ -39,6 +42,7 @@ std::unique_ptr<Stmt> Parser::nested_decl() {
 }
 
 std::unique_ptr<Stmt> Parser::statement() {
+    // Handle each statement based on keyword
     if (this->match(TokenType::IF))
         return this->if_statement();
     if (this->match(TokenType::MATCH))
@@ -57,6 +61,8 @@ std::unique_ptr<Stmt> Parser::statement() {
         return std::make_unique<BlockStmt>(std::move(this->block()));
 
     std::unique_ptr<Expr> expr = this->expression();
+
+    // If expression is followed by `=`, this is an assignment - parse the right hand side as an expression
     if (this->match(TokenType::EQUAL)) {
         std::unique_ptr<Stmt> assign_stmt = this->assignment(*expr);
         this->consume(TokenType::SEMI_COLON, "Expected ';' after assignment.");
@@ -78,7 +84,6 @@ std::unique_ptr<IfStmt> Parser::if_statement() {
 
     auto true_block = this->block();
 
-    // TODO: else if
     std::optional<std::vector<std::unique_ptr<Stmt>>> false_block = std::nullopt;
     if (this->match(TokenType::ELSE)) {
         this->consume(TokenType::L_CURLY_BRACKET, "Expected '{' before else branch.");
@@ -358,6 +363,7 @@ std::unique_ptr<FunDeclStmt> Parser::function_decl(FunType fun_type) {
     Token return_type = this->type();
     bool return_type_optional = this->match(TokenType::QUESTION);
 
+    // Main function must be type void
     if (fun_type == FunType::FUNCTION && name.lexeme == "main") {
         if (return_type.lexeme != "void") {
             this->error(return_type, "Main function must have return type of 'void'.");
@@ -491,24 +497,25 @@ std::unique_ptr<Expr> Parser::call() {
             // Enum variant
             Token name = this->consume(TokenType::IDENTIFIER, "Expected variant name after '.'.");
 
-            if (auto e = std::unique_ptr<VarExpr>(dynamic_cast<VarExpr *>(expr.release()))) {
-                std::optional<std::unique_ptr<Expr>> payload = std::nullopt;
-
-                // If payload
-                if (this->match(TokenType::L_BRACKET)) {
-                    auto inner = this->expression();
-                    this->consume(TokenType::R_BRACKET, "Expected ')' after enum payload.");
-                    payload = std::move(inner);
-                }
-
-                expr = std::make_unique<EnumInitExpr>(
-                    name,
-                    std::move(e),
-                    std::move(payload));
-            } else {
+            auto e = std::unique_ptr<VarExpr>(dynamic_cast<VarExpr *>(expr.release()));
+            if (!e) {
                 std::cerr << "[BUG] tried to use variant on non-enum." << std::endl;
                 exit(3);
             }
+
+            std::optional<std::unique_ptr<Expr>> payload = std::nullopt;
+
+            // If variant has a payload
+            if (this->match(TokenType::L_BRACKET)) {
+                auto inner = this->expression();
+                this->consume(TokenType::R_BRACKET, "Expected ')' after enum payload.");
+                payload = std::move(inner);
+            }
+
+            expr = std::make_unique<EnumInitExpr>(
+                name,
+                std::move(e),
+                std::move(payload));
         } else if (this->match(TokenType::DOT)) {
             // Property access
             Token name = this->consume(TokenType::IDENTIFIER, "Expected property name after '.'.");
@@ -585,6 +592,7 @@ std::unique_ptr<Expr> Parser::finish_struct_init(Token name) {
     return std::make_unique<StructInitExpr>(name, std::move(properties));
 }
 
+// Get next token
 Token Parser::advance() {
     this->prev = this->current;
     this->current = scanner->scan_token();
@@ -592,10 +600,12 @@ Token Parser::advance() {
     return this->previous();
 }
 
+// Look at current token
 Token Parser::peek() {
     return this->current;
 }
 
+// Look at previous token
 Token Parser::previous() {
     if (!this->prev.has_value()) {
         std::cerr << "[BUG] Expected previous token to exist." << std::endl;
@@ -605,6 +615,7 @@ Token Parser::previous() {
     return this->prev.value();
 }
 
+// If current token is of the provided type, advance and return true. Else, return false
 bool Parser::match(TokenType t) {
     if (this->check(t)) {
         this->advance();
@@ -614,14 +625,13 @@ bool Parser::match(TokenType t) {
     return false;
 }
 
+// Return true if the current token matches the provided token type
 bool Parser::check(TokenType t) {
     Token curr = this->peek();
-    if (curr.t == TokenType::EOF_)
-        return false;
-
     return curr.t == t;
 }
 
+// Expect the current token to be of type `t`, otherwise error and output the provided message
 Token Parser::consume(TokenType t, std::string error_message) {
     if (this->check(t))
         return this->advance();
@@ -630,6 +640,7 @@ Token Parser::consume(TokenType t, std::string error_message) {
     exit(2);
 }
 
+// Error reporting with line number
 void Parser::error(Token error_token, std::string message) {
     std::string where = "end";
     if (error_token.t != TokenType::EOF_)

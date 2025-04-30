@@ -8,6 +8,7 @@
 
 inline const std::string BAZ_NAMESPACE = "Baz";
 
+// Convert a string representing a Baz type into the equivalent type in C++
 std::string baz_to_cpp_type(Token type, bool optional) {
     if (type.t == TokenType::TYPE && type.lexeme == "str") {
         return optional ? "std::optional<std::string>" : "std::string";
@@ -18,10 +19,12 @@ std::string baz_to_cpp_type(Token type, bool optional) {
     return optional ? "std::optional<" + full_non_optional_type + ">" : full_non_optional_type;
 }
 
+// Get the namespaced variant struct name
 std::string enum_variant_name(std::string enum_name, std::string variant_name, bool namespaced = true) {
     return (namespaced ? BAZ_NAMESPACE + "::" : "") + enum_name + "_" + variant_name;
 }
 
+// Get the namespaced enum method
 std::string enum_method_name(std::string enum_name, std::string method_name, bool namespaced = true) {
     return (namespaced ? BAZ_NAMESPACE + "::" : "") + enum_name + "_" + method_name;
 }
@@ -29,6 +32,7 @@ std::string enum_method_name(std::string enum_name, std::string method_name, boo
 CppGenerator::CppGenerator(std::ostream &output, std::map<std::string, std::shared_ptr<Type>> type_env) : output(output), this_keyword("this"), type_env(type_env) {}
 
 void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
+    // Relevant includes
     this->output << "#include <iostream>" << std::endl
                  << "#include <variant>" << std::endl
                  << "#include <string>" << std::endl
@@ -36,7 +40,7 @@ void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
                  << "#include <sstream>" << std::endl
                  << std::endl;
 
-    // To-string function
+    // To-string function - adds specialisation for booleans to print as "true" or "false"
     this->output << "namespace " << BAZ_NAMESPACE << " {" << std::endl;
     this->output << R"END(// to_string code from https://medium.com/@ryan_forrester_/how-to-convert-c-boolean-to-string-b4b2b3c36d68
     template<typename T>
@@ -88,7 +92,8 @@ void CppGenerator::generate(std::vector<std::unique_ptr<Stmt>> &stmts) {
     }
 }
 
-// Expressions
+//// Expressions
+
 void CppGenerator::visit_var_expr(VarExpr *expr) {
     if (expr->name.lexeme == "this") {
         this->output << this->this_keyword;
@@ -112,7 +117,6 @@ void CppGenerator::visit_struct_init_expr(StructInitExpr *expr) {
             auto name = prop.name.lexeme;
 
             // Find corresponding property
-            // TODO: use hashmap or lookup function
             auto p = std::find_if(expr->properties.begin(), expr->properties.end(), [name](const auto &t) {
                 return std::get<0>(t).lexeme == name;
             });
@@ -190,8 +194,6 @@ void CppGenerator::visit_enum_init_expr(EnumInitExpr *expr) {
 }
 
 void CppGenerator::visit_call_expr(CallExpr *expr) {
-    // TODO: so much duplication - reduce (also reduce with get_expr)
-
     // If we are doing x.y()
     if (auto *get_expr = dynamic_cast<GetExpr *>(expr->callee.get())) {
         // And x is an enum type
@@ -322,7 +324,8 @@ void CppGenerator::visit_literal_expr(LiteralExpr *expr) {
     this->output << expr->literal.lexeme;
 }
 
-// Statements
+//// Statements
+
 void CppGenerator::visit_fun_decl_stmt(FunDeclStmt *stmt) {
     std::string return_type = baz_to_cpp_type(stmt->return_type, stmt->return_type_optional);
 
@@ -452,7 +455,7 @@ void CppGenerator::visit_if_stmt(IfStmt *stmt) {
 }
 
 void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
-    // TODO: make sure this is a unique name
+    // TODO: make sure this is a unique name within the scope
     std::string target_var("baz_enum_target");
     this->output << "auto " << target_var << " = ";
     stmt->target->accept(*this);
@@ -483,6 +486,7 @@ void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
         this->output << "}";
     }
 
+    // Generate code for each branch
     for (auto &branch : stmt->branches) {
         auto if_keyword = first ? "if" : "else if";
         if (std::holds_alternative<EnumPattern>(branch.pattern)) {
@@ -509,6 +513,7 @@ void CppGenerator::visit_match_stmt(MatchStmt *stmt) {
         first = false;
     }
 
+    // Finally do fallback/catch all branch
     auto catch_all_branch = std::find_if(stmt->branches.begin(), stmt->branches.end(), [](const auto &b) {
         return std::holds_alternative<CatchAllPattern>(b.pattern);
     });
@@ -607,7 +612,6 @@ void CppGenerator::visit_return_stmt(ReturnStmt *stmt) {
 
 void CppGenerator::visit_assign_stmt(AssignStmt *stmt) {
     if (stmt->name.lexeme == "this") {
-        // TODO: is this what we want
         // If we're reassigning "this", need to dereference
         this->output << "*" << this->this_keyword << " = *";
     } else {
@@ -621,8 +625,6 @@ void CppGenerator::visit_assign_stmt(AssignStmt *stmt) {
 }
 
 void CppGenerator::visit_set_stmt(SetStmt *stmt) {
-    // TODO: handle optional set stmt
-
     stmt->object->accept(*this);
     this->output << "->" << stmt->name.lexeme << " = ";
 

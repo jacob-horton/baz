@@ -4,6 +4,7 @@
 
 #include <memory>
 
+// Utility class to contain variable name and type
 struct TypedVar {
     Token name;
     Token type;

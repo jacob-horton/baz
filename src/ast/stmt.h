@@ -24,6 +24,8 @@ enum FunType {
     METHOD,
 };
 
+//// Types of statements
+
 struct FunDeclStmt : public Stmt {
     Token name;
     Token return_type;

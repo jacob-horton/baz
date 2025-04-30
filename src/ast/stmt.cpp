@@ -4,6 +4,8 @@
 #include <memory>
 #include <optional>
 
+//// Visitor pattern boilerplate code
+
 FunDeclStmt::FunDeclStmt(Token name, std::vector<TypedVar> params, Token return_type, bool return_type_optional, std::vector<std::unique_ptr<Stmt>> body, FunType fun_type)
     : name(name), params(params), return_type(return_type), return_type_optional(return_type_optional), body(std::move(body)), fun_type(fun_type) {}
 void FunDeclStmt::accept(StmtVisitor &visitor) {

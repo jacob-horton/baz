@@ -2,6 +2,7 @@
 
 #include "stmt.h"
 
+// Visitor pattern interface
 class StmtVisitor {
   public:
     virtual void visit_fun_decl_stmt(FunDeclStmt *stmt) = 0;

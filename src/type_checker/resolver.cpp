@@ -10,6 +10,7 @@ Resolver::Resolver(std::map<std::string, std::shared_ptr<Type>> type_env) : type
     this->scopes.push_back({});
 }
 
+// Print error with line number and exit
 void Resolver::error(Token error_token, std::string message) {
     std::string where = "end";
     if (error_token.t != TokenType::EOF_)
@@ -27,6 +28,7 @@ void Resolver::end_scope() {
     this->scopes.pop_back();
 }
 
+// Resolve a list of statements
 void Resolver::resolve(std::vector<std::unique_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) {
         stmt->accept(*this);
@@ -41,7 +43,9 @@ void Resolver::resolve(Expr *expr) {
     expr->accept(*this);
 }
 
+// Try to find the variable name in an accessible scope
 std::optional<ResolvedVariable> Resolver::resolve_local(Token name) {
+    // Loop from current scope, up to top - find the first one to match the variable name
     for (int i = this->scopes.size() - 1; i >= 0; i--) {
         auto scope = this->scopes[i];
         auto resolved = scope.find(name.lexeme);
@@ -50,16 +54,19 @@ std::optional<ResolvedVariable> Resolver::resolve_local(Token name) {
         }
     }
 
-    return {};
+    return std::nullopt;
 }
 
 void Resolver::resolve_function(FunDeclStmt *fun) {
     this->begin_scope();
+
+    // Declare and define all parameters
     for (auto param : fun->params) {
         this->declare(param.name.lexeme, this->type_env[param.type.lexeme], param.is_optional);
         this->define(param.name.lexeme);
     }
 
+    // Resolve the body
     this->resolve(fun->body);
     this->end_scope();
 }
@@ -67,10 +74,12 @@ void Resolver::resolve_function(FunDeclStmt *fun) {
 void Resolver::resolve_struct(StructDeclStmt *s) {
     this->begin_scope();
 
+    // Always have access to "this" within a struct
     std::string this_keyword("this");
     this->declare(this_keyword, this->type_env[s->name.lexeme], false);
     this->define(this_keyword);
 
+    // Declare and define all properties
     for (auto &prop : s->properties) {
         auto type = this->type_env.find(prop.type.lexeme);
         if (type == this->type_env.end())
@@ -80,6 +89,7 @@ void Resolver::resolve_struct(StructDeclStmt *s) {
         this->define(prop.name.lexeme);
     }
 
+    // Resolve all methods
     for (auto &method : s->methods) {
         method->accept(*this);
     }
@@ -90,10 +100,12 @@ void Resolver::resolve_struct(StructDeclStmt *s) {
 void Resolver::resolve_enum(EnumDeclStmt *e) {
     this->begin_scope();
 
+    // Always have access to "this" within an enum
     std::string this_keyword("this");
     this->declare(this_keyword, this->type_env[e->name.lexeme], false);
     this->define(this_keyword);
 
+    // Resolve all methods
     for (auto &method : e->methods) {
         method->accept(*this);
     }
@@ -101,6 +113,7 @@ void Resolver::resolve_enum(EnumDeclStmt *e) {
     this->end_scope();
 }
 
+// Define a variable after it has been declared
 void Resolver::define(std::string &name) {
     auto &scope = this->scopes.back();
     auto val = scope.find(name);
@@ -112,6 +125,7 @@ void Resolver::define(std::string &name) {
     scope[name].defined = true;
 }
 
+// Declare a variable and its type in the current scope
 void Resolver::declare(std::string &name, std::shared_ptr<Type> type, bool optional) {
     auto &scope = this->scopes.back();
 
@@ -122,7 +136,8 @@ void Resolver::declare(std::string &name, std::shared_ptr<Type> type, bool optio
         optional};
 }
 
-// Expressions
+//// Expressions
+
 void Resolver::visit_var_expr(VarExpr *expr) {
     auto resolved = this->resolve_local(expr->name);
     if (!resolved.has_value()) {
@@ -227,6 +242,7 @@ void Resolver::visit_grouping_expr(GroupingExpr *expr) {
 
 // NOTE: no variables to resolve here
 void Resolver::visit_literal_expr(LiteralExpr *expr) {
+    // Set type info if literal
     switch (expr->literal.t) {
         case TokenType::INT_VAL:   expr->set_type_info(TypeInfo(this->type_env["int"], false)); break;
         case TokenType::FLOAT_VAL: expr->set_type_info(TypeInfo(this->type_env["float"], false)); break;
@@ -243,9 +259,9 @@ void Resolver::visit_literal_expr(LiteralExpr *expr) {
     };
 }
 
-// Statements
+//// Statements
+
 void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
-    // TODO: move this to FunDeclStmt? To match with StructDeclStmt
     auto func_type = std::make_shared<FunctionType>(
         stmt->name,
         stmt->params,
@@ -262,7 +278,6 @@ void Resolver::visit_fun_decl_stmt(FunDeclStmt *stmt) {
 void Resolver::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     auto &stmt = enum_stmt->fun_definition;
 
-    // TODO: move this to FunDeclStmt? To match with StructDeclStmt
     auto func_type = std::make_shared<FunctionType>(
         stmt->name,
         stmt->params,
@@ -272,7 +287,6 @@ void Resolver::visit_enum_method_decl_stmt(EnumMethodDeclStmt *enum_stmt) {
     this->declare(stmt->name.lexeme, func_type, false);
     this->define(stmt->name.lexeme);
 
-    // TODO: put this in method
     this->begin_scope();
     for (auto param : stmt->params) {
         this->declare(param.name.lexeme, this->type_env[param.type.lexeme], false);
@@ -333,6 +347,7 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
         if (std::holds_alternative<EnumPattern>(branch.pattern)) {
             auto &enum_pattern = std::get<EnumPattern>(branch.pattern);
 
+            // If we have a bound value - check its type and declare/define it
             if (enum_pattern.bound_variable.has_value()) {
                 auto &var = enum_pattern.bound_variable.value();
                 auto name = enum_pattern.enum_variant.lexeme;
@@ -342,7 +357,6 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
                     this->error(enum_pattern.enum_type, "Pattern must be an enum variant.");
                 }
 
-                // TODO: use hashmap or lookup function
                 auto variant = std::find_if(pattern_type->variants.begin(), pattern_type->variants.end(), [name](const auto &t) {
                     return t.name.lexeme == name;
                 });
@@ -362,7 +376,6 @@ void Resolver::visit_match_stmt(MatchStmt *stmt) {
             auto &catch_all_pattern = std::get<CatchAllPattern>(branch.pattern);
             auto &var = catch_all_pattern.bound_variable;
 
-            // TODO: this only works if we know null has been checked - can't always assume type narrowed
             this->declare(var->name.lexeme, stmt->target->get_type_info().type, false);
             this->define(var->name.lexeme);
         }

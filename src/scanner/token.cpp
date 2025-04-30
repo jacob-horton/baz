@@ -1,5 +1,6 @@
 #include "token.h"
 
+// Utility function for printing in a human-readable form
 const std::string get_token_type_str(TokenType t) {
     switch (t) {
         case AND:               return "AND";
@@ -55,6 +56,7 @@ const std::string get_token_type_str(TokenType t) {
     }
 }
 
+// Utility function for printin the full token information
 std::ostream &operator<<(std::ostream &os, const Token &t) {
     os << " ";
 

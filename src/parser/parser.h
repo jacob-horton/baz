@@ -24,6 +24,7 @@ class Parser {
     std::unique_ptr<EnumDeclStmt> enum_decl();
     std::unique_ptr<VariableDeclStmt> variable_decl();
 
+    // Statements
     std::unique_ptr<Stmt> statement();
     std::unique_ptr<Stmt> assignment(Expr &lhs);
     std::unique_ptr<IfStmt> if_statement();
@@ -34,6 +35,7 @@ class Parser {
     std::unique_ptr<PanicStmt> panic_statement();
     std::unique_ptr<ReturnStmt> return_statement();
 
+    // Expressions
     std::unique_ptr<Expr> expression();
     std::unique_ptr<Expr> logical_or();
     std::unique_ptr<Expr> logical_and();
@@ -55,6 +57,7 @@ class Parser {
     EnumVariant enum_variant_decl();
     Token type();
 
+    // Utility functions
     Token advance();
     Token peek();
     Token previous();

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <ostream>
 
+// Utility functions
 bool is_alpha(char c) {
     if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_')
         return true;
@@ -27,14 +28,17 @@ bool is_alphanum(char c) {
     return false;
 }
 
+// Make a token from the current token at the current line
 Token StringScanner::make_token(TokenType t) {
     return this->make_token(t, std::string(this->token_start, this->current - this->token_start));
 }
 
+// Make a token from the current line
 Token StringScanner::make_token(TokenType t, std::string lexeme) {
     return this->make_token(t, lexeme, this->line);
 }
 
+// Make a token from scratch
 Token StringScanner::make_token(TokenType t, std::string lexeme, long line) {
     return Token{t, lexeme, line};
 }
@@ -70,7 +74,7 @@ std::optional<TokenType> StringScanner::get_keyword_type() {
 
     auto token_type = KEYWORDS.find(word);
     if (token_type == KEYWORDS.end())
-        return {};
+        return std::nullopt;
 
     return token_type->second;
 }
@@ -120,6 +124,7 @@ Token StringScanner::symbol(char start) {
 }
 
 void StringScanner::skip_whitespace() {
+    // Consume all whitespace, updating line number where necessary
     while (true) {
         switch (this->peek()) {
             case '\n':
@@ -168,6 +173,7 @@ void StringScanner::skip_whitespace() {
     }
 }
 
+// If the current character matches the provided one, advance and return true. Else, return false
 bool StringScanner::match(char c) {
     if (*this->current == c) {
         this->current++;
@@ -177,6 +183,7 @@ bool StringScanner::match(char c) {
     return false;
 }
 
+// Move to the next character, and return it
 char StringScanner::advance() {
     char current = *this->current;
     this->current++;
@@ -184,18 +191,22 @@ char StringScanner::advance() {
     return current;
 }
 
+// Look at the current character
 char StringScanner::peek() {
     return *this->current;
 }
 
+// Look at the next character
 char StringScanner::peek_next() {
     return this->current[1];
 }
 
+// Scan a quoted string
 Token StringScanner::string() {
     long start_line = this->line;
 
     while (this->peek() != '"' && this->current < this->end) {
+        // Remember to increase line number if multiline string
         if (this->peek() == '\n')
             this->line++;
 

@@ -9,23 +9,14 @@
 #include <memory>
 #include <string>
 
-class TypeEnvironment : public ExprVisitor, public StmtVisitor {
+// Only implements `StmtVisitor` as it does not need to check expressions
+class TypeEnvironment : public StmtVisitor {
   public:
     std::map<std::string, std::shared_ptr<Type>> type_env;
 
     TypeEnvironment();
 
     void generate_type_env(std::vector<std::unique_ptr<Stmt>> &stmts);
-
-    void visit_var_expr(VarExpr *expr);
-    void visit_struct_init_expr(StructInitExpr *expr);
-    void visit_binary_expr(BinaryExpr *expr);
-    void visit_unary_expr(UnaryExpr *expr);
-    void visit_get_expr(GetExpr *expr);
-    void visit_enum_init_expr(EnumInitExpr *expr);
-    void visit_call_expr(CallExpr *expr);
-    void visit_grouping_expr(GroupingExpr *expr);
-    void visit_literal_expr(LiteralExpr *expr);
 
     void visit_fun_decl_stmt(FunDeclStmt *stmt);
     void visit_enum_method_decl_stmt(EnumMethodDeclStmt *stmt);

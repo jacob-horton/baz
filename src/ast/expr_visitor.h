@@ -2,6 +2,7 @@
 
 #include "expr.h"
 
+// Visitor pattern interface
 class ExprVisitor {
   public:
     virtual void visit_var_expr(VarExpr *expr) = 0;

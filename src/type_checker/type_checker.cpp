@@ -6,13 +6,16 @@
 #include <memory>
 
 bool can_coerce_to(std::shared_ptr<Type> from, bool from_optional, std::shared_ptr<Type> to, bool to_optional) {
+    // If going from an optional to non-optional, it cannot coerce
     if (from_optional && !to_optional) {
         return false;
     }
 
+    // Allow `null` to coerce to any optional type
     if (to_optional && from->type_class == TypeClass::NULL_)
         return true;
 
+    // Check if the type itself can coerce
     return from->can_coerce_to(to);
 }
 
@@ -22,12 +25,14 @@ bool TypeChecker::is_numeric(Type *t) {
     return t->can_coerce_to(this->type_env["int"]) || t->can_coerce_to(this->type_env["float"]);
 }
 
+// Check all statements have valid types
 void TypeChecker::check(std::vector<std::unique_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) {
         stmt->accept(*this);
     }
 }
 
+// Error message with line number
 void TypeChecker::error(Token error_token, std::string message) {
     std::string where = "end";
     if (error_token.t != TokenType::EOF_)
@@ -38,7 +43,8 @@ void TypeChecker::error(Token error_token, std::string message) {
     throw TypeCheckerError::OP_ON_INCOMPATIBLE_TYPES;
 }
 
-// Expressions
+//// Expressions
+
 void TypeChecker::visit_var_expr(VarExpr *expr) {
     this->result = expr->get_type_info();
     expr->set_type_info(this->result);
@@ -55,7 +61,6 @@ void TypeChecker::visit_struct_init_expr(StructInitExpr *expr) {
             auto name = prop.name.lexeme;
 
             // Find corresponding property
-            // TODO: use hashmap or lookup function
             auto p = std::find_if(expr->properties.begin(), expr->properties.end(), [name](const auto &p) {
                 return std::get<0>(p).lexeme == name;
             });
@@ -149,7 +154,8 @@ void TypeChecker::visit_binary_expr(BinaryExpr *expr) {
             this->always_returns = false;
             return;
         }
-        case TokenType::EQUAL_EQUAL: {
+        case TokenType::EQUAL_EQUAL:
+        case TokenType::BANG_EQUAL:  {
             expr->left->accept(*this);
             auto left_t = this->result;
 
@@ -266,23 +272,27 @@ void TypeChecker::visit_enum_init_expr(EnumInitExpr *expr) {
 void TypeChecker::visit_call_expr(CallExpr *expr) {
     expr->callee->accept(*this);
 
-    if (auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->get_type_info().type)) {
-        if (expr->args.size() != t->params.size()) {
-            this->error(expr->bracket, "Expected " + std::to_string(t->params.size()) + " arguments, received " + std::to_string(expr->args.size()) + ".");
-        }
-
-        for (int i = 0; i < expr->args.size(); i++) {
-            expr->args[i]->accept(*this);
-            if (!this->result.type->can_coerce_to(this->type_env[t->params[i].type.lexeme])) {
-                this->error(expr->bracket, "Invalid type passed to function.");
-            }
-
-            if (this->result.optional && !t->params[i].is_optional) {
-                this->error(expr->bracket, "Expected non-optional type. Received optional type.");
-            }
-        }
-    } else {
+    // Check we are calling a function
+    auto t = std::dynamic_pointer_cast<FunctionType>(expr->callee->get_type_info().type);
+    if (!t) {
         this->error(expr->bracket, "Cannot call non-function.");
+    }
+
+    // Check the number of arguments equals the number of parameters
+    if (expr->args.size() != t->params.size()) {
+        this->error(expr->bracket, "Expected " + std::to_string(t->params.size()) + " arguments, received " + std::to_string(expr->args.size()) + ".");
+    }
+
+    // Check that all parameters have the correct type
+    for (int i = 0; i < expr->args.size(); i++) {
+        expr->args[i]->accept(*this);
+        if (!this->result.type->can_coerce_to(this->type_env[t->params[i].type.lexeme])) {
+            this->error(expr->bracket, "Invalid type passed to function.");
+        }
+
+        if (this->result.optional && !t->params[i].is_optional) {
+            this->error(expr->bracket, "Expected non-optional type. Received optional type.");
+        }
     }
 
     this->result = expr->get_type_info();
@@ -305,14 +315,16 @@ void TypeChecker::visit_literal_expr(LiteralExpr *expr) {
     this->always_returns = false;
 }
 
-// Statements
+//// Statements
+
 void TypeChecker::visit_fun_decl_stmt(FunDeclStmt *fun) {
     auto prev_fn_ret_type = this->surrounding_fn_return_type;
-    this->surrounding_fn_return_type = Temp{
+    this->surrounding_fn_return_type = OptionalTypeInfo{
         fun->return_type,
         fun->return_type_optional,
     };
 
+    // Ensure at least one line of the body returns
     bool returns = false;
     for (auto &s : fun->body) {
         s->accept(*this);
@@ -321,6 +333,7 @@ void TypeChecker::visit_fun_decl_stmt(FunDeclStmt *fun) {
 
     this->surrounding_fn_return_type = prev_fn_ret_type;
 
+    // If not void, it must return a value from every path
     if (fun->return_type.lexeme != "void" && !returns) {
         this->error(fun->name, "Not all code paths return.");
     }
@@ -416,7 +429,6 @@ void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
 
     if (t) {
         // Enum
-        // TODO: when supporting concrete value matching, we may have more patterns than variants. This will need rethinking
         if (stmt->branches.size() != (t->variants.size() + (stmt->target->get_type_info().optional ? 1 : 0))) {
             this->error(stmt->keyword, "Not all variants covered in pattern matching.");
         }
@@ -424,6 +436,7 @@ void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
         bool has_null_branch = false;
         for (auto &branch : stmt->branches) {
             if (std::holds_alternative<EnumPattern>(branch.pattern)) {
+                // Check that match pattern is valid and matches the type of the target
                 auto &enum_pattern = std::get<EnumPattern>(branch.pattern);
                 if (enum_pattern.enum_type.lexeme != t->name.lexeme) {
                     this->error(enum_pattern.enum_type, "Match pattern must be for the same enum type.");
@@ -442,14 +455,6 @@ void TypeChecker::visit_match_stmt(MatchStmt *stmt) {
                     if (!enum_pattern.bound_variable.has_value()) {
                         this->error(enum_pattern.enum_variant, "Enum variant expects payload.");
                     }
-
-                    // TODO: when supporting concrete values, check the type is correct - make sure resolver sets the type
-                    //
-                    // auto payload_type = this->type_env[v->payload_type.value().lexeme];
-                    // auto &provided_type_info = enum_pattern.bound_variable.value()->get_type_info();
-                    // if (!can_coerce_to(provided_type_info.type, provided_type_info.optional, payload_type, /* TODO: payload optional */)) {
-                    //     this->error(enum_pattern.enum_type, "Payload type must be equal to or coercible to the type in the enum definition.");
-                    // }
                 } else {
                     if (enum_pattern.bound_variable.has_value()) {
                         this->error(enum_pattern.enum_type, "No payload available for this enum variant.");

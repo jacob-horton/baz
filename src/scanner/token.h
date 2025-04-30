@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <string>
 
+// All possible token types
 enum TokenType {
     L_CURLY_BRACKET,
     R_CURLY_BRACKET,

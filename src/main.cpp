@@ -1,9 +1,11 @@
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <ostream>
 #include <string>
 #include <vector>
 
+#include "ast/stmt.h"
 #include "code_generator/cpp_generator.h"
 #include "parser/parser.h"
 #include "scanner/scanner.h"
@@ -20,7 +22,8 @@ std::string read_file(std::string path) {
 }
 
 int main(int argc, char *argv[]) {
-    auto source = read_file("./examples/tree_traversal.baz");
+    auto begin = std::chrono::high_resolution_clock::now();
+    auto source = read_file("./examples/turing_machine.baz");
     if (argc == 2) {
         auto arg = argv[1];
         if (strcmp(arg, "--help") == 0) {
@@ -61,11 +64,14 @@ int main(int argc, char *argv[]) {
     }
 
     // Generate C++
-    std::ofstream file("output.cpp");
+    std::string output_file("output.cpp");
+    std::ofstream file(output_file);
     auto cpp_generator = CppGenerator(file, type_env.type_env);
     cpp_generator.generate(stmts);
 
-    std::cout << "Successfully outputted to './output.cpp'" << std::endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    auto us = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+    std::cout << "Successfully outputted to '" << output_file << "' in " << us << "us" << std::endl;
 
     return 0;
 }

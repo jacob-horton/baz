@@ -6,7 +6,6 @@
 struct EnumVariant {
     Token name;
 
-    // TODO: have type + is_optional in a "type" struct - reduce duplication with "typed_var"
     std::optional<Token> payload_type;
     bool is_optional;
 

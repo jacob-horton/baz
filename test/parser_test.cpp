@@ -56,13 +56,3 @@ TEST(ParserTest, BinaryOperator) {
     auto right = CHECK_AND_CAST(expr->right.get(), LiteralExpr *);
     EXPECT_EQ(right->literal.t, TokenType::FLOAT_VAL);
 }
-
-// TODO: precedence tests
-// TODO: struct tests
-// TODO: enum tests
-// TODO: function tests
-// TODO: only struct, enum, function at top level tests
-// TODO: if/else-if/else tests
-// TODO: invalid syntax tests
-// TODO: match tests
-// TODO: print vs println tests

@@ -1,0 +1,252 @@
+// Individual cell on tape
+struct TapeElem {
+	value: str;
+	next: TapeElem?;
+
+	fn insert(val: str): void {
+		match (this.next) {
+			null: { this.next = TapeElem { value: val, next: null }; },
+			next: { next.insert(val); },
+		}
+	}
+
+	fn print_tape(): void {
+		print(this.value);
+		if (!(this.next == null)) {
+			this.next?.print_tape();
+		}
+	}
+
+	fn get(idx: int): str? {
+		if (idx == 0) {
+			return this.value;
+		}
+
+		return this.next?.get(idx - 1);
+	}
+
+	fn set(idx: int, val: str): void {
+		if (idx == 0) {
+			this.value = val;
+			return;
+		}
+
+		match (this.next) {
+			// If at end, insert
+			null: { this.insert(val); },
+			next: { next.set(idx - 1, val); }
+		}
+	}
+}
+
+// Whole tape utility wrapper
+struct Tape {
+	head: TapeElem?;
+
+	fn insert(val: str): void {
+		match (this.head) {
+			null: { this.head = TapeElem { value: val, next: null }; },
+			head: { head.insert(val); },
+		}
+	}
+
+	fn print_tape(): void {
+		this.head?.print_tape();
+		println();
+	}
+
+	fn get(idx: int): str? {
+		return this.head?.get(idx);
+	}
+
+	fn set(idx: int, val: str): void {
+		this.head?.set(idx, val);
+	}
+}
+
+// Transition (from -> to [head change])
+struct TransitionElem {
+	from: str;
+	to: str;
+
+	// `direction` is -1, 0, or 1 (left, no movement, right)
+	direction: int;
+	next_state: int;
+
+	// Other possible transitions
+	next: TransitionElem?;
+
+	fn insert(t: TransitionElem): void {
+		match (this.next) {
+			null: { this.next = t; },
+			next: { next.insert(t); },
+		}
+	}
+
+	fn transition(tape_val: str): TransitionElem? {
+		if (tape_val == this.from) {
+			return this;
+		}
+
+		return next?.transition(tape_val);
+	}
+}
+
+// List of all transitions
+struct Transitions {
+	head: TransitionElem?;
+
+	fn insert(t: TransitionElem): void {
+		match (this.head) {
+			null: { this.head = t; },
+			head: { head.insert(t); },
+		}
+	}
+
+	fn transition(tape_val: str): TransitionElem? {
+		return this.head?.transition(tape_val);
+	}
+}
+
+// Utility function direction how to change the tape
+struct TapeChange {
+	write: str;
+	direction: int;
+	halt: bool;
+}
+
+// A single state in the state machine
+struct State {
+	halting: bool;
+	transitions: Transitions;
+	next: State?;
+
+	// Get the next transition given the current tape value
+	fn transition(tape_val: str): TransitionElem? {
+		return this.transitions.transition(tape_val);
+	}
+
+	fn get(idx: int): State? {
+		if (idx == 0) {
+			return this;
+		}
+
+		return this.next?.get(idx - 1);
+	}
+
+	fn insert(t: State): void {
+		match (this.next) {
+			null: { this.next = t; },
+			next: { next.insert(t); },
+		}
+	}
+}
+
+struct StateMachine {
+	current: int;
+	head: State?;
+
+	// Find the correct transition given the current state and current tape value
+	// Will update the current state, and return how to change the tape (as well as whether to halt)
+	fn transition(tape_val: str): TapeChange? {
+		let state: State? = this.get(this.current);
+		let t: TransitionElem? = state?.transition(tape_val);
+
+		match (t) {
+			// Transition not found
+			null: { return null; },
+			// Transition found - return it
+			transition: {
+				this.current = transition.next_state;
+				let should_halt: bool = this.get(this.current)?.halting ?? true;
+
+				return TapeChange {
+					write: transition.to,
+					direction: transition.direction,
+					halt: should_halt,
+				};
+			}
+		}
+	}
+
+	fn get(idx: int): State? {
+		return this.head?.get(idx);
+	}
+
+	fn set_state(idx: int): void {
+		this.current = idx;
+	}
+
+	fn insert(s: State): void {
+		match (this.head) {
+			null: { this.head = s; },
+			head: { head.insert(s); },
+		}
+	}
+}
+
+// Full Turing machine
+struct TuringMachine {
+	head: int;
+	tape: Tape;
+	sm: StateMachine;
+
+	// Returns true when should continue
+	fn step(): bool {
+		match (tape.get(head)) {
+			null: { panic("ERROR - reached end of tape."); },
+			curr: {
+				let c: TapeChange? = this.sm.transition(curr);
+				match (c) {
+					null: { panic("ERROR - no transition for state."); },
+					change: {
+						// Modify tape
+						this.tape.set(head, change.write);
+
+						// Move tape head
+						this.head = this.head + change.direction;
+
+						// Continue if not in a halting state
+						return !change.halt;
+					}
+				}
+			}
+		}
+	}
+}
+
+fn main(): void {
+	// Initial tape
+	let tape: Tape = Tape { head: null };
+	tape.insert("1");
+	tape.insert("1");
+	tape.insert("0");
+	tape.insert("1");
+	tape.insert("0");
+	tape.insert("0");
+	tape.insert("0");
+	tape.insert("#");
+
+	// Change 0 -> 1, 1 -> 0, and move to halting state if reached end
+	let transitions: Transitions = Transitions { head: null };
+	transitions.insert(TransitionElem { next: null, from: "0", to: "1", direction: 1, next_state: 0 });
+	transitions.insert(TransitionElem { next: null, from: "1", to: "0", direction: 1, next_state: 0 });
+	transitions.insert(TransitionElem { next: null, from: "#", to: "#", direction: 0, next_state: 1 });
+
+	// Main state
+	let sm: StateMachine = StateMachine { current: 0, head: null };
+	sm.insert(State { halting: false, transitions: transitions, next: null });
+
+	// Halting state (no transitions)
+	sm.insert(State { halting: true, transitions: Transitions { head: null }, next: null });
+
+	let tm: TuringMachine = TuringMachine { head: 0, tape: tape, sm: sm };
+
+	// Step until halting state
+	let running: bool = true;
+	while (running) {
+		running = tm.step();
+	}
+
+	tape.print_tape();
+}

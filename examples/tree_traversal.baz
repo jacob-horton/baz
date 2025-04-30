@@ -4,32 +4,10 @@ struct TreeNode {
 	left: TreeNode?;
 	right: TreeNode?;
 
-	fn sum(): int {
-		return this.value + this.left?.sum() ?? 0 + this.right?.sum() ?? 0;
-	}
-
-	fn increment_nodes(): void {
-		this.value = this.value + 1;
-		this.left?.increment_nodes();
-		this.right?.increment_nodes();
-	}
-
-	fn in_order(): void {
-		this.left?.in_order();
+	fn in_order_traversal(): void {
+		this.left?.in_order_traversal();
 		println(this.value);
-		this.right?.in_order();
-	}
-
-	fn pre_order(): void {
-		println(this.value);
-		this.left?.pre_order();
-		this.right?.pre_order();
-	}
-
-	fn post_order(): void {
-		this.left?.post_order();
-		this.right?.post_order();
-		println(this.value);
+		this.right?.in_order_traversal();
 	}
 
 	fn insert(num: int): void {
@@ -51,11 +29,13 @@ struct TreeNode {
 	fn contains(num: int): bool {
 		if (num == this.value) {
 			return true;
-		} else { if (num < this.value) {
-			return this.left?.contains(num) ?? false;
 		} else {
-			return this.right?.contains(num) ?? false;
-		}}
+			if (num < this.value) {
+				return this.left?.contains(num) ?? false;
+			} else {
+				return this.right?.contains(num) ?? false;
+			}
+		}
 	}
 }
 
@@ -66,12 +46,13 @@ fn main(): void {
 		right: null,
 	};
 
-	tree.insert(4);
+	tree.insert(3);
+	tree.insert(9);
+	tree.insert(6);
 	tree.insert(8);
-	tree.insert(7);
 
 	println("==== IN-ORDER TRAVERSAL ====");
-	tree.in_order();
+	tree.in_order_traversal();
 
 	println("\n==== NUMBERS IN TREE ====");
 	let i: int = 0;
@@ -82,12 +63,4 @@ fn main(): void {
 
 		i = i + 1;
 	}
-
-	println("\n==== SUM OF VALUES ====");
-	print("Before increment: ");
-	println(tree.sum());
-
-	tree.increment_nodes();
-	print("After increment:  ");
-	println(tree.sum());
 }

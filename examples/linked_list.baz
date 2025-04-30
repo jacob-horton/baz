@@ -1,0 +1,77 @@
+struct Node {
+    value: int;
+    next: Node?;
+    prev: Node?;
+
+    fn append(value: int): void {
+        match (this.next) {
+            null: {
+                this.next = Node {
+                    value: value,
+                    next: null,
+                    prev: this,
+                };
+            },
+            next: {
+                next.append(value);
+            },
+        }
+    }
+
+    // Returns start of list - if inserting at start, the first node will change
+    fn insert_at(idx: int, value: int): Node {
+        if (idx == 0) {
+            return Node {
+                value: value,
+                next: this,
+                prev: this.prev,
+            };
+        }
+
+        match (this.next) {
+            null: {
+                this.next = Node {
+                    value: value,
+                    next: null,
+                    prev: this,
+                };
+            },
+            next: {
+                this.next = next.insert_at(idx - 1, value);
+            },
+        }
+
+        return this;
+    }
+
+    fn print_list(): void {
+        match (this.next) {
+            null: {
+                println(this.value);
+            },
+            next: {
+                print(this.value);
+                print(", ");
+                next.print_list();
+            }
+        }
+    }
+}
+
+fn main(): void {
+    let list: Node = Node {
+        value: 4,
+        next: null,
+        prev: null,
+    };
+
+    list.append(5);
+    list.append(7);
+
+    list = list.insert_at(0, 3);
+    list = list.insert_at(0, 1);
+    list = list.insert_at(1, 2);
+    list = list.insert_at(5, 6);
+
+    list.print_list();
+}

@@ -1,4 +1,4 @@
-struct Name {
+struct SomeObject {
 	prop1: int?;
 	prop2: bool;
 
@@ -10,16 +10,16 @@ struct Name {
 }
 
 fn main(): void {
-	let name: Name = Name {
+	let obj: SomeObject = SomeObject {
 		prop1: null,
 		prop2: false,
 	};
 
-	let other: bool = false;
+	let boolean_value: bool = false;
 
 	for (let i: int = 0; i < 100; i = i + 1) {
-		if (!other && name.method1(12.0) > 1) {
-			1 + 3 * 4 / -(name.prop1 ?? 0);
+		if (!boolean_value && obj.method1(12.0) > 1) {
+			1 + 3 * 4 / -(obj.prop1 ?? 0);
 		}
 	}
 

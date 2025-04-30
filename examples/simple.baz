@@ -1,0 +1,34 @@
+// A simple program to greet a user and count things
+struct Greeter {
+	name: str;
+	greeted: bool;
+
+	fn greet(): void {
+		if (!this.greeted) {
+			println("Hello, " + this.name + "!");
+			this.greeted = true;
+		} else {
+			println("We've already met, " + this.name + ".");
+		}
+	}
+}
+
+fn count_to(limit: int): void {
+	for (let i: int = 1; i <= limit; i = i + 1) {
+		println(i);
+	}
+}
+
+fn main(): void {
+	let g: Greeter = Greeter {
+		name: "Ada",
+		greeted: false,
+	};
+
+	g.greet();  // First greeting
+	g.greet();  // Should say already greeted
+
+	println();
+	println("Counting to 5:");
+	count_to(5);
+}

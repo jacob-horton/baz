@@ -1,6 +1,6 @@
 struct TreeNode {
-	left: Tree;
-	right: Tree;
+	left: Tree?;
+	right: Tree?;
 }
 
 enum Tree {
@@ -11,7 +11,7 @@ enum Tree {
 		match (this) {
 			Tree::Leaf(value): { return value; },
 			Tree::Node(tree_node): {
-				return tree_node.left.sum() + tree_node.right.sum();
+				return tree_node.left?.sum() ?? 0 + tree_node.right?.sum() ?? 0;
 			}
 		}
 	}
@@ -22,8 +22,8 @@ enum Tree {
 				this = Tree::Leaf(value + 1);
 			},
 			Tree::Node(tree_node): {
-				tree_node.left.increment_leaves();
-				tree_node.right.increment_leaves();
+				tree_node.left?.increment_leaves();
+				tree_node.right?.increment_leaves();
 			}
 		}
 	}
@@ -35,7 +35,12 @@ fn main(): void {
 			left: Tree::Leaf(1),
 			right: Tree::Node(
 				TreeNode {
-					left: Tree::Leaf(2),
+					left: Tree::Node(
+						TreeNode {
+							left: null,
+							right: Tree::Leaf(2),
+						}
+					),
 					right: Tree::Leaf(3),
 				}
 			),

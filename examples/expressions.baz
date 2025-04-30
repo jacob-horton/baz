@@ -1,0 +1,45 @@
+struct ExprPair {
+    left: Expr;
+    right: Expr;
+}
+
+enum Expr {
+    Number(float);
+
+    Add(ExprPair);
+    Subtract(ExprPair);
+    Multiply(ExprPair);
+    Divide(ExprPair);
+
+    fn evaluate(): float {
+        match (this) {
+            Expr::Number(value): { return value; },
+            Expr::Add(pair): { return pair.left.evaluate() + pair.right.evaluate(); },
+            Expr::Subtract(pair): { return pair.left.evaluate() - pair.right.evaluate(); },
+            Expr::Multiply(pair): { return pair.left.evaluate() * pair.right.evaluate(); },
+            Expr::Divide(pair): {
+                let right: float = pair.right.evaluate();
+                if (right == 0.0) {
+                    panic("Cannot divide by 0");
+                }
+
+                return pair.left.evaluate() / pair.right.evaluate();
+            },
+        }
+    }
+}
+
+fn main(): void {
+    let expr: Expr = Expr::Multiply(ExprPair{
+        left: Expr::Add(ExprPair{
+            left: Expr::Number(5.0),
+            right: Expr::Divide(ExprPair {
+                left: Expr::Number(90.0),
+                right: Expr::Number(10.0),
+            }),
+        }),
+        right: Expr::Number(8.0),
+    });
+
+    println(expr.evaluate());
+}

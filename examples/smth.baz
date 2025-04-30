@@ -1,0 +1,93 @@
+enum Result {
+	Ok(int);
+	Err(str);
+
+	fn unwrap(): int {
+		match (this) {
+			Result::Ok(value): { return value; },
+			Result::Err(message): {
+				println("Tried to unwrap an error: " + message);
+				return 0;
+			}
+		}
+	}
+}
+
+struct ExprPair {
+	left: Expr;
+	right: Expr;
+}
+
+enum Expr {
+	Number(int);
+	Add(ExprPair);
+	Divide(ExprPair);
+
+	fn eval(): Result {
+		match (this) {
+			Expr::Number(n): {
+				return Result::Ok(n);
+			},
+			Expr::Add(pair): {
+				let l: Result = pair.left.eval();
+				let r: Result = pair.right.eval();
+
+				match (l) {
+					Result::Ok(a): {
+						match (r) {
+							Result::Ok(b): {
+								return Result::Ok(a + b);
+							},
+							Result::Err(e): {
+								return Result::Err(e);
+							},
+						}
+					},
+					Result::Err(e): {
+						return Result::Err(e);
+					},
+				}
+			},
+			Expr::Divide(pair): {
+				let l: Result = pair.left.eval();
+				let r: Result = pair.right.eval();
+
+				match (r) {
+					Result::Ok(b): {
+						if (b == 0) {
+							return Result::Err("Division by zero");
+						}
+						
+						match (l) {
+							Result::Ok(a): {
+								return Result::Ok(a / b);
+							},
+							Result::Err(e): {
+								return Result::Err(e);
+							},
+						}
+					},
+					Result::Err(e): {
+						return Result::Err(e);
+					},
+				}
+			}
+		}
+	}
+}
+
+fn main(): void {
+	let good_expr: Expr = Expr::Add(
+		ExprPair {
+			left: Expr::Number(4),
+			right: Expr::Divide(ExprPair { left: Expr::Number(10), right: Expr::Number(2) }),
+		}
+	);
+
+	let bad_expr: Expr = Expr::Divide(ExprPair { left: Expr::Number(1), right: Expr::Number(0) });
+
+	print("Good expr result: ");
+	println(good_expr.eval().unwrap());
+	println("Bad expr result: ");
+	println(bad_expr.eval().unwrap()); // This will panic
+}

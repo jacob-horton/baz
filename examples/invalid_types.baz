@@ -1,0 +1,21 @@
+enum Foo {
+	Foo1;
+	Foo2;
+}
+
+enum Bar {
+	Bar1;
+	Bar2;
+}
+
+fn main(): void {
+	let foo: Foo = Foo::Foo1;
+	match (foo) {
+		Bar::Bar1: {
+			println("handled");
+		},
+		Bar::Bar2: {
+			println("handled");
+		},
+	}
+}
